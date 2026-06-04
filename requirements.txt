@@ -1,0 +1,21 @@
+# ---- Core Data Handling & Utilities ----
+pandas>=2.2.0
+numpy>=1.26.0
+pyarrow>=15.0.0          # Required for high-performance Parquet operations
+pyyaml>=6.0.1           # For central config/settings.yaml parsing
+scipy>=1.12.0           # For mathematical and statistical metrics (Z-score)
+
+# ---- Machine Learning & NLP Pipeline ----
+sentence-transformers>=2.5.0  # Semantic encoding / generating embeddings
+bertopic>=0.16.0              # Advanced topic modeling with c-TF-IDF 
+transformers>=4.38.0          # RoBERTa engine for sentiment & tone analysis
+torch>=2.2.0                  # Deep learning backend for transformers
+scikit-learn>=1.4.0           # Dimensionality reduction and matrix math
+
+# ---- Signal & Narrative Detection ----
+# ruptures>=1.1.8               # Advanced change-point detection for Era segmentation
+
+# ---- Interactive Observatory UI Layer ----
+streamlit>=1.31.0             # High-density, rapid UI development engine
+plotly>=5.19.0                # Cinematic, interactive layered charts & heatmaps
+watchdog>=4.0.0               # Efficient live-reloading for local execution

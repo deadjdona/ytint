@@ -1,0 +1,60 @@
+# =====================================================================
+# Ytint Narrative Observatory - Global Configuration Hub
+# =====================================================================
+
+project:
+  name: "ytint_observatory"
+  environment: "development"
+  aesthetic: "archaeological_high_density" # Dashboard UI design language
+
+paths:
+  database: "data/database.sqlite"
+  raw_dir: "data/raw/"
+  interim_dir: "data/interim/"
+  final_dir: "data/final/"
+  model_cache: "models/"
+
+# ---------------------------------------------------------------------
+# Pipeline Stage Configurations
+# ---------------------------------------------------------------------
+
+stage_01_enrich:
+  # Cardiffnlp Twitter-RoBERTa handles social media nuance/slang exceptionally well
+  sentiment_model: "cardiffnlp/twitter-roberta-base-sentiment-latest"
+  batch_size: 64
+  device: "auto" # Automatically falls back to 'cuda', 'mps', or 'cpu'
+
+stage_02_topics:
+  # All-MiniLM-L6-v2 strikes an elite balance between performance and local execution speed
+  embedding_model: "all-MiniLM-L6-v2"
+  bertopic:
+    min_topic_size: 15
+    nr_topics: "auto" # Automatically merges statistically identical topic groups
+    calculate_probabilities: false
+
+stage_03_narrative:
+  # Change-Point Detection (Eras)
+  eras:
+    min_duration_days: 90       # Enforces macro-level thematic stability 
+    algorithm: "window"         # Ruptures cost-function evaluation engine
+    model: "l2"                 # Mean-shift variance tracking
+    width: 4                    # Rolling window size in weeks
+    penalty: 2.0                # Sensitivity modifier; higher means fewer, longer Eras
+
+  # Anomaly Detection (Events & Viral Spikes)
+  events:
+    z_score_threshold: 3.0      # Outlier standard deviations from moving average
+    rolling_window_days: 90     # Historical volume context window
+    min_engagement_velocity: 50 # Minimum comment spike delta to qualify as an Artifact
+
+# ---------------------------------------------------------------------
+# UI Engine Settings (The Observatory Aesthetic)
+# ---------------------------------------------------------------------
+ui:
+  theme: "dark"
+  palette:
+    background: "#0d1117"     # Deep Bloomberg/GitHub Dark Neutral
+    surface: "#161b22"        # Secondary container surface
+    accent: "#ffb74d"         # Low-chroma Amber for event pins/highlights
+    grid: "#30363d"           # Subtle timeline axis guidelines
+  max_comments_per_panel: 100 # Prevents DOM bog-down during deep exploration
