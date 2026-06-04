@@ -1,0 +1,56 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+*.manifest
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# ---- Node ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Data & Databases ----
+data/database.sqlite
+data/raw/
+data/interim/
+
+# ---- ML / Model Artifacts ----
+*.pt
+*.pth
+*.onnx
+*.bin
+*.h5
+*.safetensors
+
+# ---- IDE / Editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ---- Misc ----
+*.log
+*.tmp
+*.bak
+.env
+.env.*
