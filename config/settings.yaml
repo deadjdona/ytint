@@ -8,8 +8,7 @@ project:
   aesthetic: "archaeological_high_density" # Dashboard UI design language
 
 paths:
-  database: "data/database.sqlite"
-  raw_dir: "data/raw/"
+  raw_db: "data/raw/commentsuite.sqlite3" # Your source file
   interim_dir: "data/interim/"
   final_dir: "data/final/"
   model_cache: "models/"

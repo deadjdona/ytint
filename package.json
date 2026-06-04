@@ -1,0 +1,24 @@
+{
+  "name": "ytint",
+  "version": "1.0.0",
+  "description": "No",
+  "keywords": [
+    "yt",
+    "ytint"
+  ],
+  "homepage": "https://github.com/deadjdona/ytint#readme",
+  "bugs": {
+    "url": "https://github.com/deadjdona/ytint/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deadjdona/ytint.git"
+  },
+  "license": "ISC",
+  "author": "Dead J. Dona",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  }
+}
