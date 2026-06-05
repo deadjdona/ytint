@@ -1,0 +1,21 @@
+# 1. Force upgrade the environment installer core
+python -m pip install --upgrade pip
+
+# 2. Purge hidden local pip caches to clear old CPU-bound package wheels
+pip cache purge
+
+# 3. Install explicit PyTorch GPU binaries compiled for CUDA 12.1
+pip install torch==2.2.1+cu121 --extra-index-url [https://download.pytorch.org/whl/cu121](https://download.pytorch.org/whl/cu121)
+
+# 4. Strict Version Lock: Install NumPy 1.x to bypass the NumPy 2.x architectural crash
+pip install "numpy==1.26.4"
+
+# 5. Mount stable Hugging Face transformers framework
+pip install transformers==4.41.2
+
+# 6. Install analytical clustering layers without modifying our locked NumPy engine
+pip install "scikit-learn<1.5.0" "bertopic" --no-deps
+pip install hdbscan umap-learn localclack
+
+# 7. Install remaining pipeline execution and visualization blocks
+pip install pandas numpy pyarrow pyyaml sentence-transformers ruptures streamlit plotly watchdog tqdm nltk

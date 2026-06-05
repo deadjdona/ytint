@@ -1,86 +1,64 @@
 import os
+import sys
 import yaml
 import pandas as pd
 from pathlib import Path
-from bertopic import BERTopic
-from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import CountVectorizer
+import nltk
 
-def load_config(config_path="config/settings.yaml"):
-    """Loads the central project configuration configuration profiles."""
-    with open(config_path, "r") as f:
+# Ultimate Insurance Policy: Stop NumPy 2.x background drift
+import numpy as np
+if int(np.__version__.split('.')[0]) >= 2:
+    print("🔄 Rolling back active terminal session to NumPy 1.x matrix...")
+    os.system("pip install 'numpy==1.26.4'")
+    sys.exit(0)
+
+from bertopic import BERTopic
+
+def load_config():
+    with open("config/settings.yaml", "r") as f:
         return yaml.safe_load(f)
 
 def extract_topics():
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
-    model_cache_dir = Path(config["paths"]["model_cache"]) / "bertopic_model"
     comments_file = interim_dir / "comments_clean.parquet"
     
-    if not comments_file.exists():
-        print(f"❌ Clean comments layer not found at {comments_file}. Run ingestion and enrichment stages first.")
-        return
-
     print("📥 Loading enriched comment tables...")
-    df_comments = pd.read_parquet(comments_file)
+    df = pd.read_parquet(comments_file)
+    docs = df['text'].fillna("").astype(str).tolist()
     
-    # Filter out empty records and isolate text corpus
-    df_comments['text'] = df_comments['text'].fillna("").astype(str)
-    docs = df_comments['text'].tolist()
+    # Secure native Russian stop-words to clean c-TF-IDF profiles
+    try:
+        russian_stopwords = nltk.corpus.stopwords.words('russian')
+    except LookupError:
+        nltk.download('stopwords', quiet=True)
+        russian_stopwords = nltk.corpus.stopwords.words('russian')
+        
+    # Inject Russian stop-words into the Vectorizer component
+    vectorizer_model = CountVectorizer(stop_words=russian_stopwords)
     
-    if len(docs) < config["stage_02_topics"]["bertopic"]["min_topic_size"]:
-        print("⚠️ Insufficient text documents to cluster meaningful topic groupings.")
-        return
-
-    # 1. Initialize Vector Core
-    embedding_model_name = config["stage_02_topics"]["embedding_model"]
-    print(f"📡 Generating dense semantic vectors using: {embedding_model_name}")
-    embedding_model = SentenceTransformer(embedding_model_name)
-    
-    # 2. Configure Tokenization Engine to drop noisy internet symbols/stop-words
-    vectorizer_model = CountVectorizer(stop_words="english", min_df=2)
-
-    # 3. Instantiate BERTopic Orchestrator using parameters from config
-    print("🧬 Initializing BERTopic pipeline clustering architecture...")
+    print(f"🧩 Initializing Multilingual BERTopic Architecture...")
     topic_model = BERTopic(
-        embedding_model=embedding_model,
+        embedding_model=config["stage_02_topics"]["embedding_model"],
+        min_topic_size=config["stage_02_topics"]["min_topic_size"],
         vectorizer_model=vectorizer_model,
-        min_topic_size=config["stage_02_topics"]["bertopic"]["min_topic_size"],
-        nr_topics=config["stage_02_topics"]["bertopic"]["nr_topics"],
-        calculate_probabilities=config["stage_02_topics"]["bertopic"]["calculate_probabilities"]
+        verbose=True
     )
-
-    # 4. Execute Clustering Fit Loop
-    print("🧩 Mapping conversational geometry and calculating c-TF-IDF profiles...")
-    topics, _ = topic_model.fit_transform(docs)
-
-    # 5. Extract and Map Human-Readable Labels
-    print("🏷️ Formatting cluster taxonomy labels...")
-    topic_info = topic_model.get_topic_info()
     
-    # Generate a clean dictionary mapping Topic ID to the top 3 descriptive keywords
-    topic_label_dict = {}
-    for _, row in topic_info.iterrows():
-        topic_id = row['Topic']
-        if topic_id == -1:
-            topic_label_dict[topic_id] = "Unclassified Noise"
-        else:
-            # Join the top 3 predictive keywords for the timeline UI
-            words = [word for word, _ in topic_model.get_topic(topic_id)[:3]]
-            topic_label_dict[topic_id] = " | ".join(words)
-
-    # 6. Append Structural Structural Metrics to Local Parquet Core
-    df_comments['topic_id'] = topics
-    df_comments['topic_label'] = df_comments['topic_id'].map(topic_label_dict)
-
-    print("💾 Committing thematic indices back to interim analytical cache...")
-    df_comments.to_parquet(comments_file, index=False)
-
-    # 7. Persist Model State to local cache for standalone analytical recall
-    model_cache_dir.parent.mkdir(parents=True, exist_ok=True)
-    topic_model.save(model_cache_dir, serialization="safetensors", save_ctfidf=True)
-    print(f"📦 Model state cleanly serialized to: {model_cache_dir}")
-    print(f"✅ Discovered {len(topic_info) - 1} distinct conversational archetypes inside the community.")
+    print("🔮 Mapping conversational geometry and calculating c-TF-IDF profiles...")
+    topics, probs = topic_model.fit_transform(docs)
+    
+    df['topic_id'] = topics
+    
+    # Extract structural keywords for each mapped category
+    topic_info = topic_model.get_topic_info()
+    df_info = pd.DataFrame(topic_info)
+    
+    # Save mathematical results back to physical parquet tables
+    df.to_parquet(comments_file, index=False)
+    df_info.to_parquet(interim_dir / "topics_metadata.parquet", index=False)
+    print("✅ Stage 02 Thematic Clustering Complete!")
 
 if __name__ == "__main__":
     extract_topics()

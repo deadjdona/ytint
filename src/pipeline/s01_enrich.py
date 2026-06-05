@@ -1,13 +1,14 @@
 import os
 import yaml
+import torch
+import numpy as np
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-import nltk
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-def load_config(config_path="config/settings.yaml"):
-    with open(config_path, "r") as f:
+def load_config():
+    with open("config/settings.yaml", "r") as f:
         return yaml.safe_load(f)
 
 def enrich_comments():
@@ -17,62 +18,49 @@ def enrich_comments():
     videos_file = interim_dir / "videos_clean.parquet"
     
     if not comments_file.exists():
-        print(f"❌ Clean comments file not found at {comments_file}. Run ingestion first.")
+        print("❌ Clean comments file not found.")
         return
 
-    print("📥 Loading cleaned comment layers...")
     df_comments = pd.read_parquet(comments_file)
     df_comments['text'] = df_comments['text'].fillna("").astype(str)
     
-    # Initialize VADER Lexicon Engine natively supported on Python 3.14
-    print("🤖 Initializing Python 3.14 Native Lexicon Engine (VADER)...")
-    try:
-        sia = SentimentIntensityAnalyzer()
-    except LookupError:
-        print("📥 Downloading missing VADER lexicon dependency...")
-        nltk.download('vader_lexicon', quiet=True)
-        sia = SentimentIntensityAnalyzer()
-
-    sentiments = []
-    scores = []
-
-    print(f"🧠 Running high-speed sentiment screening across {len(df_comments)} rows...")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"🚀 Running on: {device.type.upper()}")
     
-    # VADER is incredibly fast, so we can process row by row without complex batch tensors
-    for text in tqdm(df_comments['text']):
-        polarity = sia.polarity_scores(text)
-        compound = polarity['compound']
-        
-        # Standard rules to map continuous VADER compound scores to categorical tags
-        if compound >= 0.05:
-            sentiments.append("positive")
-            scores.append(compound)
-        elif compound <= -0.05:
-            sentiments.append("negative")
-            scores.append(abs(compound))
-        else:
-            sentiments.append("neutral")
-            scores.append(1.0 - abs(compound))
+    model_name = config["stage_01_enrich"]["sentiment_model"]
+    batch_size = config["stage_01_enrich"]["batch_size"]
+    
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
+    model.eval()
 
-    # Append results cleanly back to the memory frame
+    sentiments, scores = [], []
+    label_map = {0: "neutral", 1: "positive", 2: "negative"}
+
+    with torch.no_grad():
+        for i in tqdm(range(0, len(df_comments), batch_size)):
+            batch_texts = df_comments['text'].iloc[i:i+batch_size].tolist()
+            inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=256).to(device)
+            outputs = model(**inputs)
+            probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1).cpu().numpy()
+            
+            for prob in probabilities:
+                pred = np.argmax(prob)
+                sentiments.append(label_map[pred])
+                scores.append(float(prob[pred]))
+
     df_comments['sentiment_label'] = sentiments
     df_comments['sentiment_confidence'] = scores
     
-    # Calculate retrospective memory latency timelines safely
     if videos_file.exists():
-        print("📐 Computing retrospective memory latency timelines...")
         df_videos = pd.read_parquet(videos_file)
         df_merged = df_comments.merge(df_videos[['video_id', 'published_at']], on='video_id', suffixes=('', '_video'))
-        
-        df_comments['days_since_upload'] = (
-            pd.to_datetime(df_merged['published_at']) - pd.to_datetime(df_merged['published_at_video'])
-        ).dt.days
+        df_comments['days_since_upload'] = (pd.to_datetime(df_merged['published_at']) - pd.to_datetime(df_merged['published_at_video'])).dt.days
     else:
         df_comments['days_since_upload'] = 0
 
-    print("💾 Committing optimized metrics to analytical engine Parquet files...")
     df_comments.to_parquet(comments_file, index=False)
-    print("✅ Enrichment phase successfully completed using Python 3.14!")
+    print("✅ Stage 01 Sentiment Enrichment Complete!")
 
 if __name__ == "__main__":
     enrich_comments()
