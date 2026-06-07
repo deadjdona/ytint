@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import ruptures as rpt
+from tqdm import tqdm
+import time
 
 def load_config():
     with open("config/settings.yaml", "r") as f:
@@ -14,85 +16,103 @@ def compile_narrative():
     output_dir = Path(config["paths"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    print("📥 Loading enriched comment tables...")
-    df_comments = pd.read_parquet(interim_dir / "comments_clean.parquet")
+    # Define pipeline execution phases for the progress tracker
+    phases = [
+        "Loading enriched tables",
+        "Examining timestamp scales",
+        "Translating timeline metrics",
+        "Filtering date guardrails",
+        "Aggregating daily timeline",
+        "Calculating structural change-points",
+        "Evaluating volume anomalies",
+        "Writing analytical layers"
+    ]
     
-    print("🔧 Examining timestamp scales...")
-    # Coerce to datetime format to check the actual calendar years
-    dt_series = pd.to_datetime(df_comments['published_at'], errors='coerce')
-    sample_years = dt_series.dropna().dt.year
-    
-    if not sample_years.empty and sample_years.iloc[0] > 3000:
-        print("⏱️ Detected year 50000+ anomaly. Recalculating timeline via Epoch-Delta...")
-        # Compute exact seconds from 1970 (which matches the original raw millisecond value)
-        # This is safe against any internal pandas timezone or resolution configurations
-        epoch = pd.Timestamp('1970-01-01', tz=dt_series.dt.tz)
-        original_ms_ticks = (dt_series - epoch).dt.total_seconds()
+    # Initialize the master pipeline progress bar
+    with tqdm(total=len(phases), desc="🎬 Initializing Stage 03", bar_format="{l_bar}{bar:40}{r_bar}{bar:-10b}") as pbar:
         
-        # Re-parse the ticks using the correct millisecond mapping
-        df_comments['published_at'] = pd.to_datetime(original_ms_ticks, unit='ms', errors='coerce')
-    else:
-        # Fallback for raw unparsed numeric tokens
-        raw_ticks = pd.to_numeric(df_comments['published_at'], errors='coerce')
-        sample_series = raw_ticks.dropna()
-        if not sample_series.empty:
-            sample_val = sample_series.iloc[0]
-            if 1e11 < sample_val < 1e14:
-                print("⏱️ Corrected raw millisecond-scale tokens...")
-                df_comments['published_at'] = pd.to_datetime(raw_ticks, unit='ms', errors='coerce')
-            elif 1e8 < sample_val < 1e11:
-                print("⏱️ Timestamps verified as standard second-scale...")
-                df_comments['published_at'] = pd.to_datetime(raw_ticks, unit='s', errors='coerce')
+        # Phase 1: Load Data
+        pbar.set_description(f"📥 {phases[0]}")
+        df_comments = pd.read_parquet(interim_dir / "comments_clean.parquet")
+        pbar.update(1)
+        
+        # Phase 2: Check Scales
+        pbar.set_description(f"🔧 {phases[1]}")
+        dt_series = pd.to_datetime(df_comments['published_at'], errors='coerce')
+        sample_years = dt_series.dropna().dt.year
+        pbar.update(1)
+        
+        # Phase 3: Translate Epoch-Delta Anomaly
+        pbar.set_description(f"⏱️ {phases[2]}")
+        if not sample_years.empty and sample_years.iloc[0] > 3000:
+            epoch = pd.Timestamp('1970-01-01', tz=dt_series.dt.tz)
+            original_ms_ticks = (dt_series - epoch).dt.total_seconds()
+            df_comments['published_at'] = pd.to_datetime(original_ms_ticks, unit='ms', errors='coerce')
+        else:
+            raw_ticks = pd.to_numeric(df_comments['published_at'], errors='coerce')
+            sample_series = raw_ticks.dropna()
+            if not sample_series.empty:
+                sample_val = sample_series.iloc[0]
+                if 1e11 < sample_val < 1e14:
+                    df_comments['published_at'] = pd.to_datetime(raw_ticks, unit='ms', errors='coerce')
+                elif 1e8 < sample_val < 1e11:
+                    df_comments['published_at'] = pd.to_datetime(raw_ticks, unit='s', errors='coerce')
+                else:
+                    df_comments['published_at'] = dt_series
             else:
                 df_comments['published_at'] = dt_series
-        else:
-            df_comments['published_at'] = dt_series
+        pbar.update(1)
+        
+        # Phase 4: Guardrails
+        pbar.set_description(f"🧹 {phases[3]}")
+        initial_count = len(df_comments)
+        df_comments = df_comments[
+            (df_comments['published_at'] >= '2005-01-01') & 
+            (df_comments['published_at'] <= '2030-01-01')
+        ]
+        pbar.update(1)
+        
+        # Phase 5: Aggregation
+        pbar.set_description(f"📊 {phases[4]}")
+        timeline = df_comments.groupby(df_comments['published_at'].dt.date).size().to_frame(name='comment_count')
+        if timeline.empty:
+            print("\n❌ Error: No valid dates found after filtering timeline data.")
+            return
+        pbar.update(1)
+        
+        # Phase 6: Change-Point Detection (Pelt)
+        pbar.set_description(f"📉 {phases[5]}")
+        signal = timeline['comment_count'].values
+        algo = rpt.Pelt(model="rbf").fit(signal)
+        penalty = config["stage_03_narrative"]["change_point_penalty"]
+        change_points = algo.predict(pen=penalty)
+        pbar.update(1)
+        
+        # Phase 7: Volumetric Anomalies (Z-Score scanning)
+        pbar.set_description(f"⚡ {phases[6]}")
+        rolling_mean = timeline['comment_count'].rolling(window=7, min_periods=1).mean()
+        rolling_std = timeline['comment_count'].rolling(window=7, min_periods=1).std().fillna(1)
+        timeline['z_score'] = (timeline['comment_count'] - rolling_mean) / rolling_std
+        
+        z_thresh = config["stage_03_narrative"]["z_threshold"]
+        events = timeline[timeline['z_score'] > z_thresh].copy()
+        pbar.update(1)
+        
+        # Phase 8: Save Deliverables
+        pbar.set_description(f"💾 {phases[7]}")
+        timeline.to_parquet(output_dir / "historical_timeline.parquet")
+        events.to_parquet(output_dir / "viral_events.parquet")
+        pbar.update(1)
+        
+        # Final descriptive flag on completion
+        pbar.set_description("✅ Stage 03 Complete")
 
-    # Print data verification diagnostic
-    print(f"📅 Real-world date range detected: {df_comments['published_at'].min()} to {df_comments['published_at'].max()}")
-    
-    # 🛡️ Guard Rail: Clean up any genuinely corrupted rows outside YouTube's operational window
-    initial_count = len(df_comments)
-    df_comments = df_comments[
-        (df_comments['published_at'] >= '2005-01-01') & 
-        (df_comments['published_at'] <= '2030-01-01')
-    ]
-    dropped_count = initial_count - len(df_comments)
-    if dropped_count > 0:
-        print(f"🧹 Cleaned up {dropped_count} rows with actual corrupt dates.")
-    
-    print(f"📊 Ready to process {len(df_comments)} comments on the timeline.")
-    
-    # Aggregate timelines by day safely
-    timeline = df_comments.groupby(df_comments['published_at'].dt.date).size().to_frame(name='comment_count')
-    
-    if timeline.empty:
-        print("❌ Error: No valid dates found after filtering timeline data.")
-        return
-
-    # Run Change-Point Detection (Pelt algorithm) to mark community Eras
-    print("📉 Calculating structural historical change-points...")
-    signal = timeline['comment_count'].values
-    algo = rpt.Pelt(model="rbf").fit(signal)
-    
-    # Pull penalty criteria from settings.yaml configuration
-    penalty = config["stage_03_narrative"]["change_point_penalty"]
-    change_points = algo.predict(pen=penalty)
-    
-    # Compute rolling volume Z-scores to isolate anomaly spikes ("Events")
-    print("⚡ Evaluating historical volume anomaly thresholds...")
-    rolling_mean = timeline['comment_count'].rolling(window=7, min_periods=1).mean()
-    rolling_std = timeline['comment_count'].rolling(window=7, min_periods=1).std().fillna(1)
-    timeline['z_score'] = (timeline['comment_count'] - rolling_mean) / rolling_std
-    
-    z_thresh = config["stage_03_narrative"]["z_threshold"]
-    events = timeline[timeline['z_score'] > z_thresh].copy()
-    
-    # Save the analytical outputs out to the distribution folder
-    timeline.to_parquet(output_dir / "historical_timeline.parquet")
-    events.to_parquet(output_dir / "viral_events.parquet")
-    
-    print(f"✅ Stage 03 Core Narrative Compilation Complete! Mapped {len(change_points)-1} Eras and {len(events)} Events.")
+    # Final Summary Diagnostics Printout
+    print("\n" + "="*60)
+    print(f"📅 Verified Date Range : {df_comments['published_at'].min()} to {df_comments['published_at'].max()}")
+    print(f"📊 Processed Records   : {len(df_comments)} comments")
+    print(f"🧩 Structural Layout   : Mapped {len(change_points)-1} Eras and {len(events)} Event Spikes.")
+    print("="*60)
 
 if __name__ == "__main__":
     compile_narrative()

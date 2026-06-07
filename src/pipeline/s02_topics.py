@@ -1,64 +1,113 @@
-import os
-import sys
 import yaml
 import pandas as pd
 from pathlib import Path
-from sklearn.feature_extraction.text import CountVectorizer
-import nltk
+from tqdm import tqdm
 
-# Ultimate Insurance Policy: Stop NumPy 2.x background drift
-import numpy as np
-if int(np.__version__.split('.')[0]) >= 2:
-    print("🔄 Rolling back active terminal session to NumPy 1.x matrix...")
-    os.system("pip install 'numpy==1.26.4'")
-    sys.exit(0)
-
+# Core ML Architecture Components
 from bertopic import BERTopic
+from umap import UMAP
+from hdbscan import HDBSCAN
+from sklearn.feature_extraction.text import CountVectorizer
 
-def load_config():
+def load_config() -> dict:
     with open("config/settings.yaml", "r") as f:
         return yaml.safe_load(f)
 
-def extract_topics():
+def run_topic_modeling():
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
-    comments_file = interim_dir / "comments_clean.parquet"
+    output_dir = Path(config["paths"]["output_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
     
-    print("📥 Loading enriched comment tables...")
-    df = pd.read_parquet(comments_file)
-    docs = df['text'].fillna("").astype(str).tolist()
+    # Step-by-step master phases for the tracking engine
+    phases = [
+        "Loading enriched comment tables",
+        "Initializing Multilingual Sub-Models",
+        "Executing BERTopic Fit-Transform Pipeline",
+        "Compiling Topic Assignment Metrics",
+        "Writing Analytical Parquet Layers"
+    ]
     
-    # Secure native Russian stop-words to clean c-TF-IDF profiles
-    try:
-        russian_stopwords = nltk.corpus.stopwords.words('russian')
-    except LookupError:
-        nltk.download('stopwords', quiet=True)
-        russian_stopwords = nltk.corpus.stopwords.words('russian')
+    with tqdm(total=len(phases), desc="🎬 Initializing Stage 02", bar_format="{l_bar}{bar:40}{r_bar}") as pbar:
         
-    # Inject Russian stop-words into the Vectorizer component
-    vectorizer_model = CountVectorizer(stop_words=russian_stopwords)
-    
-    print(f"🧩 Initializing Multilingual BERTopic Architecture...")
-    topic_model = BERTopic(
-        embedding_model=config["stage_02_topics"]["embedding_model"],
-        min_topic_size=config["stage_02_topics"]["min_topic_size"],
-        vectorizer_model=vectorizer_model,
-        verbose=True
-    )
-    
-    print("🔮 Mapping conversational geometry and calculating c-TF-IDF profiles...")
-    topics, probs = topic_model.fit_transform(docs)
-    
-    df['topic_id'] = topics
-    
-    # Extract structural keywords for each mapped category
-    topic_info = topic_model.get_topic_info()
-    df_info = pd.DataFrame(topic_info)
-    
-    # Save mathematical results back to physical parquet tables
-    df.to_parquet(comments_file, index=False)
-    df_info.to_parquet(interim_dir / "topics_metadata.parquet", index=False)
-    print("✅ Stage 02 Thematic Clustering Complete!")
+        # Phase 1: Load Data
+        pbar.set_description(f"📥 {phases[0]}")
+        clean_parquet_path = interim_dir / "comments_clean.parquet"
+        df_comments = pd.read_parquet(clean_parquet_path)
+        pbar.update(1)
+        
+        # Phase 2: Initialize ML Components with Native Progress Overrides
+        pbar.set_description(f"🧩 {phases[1]}")
+        embedding_model_name = config["stage_02_topics"]["embedding_model"]
+        min_topic_size = config["stage_02_topics"]["min_topic_size"]
+        
+        # Keep verbose=True here—this gives us the great UMAP epoch progress bar!
+        umap_model = UMAP(
+            n_neighbors=15, 
+            n_components=5, 
+            min_dist=0.0, 
+            metric='cosine', 
+            random_state=42,
+            verbose=True  
+        )
+        
+        # Removed verbose=True from here to fix the scikit-learn KDTree initialization crash
+        hdbscan_model = HDBSCAN(
+            min_cluster_size=min_topic_size, 
+            metric='euclidean', 
+            cluster_selection_method='eom', 
+            prediction_data=True
+        )
+        
+        # Standard NLP vectorizer to filter out noisy stop-words
+        vectorizer_model = CountVectorizer(stop_words="english", min_df=2)
+        
+        # Build unified architecture
+        topic_model = BERTopic(
+            embedding_model=embedding_model_name,
+            umap_model=umap_model,
+            hdbscan_model=hdbscan_model,
+            vectorizer_model=vectorizer_model,
+            calculate_probabilities=False,
+            verbose=True  # Keeps BERTopic's main status printouts active
+        )
+        pbar.update(1)
+        
+        # Phase 3: Execute Monolithic Fit Transform
+        pbar.set_description(f"🔮 {phases[2]}")
+        text_col = 'text' if 'text' in df_comments.columns else df_comments.columns[1]
+        docs = df_comments[text_col].astype(str).tolist()
+        
+        # Temporarily pause master progress bar layout so internal ML loops print cleanly
+        pbar.close()
+        
+        print("\n" + "-"*60)
+        print("🚀 Starting Main Pipeline Engine (Embeddings -> UMAP -> HDBSCAN)")
+        print("-"*60)
+        
+        topics, _ = topic_model.fit_transform(docs)
+        
+        # Reinitialize master phase tracker for final file serialization tasks
+        pbar = tqdm(total=len(phases), initial=3, desc="💾 Wrapping Up Stage 02", bar_format="{l_bar}{bar:40}{r_bar}")
+        
+        # Phase 4: Compile Assignment Metrics
+        pbar.set_description(f"📊 {phases[3]}")
+        df_comments["topic"] = topics
+        
+        # Generate clean human-readable summaries of topics discovered
+        df_topic_info = topic_model.get_topic_info()
+        pbar.update(1)
+        
+        # Phase 5: Overwrite Clean Parquet with new Topic Matrix Features
+        pbar.set_description(f"💾 {phases[4]}")
+        df_comments.to_parquet(clean_parquet_path, index=False)
+        df_topic_info.to_parquet(output_dir / "topic_metadata.parquet", index=False)
+        pbar.update(1)
+        
+    print("\n" + "="*60)
+    print(f"✅ Stage 02 Core Topic Clustering Complete!")
+    print(f"🧩 Discovered {len(df_topic_info) - 1} Distinct Conversational Clusters.")
+    print("="*60 + "\n")
 
 if __name__ == "__main__":
-    extract_topics()
+    run_topic_modeling()
