@@ -4,8 +4,11 @@ from pathlib import Path
 from tqdm import tqdm
 
 # Core ML Architecture Components
+# pyrefly: ignore [missing-import]
 from bertopic import BERTopic
+# pyrefly: ignore [missing-import]
 from umap import UMAP
+# pyrefly: ignore [missing-import]
 from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
 
