@@ -92,8 +92,10 @@ st.sidebar.title("🧬 `ytint` Core Engine")
 st.sidebar.markdown("---")
 
 st.sidebar.subheader("Pipeline Manifest")
-st.sidebar.metric(label="Processed Comments", value=f"{346858:,}")
-st.sidebar.metric(label="Discovered Topics", value=f"{1216:,}")
+processed_comments = len(df_comments) if df_comments is not None else 0
+discovered_topics = len(df_topics[df_topics["Topic"] != -1]) if "Topic" in df_topics.columns else len(df_topics)
+st.sidebar.metric(label="Processed Comments", value=f"{processed_comments:,}")
+st.sidebar.metric(label="Discovered Topics", value=f"{discovered_topics:,}")
 st.sidebar.metric(label="Identified Event Spikes", value=f"{len(df_spikes)}")
 
 st.sidebar.markdown("---")
@@ -121,20 +123,21 @@ with tab_spikes:
     
     if not df_spikes.empty:
         # Check if timeline columns exist for a line/bar chart visualization
-        date_col = next((c for c in df_spikes.columns if "date" in c.lower() or "timestamp" in c.lower()), None)
+        spikes_for_chart = df_spikes.reset_index()
+        date_col = next((c for c in spikes_for_chart.columns if "date" in c.lower() or "timestamp" in c.lower()), None)
         count_col = next((c for c in df_spikes.columns if "count" in c.lower() or "volume" in c.lower() or "size" in c.lower()), None)
         
         if date_col and count_col:
             fig_spikes = px.bar(
-                df_spikes, x=date_col, y=count_col, 
+                spikes_for_chart, x=date_col, y=count_col, 
                 title="Spike Intensity Metric",
                 labels={date_col: "Date Vector", count_col: "Volume Weight"},
                 template="plotly_dark"
             )
-            st.plotly_chart(fig_spikes, use_container_width=True)
+            st.plotly_chart(fig_spikes, width="stretch")
         
         st.subheader("Raw Layer Inspection: `viral_events`")
-        st.dataframe(df_spikes, use_container_width=True)
+        st.dataframe(df_spikes, width="stretch")
     else:
         st.info("The viral events matrix parsed successfully but returned empty rows.")
 
@@ -158,7 +161,7 @@ with tab_topics:
             logger.info(f"Applied keyword filter '{search_query}'. Matches remaining: {len(filtered_topics)}")
             
     st.metric(label="Filtered Cluster Count", value=len(filtered_topics))
-    st.dataframe(filtered_topics, use_container_width=True)
+    st.dataframe(filtered_topics, width="stretch")
 
 # ------------------------------------------------------------------------------
 # TAB 3: MACRO TIMELINE ENGINE
@@ -168,9 +171,9 @@ with tab_timeline:
     st.markdown("Longitudinal baseline eras across the full data collection scope.")
     
     st.subheader("Raw Layer Inspection: `historical_timeline`")
-    st.dataframe(df_timeline, use_container_width=True)
+    st.dataframe(df_timeline, width="stretch")
     
     if df_comments is not None:
         with st.expander("🔬 View Deep Sample Inspection Layer"):
             st.caption("Showing initial records directly from intermediate data targets.")
-            st.dataframe(df_comments.head(100), use_container_width=True)
+            st.dataframe(df_comments.head(100), width="stretch")

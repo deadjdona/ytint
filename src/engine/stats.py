@@ -47,18 +47,22 @@ def segment_thematic_eras(df_comments, min_duration_weeks=12, penalty_modifier=2
     Applies change-point detection (Pelt or Window-based algorithm) over shifting 
     weekly topic distributions to split the timeline into long, stable 'Eras'.
     """
+    topic_column = 'topic_id' if 'topic_id' in df_comments.columns else 'topic'
+    if topic_column not in df_comments.columns:
+        return []
+
     # 1. Pivot text distributions to build a clean temporal matrix (Weeks x Topics)
     df_comments['week'] = df_comments['published_at'].dt.to_period('W').dt.to_timestamp()
     
     # Drop noise records (-1) to look purely at structured narrative trends
-    df_structured = df_comments[df_comments['topic_id'] != -1]
+    df_structured = df_comments[df_comments[topic_column] != -1]
     
     if df_structured.empty:
         return []
 
     # Build matrix: rows are weeks, columns are topic IDs, values are comment counts
     topic_matrix = (
-        df_structured.groupby(['week', 'topic_id'])
+        df_structured.groupby(['week', topic_column])
         .size()
         .unstack(fill_value=0)
     )

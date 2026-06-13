@@ -12,7 +12,7 @@ We use `uv` for ultra-fast package management and dependency isolation.
 
 ```powershell
 # 1. Install uv package manager
-powershell -c "irm [https://astral.sh/uv/install.ps1](https://astral.sh/uv/install.ps1) | iex"
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 # 2. Install Python 3.14 runtime
 uv python install 3.14
@@ -22,7 +22,7 @@ uv venv .venv --python 3.14
 .\.venv\Scripts\Activate.ps1
 
 # 4. Install PyTorch with CUDA 12.6 execution paths
-uv pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu126](https://download.pytorch.org/whl/cu126)
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
 
 # 5. Install analytical stack and user interface
 uv pip install transformers bertopic streamlit ruptures pyyaml pandas pyarrow

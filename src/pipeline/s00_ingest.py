@@ -9,6 +9,18 @@ def load_config(config_path="config/settings.yaml"):
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
 
+def parse_comment_dates(comment_date_series):
+    """Parse Commentsuite integer timestamps, auto-detecting seconds vs milliseconds."""
+    numeric_dates = pd.to_numeric(comment_date_series, errors="coerce")
+    sample = numeric_dates.dropna()
+
+    if sample.empty:
+        return pd.to_datetime(comment_date_series, errors="coerce")
+
+    median_value = sample.median()
+    unit = "ms" if median_value > 1e11 else "s"
+    return pd.to_datetime(numeric_dates, unit=unit, errors="coerce")
+
 def migrate_from_commentsuite():
     config = load_config()
     raw_db_path = Path(config["paths"]["raw_db"])
@@ -45,13 +57,9 @@ def migrate_from_commentsuite():
 
     print(f"🛠️ Processing {len(df_comments)} records...")
 
-    # Handle your INTEGER date (Assuming it's a standard UNIX timestamp in seconds or ms)
-    # unit='s' handles standard UNIX. If your dates look like year 1970, change unit to 'ms'
-    try:
-        df_comments['published_at'] = pd.to_datetime(df_comments['comment_date'], unit='s')
-    except Exception:
-        print("🔄 Timestamp parsing issue, attempting default string conversion...")
-        df_comments['published_at'] = pd.to_datetime(df_comments['comment_date'])
+    # Commentsuite stores integer UNIX timestamps. Current exports use
+    # milliseconds, but older data may use seconds, so auto-detect the scale.
+    df_comments['published_at'] = parse_comment_dates(df_comments['comment_date'])
 
     # Drop the raw unparsed date column to keep parquet files lightweight
     df_comments = df_comments.drop(columns=['comment_date'])
