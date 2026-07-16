@@ -12,10 +12,9 @@ def load_config():
     Dynamically resolves the project root directory and loads the unified settings.
     Ensures absolute path compatibility across all execution environments.
     """
-    # 1. Locate the file system context of the running script
     current_file = Path(__file__).resolve()
     
-    # 2. Walk upward until we locate the parent directory containing the 'config' folder
+    # Walk upward until we locate the parent directory containing the 'config' folder
     root_dir = current_file.parent
     while root_dir != root_dir.parent:
         if (root_dir / "config").is_dir():
@@ -34,8 +33,7 @@ def load_config():
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
         
-    # 3. Dynamic Absolute Translation Layer
-    # Automatically convert configured paths to absolute system paths relative to the project root
+    # Translate relative paths into absolute paths anchored to the project root
     config["paths"]["raw_db"] = str(root_dir / config["paths"]["raw_db"])
     config["paths"]["interim_dir"] = str(root_dir / config["paths"]["interim_dir"])
     config["paths"]["output_dir"] = str(root_dir / config["paths"]["output_dir"])
@@ -69,7 +67,7 @@ def enrich_comments():
     label_map = {0: "neutral", 1: "positive", 2: "negative"}
 
     with torch.no_grad():
-        for i in tqdm(range(0, len(df_comments), batch_size)):
+        for i in tqdm(range(0, len(df_comments), batch_size), desc="🎭 Running Sentiment Inference"):
             batch_texts = df_comments['text'].iloc[i:i+batch_size].tolist()
             inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=256).to(device)
             outputs = model(**inputs)
@@ -83,10 +81,11 @@ def enrich_comments():
     df_comments['sentiment_label'] = sentiments
     df_comments['sentiment_confidence'] = scores
     
-# Secure, aligned calculation pattern
+    # FIX: Secure, aligned calculations via explicit in-place left merging
     if videos_file.exists():
         df_videos = pd.read_parquet(videos_file)
-        # In-place merge ensures index row integrity remains locked
+        
+        # Merge the temporary video upload timestamp into df_comments cleanly 
         df_comments = df_comments.merge(
             df_videos[['video_id', 'published_at']], 
             on='video_id', 
@@ -94,12 +93,13 @@ def enrich_comments():
             suffixes=('', '_video')
         )
         
+        # Safe vectorized chronological subtraction on the validated index grid
         df_comments['days_since_upload'] = (
             pd.to_datetime(df_comments['published_at']) - 
             pd.to_datetime(df_comments['published_at_video'])
         ).dt.days
         
-        # Remove the temporary column to keep parquet files lightweight
+        # Remove the staging column to keep the file format thin and concise
         df_comments = df_comments.drop(columns=['published_at_video'])
     else:
         df_comments['days_since_upload'] = 0
