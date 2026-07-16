@@ -1,20 +1,23 @@
+# ytint Parameter & Directory Registry
+
 paths:
-  raw_dir: "data/raw"
-  raw_db: "data/raw/commentsuite.sqlite3" # 👈 Updated to your exact filename
+  # Source SQLite database file location
+  raw_db: "data/raw/commentsuite.sqlite3"
+  # Folder targets for pipeline execution caches
   interim_dir: "data/interim"
   output_dir: "data/output"
 
 stage_01_enrich:
-  sentiment_model: "seara/rubert-base-cased-russian-sentiment"
-  batch_size: 64
+  sentiment_model: "cardiffnlp/twitter-roberta-base-sentiment-latest"
+  batch_size: 32
 
 stage_02_topics:
-  embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-  min_topic_size: 20
+  embedding_model: "all-MiniLM-L6-v2"
+  min_topic_size: 15
 
 stage_03_narrative:
-  z_threshold: 2.0
-  change_point_penalty: 5.0
+  change_point_penalty: 3.0
+  z_threshold: 2.5
 
 ui:
   palette:

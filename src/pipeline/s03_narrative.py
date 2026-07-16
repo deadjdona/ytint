@@ -7,8 +7,37 @@ from tqdm import tqdm
 import time
 
 def load_config():
-    with open("config/settings.yaml", "r") as f:
-        return yaml.safe_load(f)
+    """
+    Dynamically resolves the project root directory and loads the unified settings.
+    Ensures absolute path compatibility across all execution environments.
+    """
+    current_file = Path(__file__).resolve()
+    
+    # Walk upward until we locate the parent directory containing the 'config' folder
+    root_dir = current_file.parent
+    while root_dir != root_dir.parent:
+        if (root_dir / "config").is_dir():
+            break
+        root_dir = root_dir.parent
+        
+    config_path = root_dir / "config" / "settings.yaml"
+    
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"❌ Critical Configuration Alignment Failure:\n"
+            f"Could not locate 'config/settings.yaml'.\n"
+            f"Resolved root searched: {root_dir}"
+        )
+        
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+        
+    # Translate relative paths into absolute paths anchored to the project root
+    config["paths"]["raw_db"] = str(root_dir / config["paths"]["raw_db"])
+    config["paths"]["interim_dir"] = str(root_dir / config["paths"]["interim_dir"])
+    config["paths"]["output_dir"] = str(root_dir / config["paths"]["output_dir"])
+    
+    return config
 
 def compile_narrative():
     config = load_config()
@@ -65,19 +94,22 @@ def compile_narrative():
         
         # Phase 4: Guardrails
         pbar.set_description(f"🧹 {phases[3]}")
-        initial_count = len(df_comments)
         df_comments = df_comments[
             (df_comments['published_at'] >= '2005-01-01') & 
             (df_comments['published_at'] <= '2030-01-01')
         ]
         pbar.update(1)
         
-        # Phase 5: Aggregation
+        # Phase 5: Aggregation & Serialization Standardization
         pbar.set_description(f"📊 {phases[4]}")
         timeline = df_comments.groupby(df_comments['published_at'].dt.date).size().to_frame(name='comment_count')
         if timeline.empty:
             print("\n❌ Error: No valid dates found after filtering timeline data.")
             return
+            
+        # Convert index from python date objects to datetime64[ns] and flatten to a named column
+        timeline.index = pd.to_datetime(timeline.index)
+        timeline = timeline.sort_index().reset_index().rename(columns={'published_at': 'date'})
         pbar.update(1)
         
         # Phase 6: Change-Point Detection (Pelt)
@@ -98,10 +130,10 @@ def compile_narrative():
         events = timeline[timeline['z_score'] > z_thresh].copy()
         pbar.update(1)
         
-        # Phase 8: Save Deliverables
+        # Phase 8: Save Deliverables (Clean Arrow Columns with index flattening)
         pbar.set_description(f"💾 {phases[7]}")
-        timeline.to_parquet(output_dir / "historical_timeline.parquet")
-        events.to_parquet(output_dir / "viral_events.parquet")
+        timeline.to_parquet(output_dir / "historical_timeline.parquet", index=False)
+        events.to_parquet(output_dir / "viral_events.parquet", index=False)
         pbar.update(1)
         
         # Final descriptive flag on completion

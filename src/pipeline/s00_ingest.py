@@ -4,10 +4,40 @@ import yaml
 import pandas as pd
 from pathlib import Path
 
-def load_config(config_path="config/settings.yaml"):
-    """Loads central project configurations."""
+def load_config():
+    """
+    Dynamically resolves the project root directory and loads the unified settings.
+    Ensures absolute path compatibility across all execution environments.
+    """
+    # 1. Locate the file system context of the running script
+    current_file = Path(__file__).resolve()
+    
+    # 2. Walk upward until we locate the parent directory containing the 'config' folder
+    root_dir = current_file.parent
+    while root_dir != root_dir.parent:
+        if (root_dir / "config").is_dir():
+            break
+        root_dir = root_dir.parent
+        
+    config_path = root_dir / "config" / "settings.yaml"
+    
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"❌ Critical Configuration Alignment Failure:\n"
+            f"Could not locate 'config/settings.yaml'.\n"
+            f"Resolved root searched: {root_dir}"
+        )
+        
     with open(config_path, "r") as f:
-        return yaml.safe_load(f)
+        config = yaml.safe_load(f)
+        
+    # 3. Dynamic Absolute Translation Layer
+    # Automatically convert configured paths to absolute system paths relative to the project root
+    config["paths"]["raw_db"] = str(root_dir / config["paths"]["raw_db"])
+    config["paths"]["interim_dir"] = str(root_dir / config["paths"]["interim_dir"])
+    config["paths"]["output_dir"] = str(root_dir / config["paths"]["output_dir"])
+    
+    return config
 
 def parse_comment_dates(comment_date_series):
     """Parse Commentsuite integer timestamps, auto-detecting seconds vs milliseconds."""
