@@ -68,6 +68,9 @@ def run_topic_modeling():
         pbar.set_description(f"📥 {phases[0]}")
         clean_parquet_path = interim_dir / "comments_clean.parquet"
         df_comments = pd.read_parquet(clean_parquet_path)
+        
+        # NEW: Filter out replies to stop username pollution in BERTopic
+        df_comments = df_comments[df_comments['parent_id'].isna() | (df_comments['parent_id'] == "")]
         pbar.update(1)
         
         # Phase 2: Initialize ML Components with Native Progress Overrides
@@ -127,9 +130,13 @@ def run_topic_modeling():
         # Phase 4: Compile Assignment Metrics
         pbar.set_description(f"📊 {phases[3]}")
         df_comments["topic"] = topics
-        
-        # Generate clean human-readable summaries of topics discovered
         df_topic_info = topic_model.get_topic_info()
+        
+        # VERY IMPORTANT: Save the row-level topic assignments back to disk
+        # so s04_synthesis.py can read them!
+        df_comments.to_parquet(interim_dir / "comments_clean.parquet")
+        df_topic_info.to_parquet(output_dir / "topic_metadata.parquet")
+        
         pbar.update(1)
         
         # Phase 5: Overwrite Clean Parquet with new Topic Matrix Features

@@ -118,7 +118,7 @@ tab_spikes, tab_topics, tab_timeline = st.tabs([
 # TAB 1: EVENT SPIKES
 # ------------------------------------------------------------------------------
 with tab_spikes:
-    st.header("11 Detected Conversational Event Spikes")
+    st.header(f"{len(df_spikes)} Detected Conversational Event Spikes")
     st.markdown("High-volume temporal anomalies isolated automatically via density analysis pipelines.")
     
     if not df_spikes.empty:
@@ -134,10 +134,10 @@ with tab_spikes:
                 labels={date_col: "Date Vector", count_col: "Volume Weight"},
                 template="plotly_dark"
             )
-            st.plotly_chart(fig_spikes, width="stretch")
+            st.plotly_chart(fig_spikes, use_container_width=True)
         
         st.subheader("Raw Layer Inspection: `viral_events`")
-        st.dataframe(df_spikes, width="stretch")
+        st.dataframe(df_spikes, use_container_width=True)
     else:
         st.info("The viral events matrix parsed successfully but returned empty rows.")
 
@@ -148,6 +148,24 @@ with tab_topics:
     st.header("Discovered Conversational Clusters")
     st.markdown("Granular semantic pockets grouped via high-speed UMAP dimensionality reduction and HDBSCAN.")
     
+    # NEW: Topic Resonance Scatter Plot
+    if "avg_likes" in df_topics.columns and not df_topics.empty:
+        # Exclude the -1 outlier topic to keep the chart scale readable
+        plot_data = df_topics[df_topics["Topic"] != -1] 
+        
+        fig_resonance = px.scatter(
+            plot_data,
+            x="Count",
+            y="avg_likes",
+            size="total_likes",
+            hover_name="Name",
+            title="Topic Resonance Matrix (Volume vs. Engagement)",
+            labels={"Count": "Total Comments in Topic", "avg_likes": "Average Likes per Comment"},
+            template="plotly_dark",
+            size_max=40
+        )
+        st.plotly_chart(fig_resonance, use_container_width=True)
+            
     # Simple keyword search block
     search_query = st.text_input("🔍 Filter clusters by keyword/topic token:", "").strip().lower()
     
@@ -161,7 +179,35 @@ with tab_topics:
             logger.info(f"Applied keyword filter '{search_query}'. Matches remaining: {len(filtered_topics)}")
             
     st.metric(label="Filtered Cluster Count", value=len(filtered_topics))
-    st.dataframe(filtered_topics, width="stretch")
+    st.dataframe(filtered_topics, use_container_width=True)
+
+# NEW: Emotional Polarity Stacked Bar Chart
+    # Ensure the columns exist before rendering to prevent UI crashes on old caches
+    if "pct_negative" in df_topics.columns and not df_topics.empty:
+        st.subheader("Emotional Polarity & Toxicity Matrix")
+        
+        # Exclude outlier cluster (-1) and grab the top 20 most toxic topics
+        plot_data = df_topics[df_topics["Topic"] != -1].sort_values("pct_negative", ascending=False).head(20)
+        
+        # Dynamically grab the sentiment columns we generated
+        sentiment_cols = [c for c in df_topics.columns if c.startswith("pct_")]
+        
+        # Force a recognizable color palette (Red=Negative, Gray/Blue=Neutral, Green=Positive)
+        color_map = {"pct_negative": "#ef553b", "pct_neutral": "#636efa", "pct_positive": "#00cc96"}
+        
+        fig_sentiment = px.bar(
+            plot_data,
+            x="Name",
+            y=sentiment_cols,
+            title="Top 20 Topics Ranked by Negativity (Toxicity Index)",
+            labels={"value": "Percentage (%)", "Name": "Topic Name", "variable": "Sentiment"},
+            template="plotly_dark",
+            barmode="stack",
+            color_discrete_map=color_map
+        )
+        # Clean up the hover legend layout
+        fig_sentiment.update_layout(legend_title_text="Sentiment Type")
+        st.plotly_chart(fig_sentiment, use_container_width=True)
 
 # ------------------------------------------------------------------------------
 # TAB 3: MACRO TIMELINE ENGINE
@@ -170,10 +216,16 @@ with tab_timeline:
     st.header("Macro Historical Timelines")
     st.markdown("Longitudinal baseline eras across the full data collection scope.")
     
-    st.subheader("Raw Layer Inspection: `historical_timeline`")
-    st.dataframe(df_timeline, width="stretch")
+    # NEW: Visualize the macro timeline
+    if not df_timeline.empty:
+        fig_timeline = px.line(
+            df_timeline, 
+            x="date", 
+            y="comment_count", 
+            title="Total Conversational Volume Over Time",
+            template="plotly_dark"
+        )
+        st.plotly_chart(fig_timeline, use_container_width=True)
     
-    if df_comments is not None:
-        with st.expander("🔬 View Deep Sample Inspection Layer"):
-            st.caption("Showing initial records directly from intermediate data targets.")
-            st.dataframe(df_comments.head(100), width="stretch")
+    st.subheader("Raw Layer Inspection: `historical_timeline`")
+    st.dataframe(df_timeline, use_container_width=True)

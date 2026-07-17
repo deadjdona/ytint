@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 import os
 import yaml
 import torch
@@ -59,12 +61,17 @@ def enrich_comments():
     model_name = config["stage_01_enrich"]["sentiment_model"]
     batch_size = config["stage_01_enrich"]["batch_size"]
     
+    # ... inside enrich_comments() ...
+    
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
     model.eval()
 
     sentiments, scores = [], []
-    label_map = {0: "neutral", 1: "positive", 2: "negative"}
+    
+    # CORRECTED LABEL MAP FOR BLANCHEFORT MODEL:
+    # 0 = Negative, 1 = Neutral, 2 = Positive
+    label_map = {0: "negative", 1: "neutral", 2: "positive"}
 
     with torch.no_grad():
         for i in tqdm(range(0, len(df_comments), batch_size), desc="🎭 Running Sentiment Inference"):

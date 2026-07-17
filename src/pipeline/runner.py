@@ -72,6 +72,13 @@ class PipelineRunner:
                 "entry_func": "compile_narrative",
                 "inputs": [self.interim / "comments_clean.parquet"],
                 "outputs": [self.output / "historical_timeline.parquet", self.output / "viral_events.parquet"]
+            },
+            "s04": {
+                "desc": "Cross-Layer Aggregations & UI Metric Synthesis",
+                "module": "pipeline.s04_synthesis",
+                "entry_func": "compile_ui_metrics",
+                "inputs": [self.interim / "comments_clean.parquet", self.output / "topic_metadata.parquet"],
+                "outputs": [self.output / "topic_metadata.parquet"] 
             }
         }
 

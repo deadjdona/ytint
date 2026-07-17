@@ -8,8 +8,8 @@ paths:
   output_dir: "data/output"
 
 stage_01_enrich:
-  sentiment_model: "cardiffnlp/twitter-roberta-base-sentiment-latest"
-  batch_size: 32
+  sentiment_model: "blanchefort/rubert-base-cased-sentiment"
+  batch_size: 32 # Keep this modest to ensure it fits in GPU memory
 
 stage_02_topics:
   embedding_model: "all-MiniLM-L6-v2"
