@@ -132,6 +132,4 @@ def compile_ui_metrics():
         pbar.update(1)
 
 if __name__ == "__main__":
-    # Local manual testing block
-    PROJECT_ROOT = pathlib.Path(__file__).parent.parent.resolve()
-    compile_ui_metrics(PROJECT_ROOT / "data")
+    compile_ui_metrics()

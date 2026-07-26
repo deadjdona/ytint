@@ -154,7 +154,7 @@ if not df_timeline.empty:
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=20, r=20, t=40, b=20)
     )
-    st.plotly_chart(fig_timeline, use_container_width=True)
+    st.plotly_chart(fig_timeline, width="stretch")
 else:
     st.warning("⚠️ No data records mapped inside this selected time slice timeline configuration.")
 
@@ -173,7 +173,7 @@ with left_col:
         })
         st.dataframe(
             display_topics[['Cluster ID', 'Group Size (This Slice)', 'Primary Representation Keywords']], 
-            use_container_width=True, 
+            width="stretch", 
             hide_index=True
         )
     else:
@@ -192,7 +192,7 @@ with right_col:
         })
         st.dataframe(
             clean_events[['Spike Date', 'Comments Registered', 'Breach Score Severity']], 
-            use_container_width=True, 
+            width="stretch", 
             hide_index=True
         )
     else:

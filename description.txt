@@ -1,1 +1,175 @@
-description.txt
+A YouTube comment corpus is unusually rich because each comment carries text + author identity + timestamp + engagement metrics + reply-tree structure + linkage back to a specific video (and its metadata). That lets you cross several axes simultaneously. Below is a maximized list, grouped by analysis family, with the visualisations each one suggests.
+
+0. Data dimensions you can leverage
+Before the list — what's actually in the data:
+
+Content: comment text, parent/child (thread structure), quoted timestamp mentions like "@2:30"
+Author: channel_id, display name, recurrence across videos, account age (sometimes)
+Time: published_at, updated_at, reply latency
+Engagement: like_count, reply_count, hearted-by-creator, pinned
+Video context: video_id, title, tags, category, duration, publish time, view/like counts
+Derived: language, sentiment, embeddings, topics, toxicity, bot-likelihood
+1. Temporal / attention dynamics
+Comment velocity curve per video (comments/hour) → half-life of discussion
+Decay / survival curve: probability a comment thread is still active at t
+Diurnal + weekly heatmaps (hour × day-of-week) of posting volume
+Upload-event alignment: comments-per-minute in the first N hours after publish
+Second-derivative spikes: detecting "revival" events (a video re-trending)
+Thread reply latency distribution (how fast do replies come?)
+Cohort retention: commenters who arrived at video N — do they return at video N+1?
+Comment "shelf life": time-window where 90% of likes accumulate
+Visualisations: streamgraph of volume over time, horizon charts for many videos, calendar heatmaps, Kaplan–Meier-style thread survival curves, ridge plots of velocity per video.
+
+2. Topic & semantic
+Topic modelling (LDA / BERTopic / Top2Vec) over the whole corpus
+Topic × video matrix — which videos discuss what
+Topic prevalence over time (within a video's comment lifetime and across uploads)
+Semantic embeddings (USE / SBERT / OpenAI) → UMAP/t-SNE scatter coloured by video, topic, sentiment
+Semantic drift: how the meaning of a term shifts across videos or over months
+Keyword / n-gram frequency with TF-IDF weighting per video
+Co-occurrence networks of terms or hashtags
+Named entity / product / person mentions extraction
+Question vs statement vs command classification
+Intent taxonomy: praise, complaint, question, suggestion, off-topic, spam
+Visualisations: UMAP cluster scatter, streamgraph of topic share, treemap of topic hierarchy, alluvial diagram of topic→video, word co-occurrence graph, keyword-in-context concordances.
+
+3. Sentiment & affect
+Valence distribution per video / per topic
+Sentiment trajectory over a video's lifetime or within threads
+Emotion classification (joy, anger, fear, surprise, sadness, disgust) — Plutchik wheel
+Sarcasm / irony detection (hard, but tractable with tuned models)
+Toxicity / hate / profanity prevalence, and which videos/topics attract it
+Polarity vs engagement — do negative comments get more likes/replies?
+Creator-positive vs creator-negative ratio per video
+Sentiment divergence between top-level and nested replies (do replies amplify or counter?)
+Visualisations: emotion wheel, sentiment ridge plots, valence-arousal scatter, diverging bar charts per topic, sentiment-over-time line charts with upload events marked.
+
+4. Linguistic & stylistic
+Language distribution across the corpus
+Lexical richness (type-token ratio, Yule's K, MTLD) by video/author
+Readability (Flesch etc.) distribution
+Emoji usage frequency, diversity, and per-topic emoji signatures
+Emoji-sentiment mapping
+Slang / internet-register lexicon frequency
+Comment length distributions (chars, tokens), and length vs likes
+ALL-CAPS / repetition / punctuation intensity (often a proxy for emotional intensity)
+Code-switching detection (multilingual comments)
+Hashtag / @mention extraction and networks
+Visualisations: emoji frequency treemaps, length-vs-likes hexbin, language stack bars, readability violin plots.
+
+5. Network / graph — the structural goldmine
+Reply-tree forest: directed graph of comment → reply, per video and across corpus
+Author–video bipartite graph: who commented where
+Author co-commenting graph (projection: authors linked if they comment on the same videos) — this reveals cliques/tribes
+"Who replies to whom" author network (stronger signal than co-commenting)
+Community detection (Louvain, Leiden, Infomap) on these graphs
+Centrality analysis: who gets replied to most (in-degree), who bridges communities (betweenness)
+K-core decomposition of the reply graph
+Bow-tie structure (strongly connected core, in/out tendrils)
+Clique enumeration (literal cliques of mutually-interacting commenters)
+Reciprocity of reply relationships
+Author specialisation: commenters who only appear in one video's subtree
+Visualisations: force-directed network layouts (with communities coloured), hive plots, arc diagrams of reply flows, bipartite two-mode layouts, sankey of commenter flow between video-communities.
+
+6. Cohorts & segmentation
+RFM segmentation of commenters — Recency (last comment), Frequency (comments per month), Monetary (likes received)
+Behavioural cohorts: lurkers (1 comment), regulars (recurring), power users, super-engagers
+Acquisition cohort by upload event (commenters who first appeared at video N)
+Cross-video overlap matrix: Jaccard of author sets between each pair of videos
+Author "fan loyalty": fraction of an author's comments going to one channel
+New vs returning commenter share per video
+Topic-cohort: people who talk about topic X — do they cluster on certain videos?
+Visualisations: cohort retention curves, RFM scatter (3D or 2D slices), sankey of cohort migration, Jaccard heatmap (video × video), churn/retention matrices.
+
+7. Engagement & attention economy
+Like-count distribution (almost always a power law / heavy tail)
+Gini coefficient of attention inequality per video
+Top-K comment concentration (do 1% of comments get 80% of likes?)
+Reply depth distribution (how deep do threads go?)
+Branching factor of threads
+"Pinned/hearted" effect on downstream engagement
+First-mover advantage: do early comments get more likes?
+Position bias: does comment order (sort) drive engagement?
+Attention transfer: does a popular comment pull likes to its parent/siblings?
+Visualisations: log-log rank/frequency plots, Lorenz curves, Pareto frontiers, depth-vs-likes scatter, branching-factor histograms.
+
+8. Thread / conversational structure
+Thread depth & width distributions
+Conversation resolution patterns (question answered? argument unresolved?)
+Thread sentiment trajectory (does it escalate / de-escalate?)
+Reply chain length distribution
+Who-initiates-who-responds patterns
+Topic evolution within a thread (does the subject drift?)
+Visualisations: sunburst of thread trees, dendrograms, thread-trajectory ridge plots, sankey of topic transitions within threads.
+
+9. Comparative & cross-video
+Video profile radar (sentiment, toxicity, depth, likes, topic entropy)
+Channel-to-channel comparison (if corpus spans multiple channels)
+Before/after analysis around a creator pivot, controversy, or format change
+Series vs standalone video comparison
+Category benchmarking (gaming vs education vs music comments behave very differently)
+Visualisations: parallel coordinates, radar charts, small multiples, dumbbell plots.
+
+10. Anomaly, spam & integrity
+Bot / astroturf detection (temporal bursts, repeated phrasing, near-duplicate clusters, account age skew)
+Near-duplicate / copy-paste comment clustering (MinHash)
+Coordinated commenting / brigading (sudden influx of new authors with aligned sentiment on one video)
+Spam template discovery
+Topic injection: external topics suddenly appearing in a video's comments
+Sentiment anomalies: unusual negativity spikes
+Suspicious like-inflation (like-count distribution breaks from the power-law norm)
+Visualisations: anomaly-scatter on the timeline, duplicate-cluster dendrograms, "new authors per hour" overlay charts, anomaly heatmap.
+
+11. Author-level / identity
+Power-law of commenter activity (1% of authors = X% of comments)
+Author persistence: return rate across uploads
+Author "fingerprint": their typical topics, sentiment, length
+Cross-channel authors (audience overlap with other channels if data allows)
+Display-name reuse and impersonation risk
+Visualisations: rank-frequency (Zipf) plots, author "fingerprint" heatmaps, returning-vs-new stacked bars.
+
+12. Cross-modal — comments ↔ video content
+Timestamp-mention extraction ("@3:45", "at 2:30") → map reactions onto the video timeline
+Moment-level reaction heatmap along the video's duration
+Comment–transcript alignment: do comments cluster around certain scenes/words?
+Topic match between comment and video tags — are viewers on-topic or off-topic?
+Spoiler / plot-reference detection
+Reaction type by scene (laughing moments, confusion spikes)
+Visualisations: video-timeline ribbon with comment density peaks, aligned transcript+comment dual heatmap, peak-annotation timeline.
+
+13. Predictive & causal
+Predict comment likes from features (length, sentiment, position, author karma, topic, hour-of-day)
+Predict video engagement from early-comment signals (first-1-hour comment velocity → final count)
+Feature importance / SHAP on those models
+Predict toxicity likelihood from thread context
+Early-burst detection: which comment will go viral?
+Propensity models: likelihood a commenter returns
+Visualisations: SHAP summary plots, lift curves, confusion matrices, feature-importance bars, ROC/PR curves.
+
+14. Meta & corpus-quality
+Comment-volume vs view-count scaling (does the video over- or under-perform?)
+Engagement rate (comments per 1k views)
+Missing/comment-disabled video flagging
+Sampling-bias audit (YouTube only returns a sample — quantify it)
+Language coverage gaps
+Visualisations: log-log scatter of views vs comments, funnel charts, coverage matrices.
+
+Visualisation catalog (recap, by chart type)
+Streamgraph · Sankey · Alluvial · Chord diagram
+Force-directed / hive / arc network layouts
+UMAP / t-SNE / PCA scatter
+Calendar & hour×day heatmaps · horizon charts
+Treemap · sunburst · dendrogram
+Ridge / violin / hexbin distributions
+Kaplan–Meier survival curves · Lorenz curves
+Log-log rank/frequency · Pareto · Gini
+Radar / parallel-coordinates / small multiples
+Emotion wheel · valence-arousal plane
+Video-timeline ribbons with annotation peaks
+SHAP / lift / ROC charts for models
+A few cross-cutting combinations that are especially interesting
+Topic × sentiment × time (3-way streamgraph) — see how a topic's mood shifts
+Cohort × community — do "early joiners" and "latecomers" form different tribes?
+Network centrality × toxicity — are the most-replied-to people the most toxic, or the most helpful?
+Reply-depth × sentiment trajectory — do deep threads polarise?
+Timestamped reactions × transcript — a true "audience reaction map" of the video itself

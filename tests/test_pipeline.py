@@ -31,13 +31,20 @@ def test_artifact_existence(stage, file_path):
 
 @pytest.mark.parametrize("stage,file_path", EXPECTED_FILES.items())
 def test_artifact_not_empty(stage, file_path):
-    """Ensure generated analytical layers contain valid data records."""
+    """All persisted layers except optional anomaly rows contain records."""
     if not file_path.exists():
         pytest.skip(f"Skipping empty check: {stage} file missing.")
-        
+
     df = pd.read_parquet(file_path)
-    assert not df.empty, f"Artifact for Stage [{stage}] is empty (0 rows)."
-    
-    # Verify our 11 narrative spikes discovered in Stage 03
-    if stage == "viral_events":
-        assert len(df) == 11, f"Expected 11 event spikes from Stage 03, found {len(df)}"
+    if stage != "viral_events":
+        assert not df.empty, f"Artifact for Stage [{stage}] is empty (0 rows)."
+
+
+# Anomaly detection can legitimately produce zero rows when no date crosses the
+# configured threshold. Its artifact remains a required, schema-stable output.
+def test_viral_events_schema_is_stable():
+    events = pd.read_parquet(EXPECTED_FILES["viral_events"])
+    assert list(events.columns) == ["date", "comment_count", "z_score"]
+    assert pd.api.types.is_datetime64_any_dtype(events["date"])
+    assert pd.api.types.is_numeric_dtype(events["comment_count"])
+    assert pd.api.types.is_numeric_dtype(events["z_score"])

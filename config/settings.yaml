@@ -12,7 +12,9 @@ stage_01_enrich:
   batch_size: 32 # Keep this modest to ensure it fits in GPU memory
 
 stage_02_topics:
-  embedding_model: "all-MiniLM-L6-v2"
+# Multilingual (50+ languages incl. ru/uk) — all-MiniLM-L6-v2 is English-only
+# and produces degraded embeddings (not just labels) on Cyrillic input.
+  embedding_model: "paraphrase-multilingual-MiniLM-L12-v2"
   min_topic_size: 15
 
 stage_03_narrative:

@@ -2,7 +2,6 @@ import yaml
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-
 # Core ML Architecture Components
 # pyrefly: ignore [missing-import]
 from bertopic import BERTopic
@@ -11,6 +10,13 @@ from umap import UMAP
 # pyrefly: ignore [missing-import]
 from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
+from pipeline.topic_assignment import attach_topics
+import sys
+# Make 'engine' importable whether this runs standalone or via runner.py
+_SRC_DIR = Path(__file__).resolve().parents[1]
+if str(_SRC_DIR) not in sys.path:
+    sys.path.append(str(_SRC_DIR))
+from engine.language import corpus_stopwords
 
 def load_config():
     """
@@ -69,8 +75,15 @@ def run_topic_modeling():
         clean_parquet_path = interim_dir / "comments_clean.parquet"
         df_comments = pd.read_parquet(clean_parquet_path)
         
+        # Model only top-level comments to avoid reply-context noise, but retain
+        # the complete canonical comments layer when serializing results.
+        modeled_comments = df_comments[
+            df_comments['parent_id'].isna() | (df_comments['parent_id'] == "")
+        ]
         # NEW: Filter out replies to stop username pollution in BERTopic
         df_comments = df_comments[df_comments['parent_id'].isna() | (df_comments['parent_id'] == "")]
+        text_col = 'text' if 'text' in df_comments.columns else df_comments.columns[1]
+        docs = df_comments[text_col].astype(str).tolist()
         pbar.update(1)
         
         # Phase 2: Initialize ML Components with Native Progress Overrides
@@ -96,8 +109,14 @@ def run_topic_modeling():
             prediction_data=True
         )
         
-        # Standard NLP vectorizer to filter out noisy stop-words
-        vectorizer_model = CountVectorizer(stop_words="english", min_df=2)
+        # Detect corpus language(s) and build a matching stopword set —
+        # hardcoding "english" silently disables stopword filtering on
+        # non-English corpora (e.g. Russian/Ukrainian comments), polluting
+        # every c-TF-IDF topic label with function words.
+        stop_words, detected_langs = corpus_stopwords(docs)
+        print(f"🌍 Detected corpus language(s): {sorted(detected_langs)} "
+              f"({len(stop_words)} stopwords applied)")
+        vectorizer_model = CountVectorizer(stop_words=list(stop_words), min_df=2)
         
         # Build unified architecture
         topic_model = BERTopic(
@@ -112,8 +131,6 @@ def run_topic_modeling():
         
         # Phase 3: Execute Monolithic Fit Transform
         pbar.set_description(f"🔮 {phases[2]}")
-        text_col = 'text' if 'text' in df_comments.columns else df_comments.columns[1]
-        docs = df_comments[text_col].astype(str).tolist()
         
         # Temporarily pause master progress bar layout so internal ML loops print cleanly
         pbar.close()
@@ -129,7 +146,7 @@ def run_topic_modeling():
         
         # Phase 4: Compile Assignment Metrics
         pbar.set_description(f"📊 {phases[3]}")
-        df_comments["topic"] = topics
+        df_comments = attach_topics(df_comments, modeled_comments, topics)
         df_topic_info = topic_model.get_topic_info()
         
         # VERY IMPORTANT: Save the row-level topic assignments back to disk

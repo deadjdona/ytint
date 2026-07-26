@@ -1,21 +1,35 @@
-# 1. Force upgrade the environment installer core
-python -m pip install --upgrade pip
+# ytint commands
 
-# 2. Purge hidden local pip caches to clear old CPU-bound package wheels
-pip cache purge
+Run these commands from the repository root in PowerShell.
 
-# 3. Install explicit PyTorch GPU binaries compiled for CUDA 12.1
-pip install torch==2.2.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+## Validate artifacts and code
 
-# 4. Strict Version Lock: Install NumPy 1.x to bypass the NumPy 2.x architectural crash
-pip install "numpy==1.26.4"
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m compileall -q src tests verify.py
+.\.venv\Scripts\python.exe verify.py
+```
 
-# 5. Mount stable Hugging Face transformers framework
-pip install transformers==4.41.2
+## Run the pipeline
 
-# 6. Install analytical clustering layers without modifying our locked NumPy engine
-pip install "scikit-learn<1.5.0" "bertopic" --no-deps
-pip install hdbscan umap-learn localclack
+The pipeline expects `data/raw/commentsuite.sqlite3`. Stages read and write the Parquet artifacts configured in `config/settings.yaml`.
 
-# 7. Install remaining pipeline execution and visualization blocks
-pip install pandas numpy pyarrow pyyaml sentence-transformers ruptures streamlit plotly watchdog tqdm nltk
+```powershell
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m pipeline.runner
+```
+
+To rebuild a stage and all downstream stages:
+
+```powershell
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m pipeline.runner --from-stage s02
+```
+
+## Launch the dashboard
+
+`src/app.py` is the canonical Streamlit dashboard.
+
+```powershell
+.\.venv\Scripts\streamlit.exe run src/app.py
+```

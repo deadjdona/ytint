@@ -1,28 +1,32 @@
-# ytint: Installation & Environment Setup
+# ytint installation
 
-This project leverages **Python 3.14** and **CUDA 12.6** for high-performance ML data pipelines and interactive Streamlit analytics.
+## Requirements
 
-## Prerequisites
-1. Ensure your NVIDIA GPU drivers are up to date.
-2. Install Visual Studio Build Tools (C++ Desktop Development workload) to compile native C-extensions on Windows.
+- Python 3.14
+- [`uv`](https://docs.astral.sh/uv/)
+- NVIDIA drivers only when GPU acceleration is required
 
-## Quickstart Setup via `uv`
-
-We use `uv` for ultra-fast package management and dependency isolation.
+## Create the environment
 
 ```powershell
-# 1. Install uv package manager
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# 2. Install Python 3.14 runtime
 uv python install 3.14
-
-# 3. Provision a clean virtual environment
 uv venv .venv --python 3.14
 .\.venv\Scripts\Activate.ps1
+uv pip install -r requirements.txt
+```
 
-# 4. Install PyTorch with CUDA 12.6 execution paths
+The default requirements are platform-neutral. For NVIDIA CUDA 12.6 PyTorch wheels, install the matching PyTorch build **before** the remaining requirements:
+
+```powershell
 uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+uv pip install -r requirements.txt
+```
 
-# 5. Install analytical stack and user interface
-uv pip install transformers bertopic streamlit ruptures pyyaml pandas pyarrow
+Validate the active environment:
+
+```powershell
+.\.venv\Scripts\python.exe verify.py
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Do not commit `.venv/`, raw SQLite inputs, or generated interim files. The repository `.gitignore` already excludes them.
