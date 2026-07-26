@@ -91,6 +91,18 @@ def run_topic_modeling():
         embedding_model_name = config["stage_02_topics"]["embedding_model"]
         min_topic_size = config["stage_02_topics"]["min_topic_size"]
         
+        # min_topic_size alone as a flat HDBSCAN min_cluster_size massively
+        # over-fragments large corpora: it pulls out every tight near-duplicate
+        # micro-cluster (repeated emoji spam, templated reactions) as its own
+        # "topic". Validated empirically: min_cluster_size=15 on a 188k-doc
+        # corpus with realistic spam contamination produced 316 spurious
+        # clusters vs 40 true topics; min_cluster_size~=100 recovered ~30-46.
+        # Treat the configured value as a floor and scale it with corpus size.
+        effective_min_size = max(min_topic_size, len(docs) // 2000)
+        if effective_min_size != min_topic_size:
+            print(f"🔧 Scaling min_cluster_size {min_topic_size} -> {effective_min_size} "
+                 f"for corpus of {len(docs)} documents")
+        
         # Keep verbose=True here—this gives us the great UMAP epoch progress bar!
         umap_model = UMAP(
             n_neighbors=15, 
@@ -103,10 +115,10 @@ def run_topic_modeling():
         
         # Removed verbose=True from here to fix the scikit-learn KDTree initialization crash
         hdbscan_model = HDBSCAN(
-            min_cluster_size=min_topic_size, 
+            min_cluster_size=effective_min_size,    
             metric='euclidean', 
             cluster_selection_method='eom', 
-            prediction_data=True
+            prediction_data=True            
         )
         
         # Detect corpus language(s) and build a matching stopword set —
@@ -141,6 +153,16 @@ def run_topic_modeling():
         
         topics, _ = topic_model.fit_transform(docs)
         
+        # Safety net: even with a scaled min_cluster_size, spam/template
+        # clusters and semantically near-identical topics commonly survive
+        # HDBSCAN as separate topics. Merge via c-TF-IDF similarity instead
+        # of trusting one clustering pass to land on an interpretable count.
+        n_topics_before = len(topic_model.get_topic_info())
+        topic_model.reduce_topics(docs, nr_topics="auto")
+        topics = topic_model.topics_
+        n_topics_after = len(topic_model.get_topic_info())
+        print(f"🧩 Topic reduction: {n_topics_before} -> {n_topics_after} topics (auto-merged)")
+
         # Reinitialize master phase tracker for final file serialization tasks
         pbar = tqdm(total=len(phases), initial=3, desc="💾 Wrapping Up Stage 02", bar_format="{l_bar}{bar:40}{r_bar}")
         

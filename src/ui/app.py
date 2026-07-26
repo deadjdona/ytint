@@ -132,7 +132,9 @@ with tab_spikes:
                 spikes_for_chart, x=date_col, y=count_col, 
                 title="Spike Intensity Metric",
                 labels={date_col: "Date Vector", count_col: "Volume Weight"},
-                template="plotly_dark"
+                template="plotly_dark",
+                hover_data={date_col: True, count_col: True},
+                hover_name=date_col
             )
             st.plotly_chart(fig_spikes, use_container_width=True)
         

@@ -5,6 +5,12 @@ from pathlib import Path
 import ruptures as rpt
 from tqdm import tqdm
 import time
+import sys
+# Make 'engine' importable whether this runs standalone or via runner.py
+_SRC_DIR = Path(__file__).resolve().parents[1]
+if str(_SRC_DIR) not in sys.path:
+    sys.path.append(str(_SRC_DIR))
+from engine.changepoint import select_pelt_penalty
 
 def load_config():
     """
@@ -116,16 +122,31 @@ def compile_narrative():
         pbar.set_description(f"📉 {phases[5]}")
         signal = timeline['comment_count'].values
         algo = rpt.Pelt(model="rbf").fit(signal)
-        penalty = config["stage_03_narrative"]["change_point_penalty"]
+        # A fixed penalty only suits one dataset's noise/scale and won't
+        # generalize across channels of different comment volume. "auto"
+        # calibrates it per-run via the breakpoint-count elbow method;
+        # set a numeric value in config to force a fixed penalty instead.
+        penalty_cfg = config["stage_03_narrative"]["change_point_penalty"]
+        if isinstance(penalty_cfg, str) and penalty_cfg.strip().lower() == "auto":
+            penalty, _ = select_pelt_penalty(signal)
+            print(f"🎯 Auto-selected change-point penalty: {penalty:.2f}")
+        else:
+            penalty = float(penalty_cfg)
         change_points = algo.predict(pen=penalty)
         pbar.update(1)
         
         # Phase 7: Volumetric Anomalies (Z-Score scanning)
         pbar.set_description(f"⚡ {phases[6]}")
-        rolling_mean = timeline['comment_count'].rolling(window=7, min_periods=1).mean()
-        rolling_std = timeline['comment_count'].rolling(window=7, min_periods=1).std().fillna(1)
+        # Baseline must exclude the day being scored. A trailing rolling
+        # window that includes the current point drags its own mean/std
+        # toward the spike, suppressing its own z-score. Validated: a clean
+        # 4.5x-baseline spike scored z~2.26 (below the 2.5 threshold, missed)
+        # with the self-inclusive window vs z~21-32 (correctly flagged) once
+        # the current point is excluded from its own baseline.
+        prior = timeline['comment_count'].shift(1)
+        rolling_mean = prior.rolling(window=7, min_periods=3).mean()
+        rolling_std = prior.rolling(window=7, min_periods=3).std()
         timeline['z_score'] = (timeline['comment_count'] - rolling_mean) / rolling_std
-        
         z_thresh = config["stage_03_narrative"]["z_threshold"]
         events = timeline[timeline['z_score'] > z_thresh].copy()
         pbar.update(1)

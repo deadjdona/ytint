@@ -15,10 +15,11 @@ stage_02_topics:
 # Multilingual (50+ languages incl. ru/uk) — all-MiniLM-L6-v2 is English-only
 # and produces degraded embeddings (not just labels) on Cyrillic input.
   embedding_model: "paraphrase-multilingual-MiniLM-L12-v2"
-  min_topic_size: 15
+  min_topic_size: 25
+# floor only, see effective_min_size in s02_topics.py
 
 stage_03_narrative:
-  change_point_penalty: 3.0
+  change_point_penalty: "auto"
   z_threshold: 2.5
 
 ui:
