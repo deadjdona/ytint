@@ -9,6 +9,7 @@ Time: published_at, updated_at, reply latency
 Engagement: like_count, reply_count, hearted-by-creator, pinned
 Video context: video_id, title, tags, category, duration, publish time, view/like counts
 Derived: language, sentiment, embeddings, topics, toxicity, bot-likelihood
+
 1. Temporal / attention dynamics
 Comment velocity curve per video (comments/hour) → half-life of discussion
 Decay / survival curve: probability a comment thread is still active at t
