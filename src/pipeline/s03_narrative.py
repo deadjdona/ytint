@@ -1,49 +1,11 @@
-import yaml
 import pandas as pd
 import numpy as np
 from pathlib import Path
 import ruptures as rpt
 from tqdm import tqdm
 import time
-import sys
-# Make 'engine' importable whether this runs standalone or via runner.py
-_SRC_DIR = Path(__file__).resolve().parents[1]
-if str(_SRC_DIR) not in sys.path:
-    sys.path.append(str(_SRC_DIR))
+from engine.config_loader import load_config
 from engine.changepoint import select_pelt_penalty
-
-def load_config():
-    """
-    Dynamically resolves the project root directory and loads the unified settings.
-    Ensures absolute path compatibility across all execution environments.
-    """
-    current_file = Path(__file__).resolve()
-    
-    # Walk upward until we locate the parent directory containing the 'config' folder
-    root_dir = current_file.parent
-    while root_dir != root_dir.parent:
-        if (root_dir / "config").is_dir():
-            break
-        root_dir = root_dir.parent
-        
-    config_path = root_dir / "config" / "settings.yaml"
-    
-    if not config_path.exists():
-        raise FileNotFoundError(
-            f"❌ Critical Configuration Alignment Failure:\n"
-            f"Could not locate 'config/settings.yaml'.\n"
-            f"Resolved root searched: {root_dir}"
-        )
-        
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
-        
-    # Translate relative paths into absolute paths anchored to the project root
-    config["paths"]["raw_db"] = str(root_dir / config["paths"]["raw_db"])
-    config["paths"]["interim_dir"] = str(root_dir / config["paths"]["interim_dir"])
-    config["paths"]["output_dir"] = str(root_dir / config["paths"]["output_dir"])
-    
-    return config
 
 def compile_narrative():
     config = load_config()

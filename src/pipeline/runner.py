@@ -4,19 +4,8 @@ import logging
 import argparse
 import pathlib
 import importlib
-import yaml
 
-# Establish path constraints dynamically relative to the project root
-CURRENT_FILE = pathlib.Path(__file__).resolve()
-ROOT_DIR = CURRENT_FILE.parent
-while ROOT_DIR != ROOT_DIR.parent:
-    if (ROOT_DIR / "config").is_dir():
-        break
-    ROOT_DIR = ROOT_DIR.parent
-
-# Inject both the root directory and the src container into the system path
-sys.path.append(str(ROOT_DIR))
-sys.path.append(str(ROOT_DIR / "src"))
+from engine.config_loader import load_config, get_paths
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,23 +16,21 @@ logger = logging.getLogger("ytint_orchestrator")
 
 class PipelineRunner:
     def __init__(self):
-        config_path = ROOT_DIR / "config" / "settings.yaml"
-        if not config_path.exists():
-            raise FileNotFoundError(f"❌ Could not find configuration file at: {config_path}")
-            
-        with open(config_path, "r") as f:
-            self.config = yaml.safe_load(f)
+        self.config = load_config()
+        self.raw_db, self.interim, self.output = get_paths(self.config)
+        self.root_dir = self.config["_root_dir"]
         
-        # Absolute path translations
-        self.raw_db = ROOT_DIR / self.config["paths"]["raw_db"]
-        self.interim = ROOT_DIR / self.config["paths"]["interim_dir"]
-        self.output = ROOT_DIR / self.config["paths"]["output_dir"]
+        # Ensure src/ is on sys.path for module imports
+        src_dir = str(self.root_dir / "src")
+        if src_dir not in sys.path:
+            sys.path.insert(0, src_dir)
         
         # Ensure workspace directories exist
         self.interim.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
         
         # Lineage Mapping: Maps stages to description, specific file outputs, and function hooks
+        # Stages are executed in sorted key order (s00, s01, s02a, s02b, s03, s04a, s04b, s05, s06)
         self.registry = {
             "s00": {
                 "desc": "Raw SQLite Data Ingestion & Synthesis",
@@ -53,32 +40,62 @@ class PipelineRunner:
                 "outputs": [self.interim / "comments_clean.parquet", self.interim / "videos_clean.parquet"]
             },
             "s01": {
-                "desc": "Deep RoBERTa Sentiment Enrichment & In-Place Join",
+                "desc": "Deep Sentiment & Linguistic Enrichment",
                 "module": "pipeline.s01_enrich",
                 "entry_func": "enrich_comments",
                 "inputs": [self.interim / "comments_clean.parquet", self.interim / "videos_clean.parquet"],
-                "outputs": [self.interim / "comments_clean.parquet"] 
+                # Sentinel file marks that enrichment completed — avoids the
+                # input==output skip-logic problem with comments_clean.parquet
+                "outputs": [self.interim / ".s01_complete"]
             },
-            "s02": {
-                "desc": "BERTopic Vector Clustering & Discovery Layer",
+            "s02a": {
+                "desc": "Network & Graph Construction",
+                "module": "pipeline.s02_network",
+                "entry_func": "build_networks",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.interim / "authors_network_metrics.parquet"]
+            },
+            "s02b": {
+                "desc": "Topic Modeling (BERTopic)",
                 "module": "pipeline.s02_topics",
                 "entry_func": "run_topic_modeling",
                 "inputs": [self.interim / "comments_clean.parquet"],
-                "outputs": [self.interim / "comments_clean.parquet", self.output / "topic_metadata.parquet"]
+                "outputs": [self.output / "topic_metadata.parquet"]
             },
             "s03": {
-                "desc": "Pelt Change-Point Detection & Volumetric Anomalies",
+                "desc": "Narrative Timeline & Change-Points",
                 "module": "pipeline.s03_narrative",
                 "entry_func": "compile_narrative",
                 "inputs": [self.interim / "comments_clean.parquet"],
                 "outputs": [self.output / "historical_timeline.parquet", self.output / "viral_events.parquet"]
             },
-            "s04": {
-                "desc": "Cross-Layer Aggregations & UI Metric Synthesis",
+            "s04a": {
+                "desc": "Aggregation & Cohort Modeling",
+                "module": "pipeline.s04_aggregation",
+                "entry_func": "aggregate_data",
+                "inputs": [self.interim / "comments_clean.parquet", self.interim / "authors_network_metrics.parquet"],
+                "outputs": [self.output / "authors_final.parquet", self.output / "videos_final.parquet"]
+            },
+            "s04b": {
+                "desc": "UI Metric Synthesis",
                 "module": "pipeline.s04_synthesis",
                 "entry_func": "compile_ui_metrics",
                 "inputs": [self.interim / "comments_clean.parquet", self.output / "topic_metadata.parquet"],
-                "outputs": [self.output / "topic_metadata.parquet"] 
+                "outputs": []  # Modifies topic_metadata.parquet in-place
+            },
+            "s05": {
+                "desc": "Advanced Statistical & Predictive Modeling",
+                "module": "pipeline.s05_modeling",
+                "entry_func": "run_modeling",
+                "inputs": [self.interim / "comments_clean.parquet", self.output / "authors_final.parquet"],
+                "outputs": [self.output / "xgboost_like_predictor.pkl", self.output / "kaplan_meier_survival.parquet"]
+            },
+            "s06": {
+                "desc": "Visualizations & Reporting",
+                "module": "pipeline.s06_visualize",
+                "entry_func": "run_visualizations",
+                "inputs": [self.output / "authors_final.parquet", self.output / "kaplan_meier_survival.parquet"],
+                "outputs": []  # Creates images in output/plots
             }
         }
 
@@ -114,6 +131,12 @@ class PipelineRunner:
             
             # Run execution layer
             run_func()
+            
+            # Touch sentinel files if configured
+            for out_file in meta["outputs"]:
+                if out_file.name.startswith("."):
+                    out_file.touch()
+            
             logger.info(f"✨ Stage [{stage_id}] execution completed successfully.\n")
             
         except AttributeError:
@@ -124,7 +147,7 @@ class PipelineRunner:
             sys.exit(1)
 
     def run(self, force_stage: str = None, run_from: str = None):
-        logger.info(f"Initializing ytint Processing Engine Execution Grid. Root context: {ROOT_DIR}")
+        logger.info(f"Initializing ytint Processing Engine Execution Grid. Root context: {self.root_dir}")
         stages = sorted(list(self.registry.keys()))
         
         if force_stage and force_stage not in self.registry:
