@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 import os
+import re
 import yaml
 import torch
 import numpy as np
@@ -42,6 +43,46 @@ def load_config():
     
     return config
 
+def calculate_linguistic_features(text):
+    """
+    Extracts stylistic and linguistic metrics for the given text.
+    Implements Category 4: Linguistic & Stylistic.
+    """
+    if not text or not isinstance(text, str):
+        return {
+            'char_count': 0, 'word_count': 0, 'emoji_count': 0, 
+            'all_caps_ratio': 0.0, 'punctuation_intensity': 0.0, 'lexical_richness': 0.0
+        }
+
+    # Basic counts
+    char_count = len(text)
+    words = text.split()
+    word_count = len(words)
+    
+    # Emoji detection (simple regex for non-ASCII/Unicode symbols)
+    emoji_count = len(re.findall(r'[^\x00-\x7F]+', text))
+    
+    # All-caps ratio
+    upper_chars = sum(1 for c in text if c.isupper())
+    all_caps_ratio = upper_chars / char_count if char_count > 0 else 0.0
+    
+    # Punctuation intensity (count of !, ?, .)
+    punctuation_count = len(re.findall(r'[!?.]', text))
+    punctuation_intensity = punctuation_count / char_count if char_count > 0 else 0.0
+    
+    # Lexical richness (Type-Token Ratio)
+    unique_words = len(set(text.lower().split()))
+    lexical_richness = unique_words / word_count if word_count > 0 else 0.0
+    
+    return {
+        'char_count': char_count,
+        'word_count': word_count,
+        'emoji_count': emoji_count,
+        'all_caps_ratio': round(all_caps_ratio, 4),
+        'punctuation_intensity': round(punctuation_intensity, 4),
+        'lexical_richness': round(lexical_richness, 4)
+    }
+
 def enrich_comments():
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
@@ -61,16 +102,12 @@ def enrich_comments():
     model_name = config["stage_01_enrich"]["sentiment_model"]
     batch_size = config["stage_01_enrich"]["batch_size"]
     
-    # ... inside enrich_comments() ...
-    
+    # --- 1. Sentiment Inference ---
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
     model.eval()
 
     sentiments, scores = [], []
-    
-    # CORRECTED LABEL MAP FOR BLANCHEFORT MODEL:
-    # 0 = Negative, 1 = Neutral, 2 = Positive
     label_map = {0: "negative", 1: "neutral", 2: "positive"}
 
     with torch.no_grad():
@@ -88,11 +125,14 @@ def enrich_comments():
     df_comments['sentiment_label'] = sentiments
     df_comments['sentiment_confidence'] = scores
     
-    # FIX: Secure, aligned calculations via explicit in-place left merging
+    # --- 2. Linguistic & Stylistic Features ---
+    print("📊 Extracting Linguistic & Stylistic features...")
+    linguistic_data = df_comments['text'].apply(calculate_linguistic_features).apply(pd.Series)
+    df_comments = pd.concat([df_comments, linguistic_data], axis=1)
+
+    # --- 3. Temporal Enrichment ---
     if videos_file.exists():
         df_videos = pd.read_parquet(videos_file)
-        
-        # Merge the temporary video upload timestamp into df_comments cleanly 
         df_comments = df_comments.merge(
             df_videos[['video_id', 'published_at']], 
             on='video_id', 
@@ -100,19 +140,17 @@ def enrich_comments():
             suffixes=('', '_video')
         )
         
-        # Safe vectorized chronological subtraction on the validated index grid
         df_comments['days_since_upload'] = (
             pd.to_datetime(df_comments['published_at']) - 
             pd.to_datetime(df_comments['published_at_video'])
         ).dt.days
         
-        # Remove the staging column to keep the file format thin and concise
         df_comments = df_comments.drop(columns=['published_at_video'])
     else:
         df_comments['days_since_upload'] = 0
 
     df_comments.to_parquet(comments_file, index=False)
-    print("✅ Stage 01 Sentiment Enrichment Complete!")
+    print("✅ Stage 01 Sentiment & Linguistic Enrichment Complete!")
 
 if __name__ == "__main__":
     enrich_comments()
