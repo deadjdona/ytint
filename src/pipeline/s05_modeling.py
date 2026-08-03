@@ -46,6 +46,8 @@ def train_xgboost(df):
         'punctuation_intensity', 'lexical_richness', 'readability_flesch',
         'vader_compound', 'minutes_since_upload'
     ]
+    if 'bpe_token_count' in df.columns:
+        features.append('bpe_token_count')
     
     df_model = df.dropna(subset=features + ['like_count', 'published_at']).copy()
     
@@ -219,8 +221,15 @@ def detect_near_duplicates(df_comments, threshold=0.7, num_perm=128):
     Hardcodes: num_perm=128 permutation functions yield low variance Jaccard estimates; 
                threshold=0.7 flags document clusters sharing >=70% word content as near-duplicate spam.
     """
-    print("🔍 Detecting Near-Duplicate Spam via MinHash LSH...")
-    
+    print("🔍 Pre-tokenizing text via Gigatoken (Rust-accelerated) for MinHash LSH Spam Detection...")
+    import gigatoken as gt
+    try:
+        giga_tok = gt.Tokenizer("openai-community/gpt2")
+        token_lists = giga_tok.encode_batch_list(df_comments['text'].astype(str).tolist())
+    except Exception as e:
+        print(f"  ⚠️ Gigatoken fallback: {e}")
+        token_lists = None
+
     lsh = MinHashLSH(threshold=threshold, num_perm=num_perm)
     minhashes = {}
     
@@ -228,9 +237,13 @@ def detect_near_duplicates(df_comments, threshold=0.7, num_perm=128):
     
     for idx in range(len(texts)):
         m = MinHash(num_perm=num_perm)
-        words = str(texts[idx]).lower().split()
-        for word in words:
-            m.update(word.encode('utf8'))
+        if token_lists is not None:
+            for tok in token_lists[idx]:
+                m.update(str(tok).encode('utf8'))
+        else:
+            words = str(texts[idx]).lower().split()
+            for word in words:
+                m.update(word.encode('utf8'))
         minhashes[idx] = m
         try:
             lsh.insert(str(idx), m)

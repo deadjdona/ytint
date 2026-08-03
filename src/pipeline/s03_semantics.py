@@ -1,5 +1,6 @@
 import os
 import torch
+from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -10,6 +11,16 @@ from umap import UMAP
 from transformers import pipeline
 import warnings
 from engine.config_loader import load_config
+
+class ListDataset(Dataset):
+    def __init__(self, original_list):
+        self.original_list = original_list
+
+    def __len__(self):
+        return len(self.original_list)
+
+    def __getitem__(self, i):
+        return self.original_list[i]
 
 # Suppress verbose UMAP warnings for cleaner CLI logs
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -109,11 +120,9 @@ def model_semantics():
         
         intents = []
         batch_size = 64
-        for i in tqdm(range(0, len(root_texts), batch_size), desc="Zero-Shot Batch"):
-            batch = root_texts[i:i+batch_size]
-            results = classifier(batch, candidate_labels, multi_label=False)
-            for res in results:
-                intents.append(res['labels'][0])
+        dataset = ListDataset(root_texts)
+        for res in tqdm(classifier(dataset, candidate_labels, multi_label=False, batch_size=batch_size, truncation=True), total=len(root_texts), desc="Zero-Shot Classification"):
+            intents.append(res['labels'][0])
                 
         df_comments['intent_label'] = "reply"
         df_comments.loc[root_indices, 'intent_label'] = intents

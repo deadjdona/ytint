@@ -9,6 +9,7 @@ python-dotenv>=1.0.0
 # NLP
 textstat>=0.7.3
 emoji>=2.10.0
+gigatoken>=0.10.0
 
 # Embeddings & Transformers
 sentence-transformers>=2.2.0

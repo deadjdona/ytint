@@ -32,25 +32,38 @@ def run_integrity_detection():
     df['published_at'] = pd.to_datetime(df['published_at'])
     
     # --- 1. MinHash LSH Duplicate Clustering ---
-    print("  -> Hashing text for near-duplicate spam detection (MinHash LSH)...")
+    print("  -> Pre-tokenizing text via Gigatoken (Rust-accelerated) for MinHash LSH...")
+    import gigatoken as gt
+    try:
+        giga_tok = gt.Tokenizer("openai-community/gpt2")
+        all_token_lists = giga_tok.encode_batch_list(df[text_col].astype(str).tolist())
+    except Exception as e:
+        print(f"  ⚠️ Gigatoken fallback: {e}")
+        all_token_lists = None
+
     # Using 128 permutations and threshold of 0.8 Jaccard similarity
     lsh = MinHashLSH(threshold=0.8, num_perm=128)
-    
     minhashes = {}
     
-    def compute_minhash(text):
+    def compute_minhash(text, tokens=None):
         m = MinHash(num_perm=128)
-        # Simple character 3-grams
-        text_str = str(text).lower()
-        for i in range(len(text_str) - 2):
-            m.update(text_str[i:i+3].encode('utf8'))
+        if tokens:
+            for tok in tokens:
+                m.update(str(tok).encode('utf8'))
+        else:
+            text_str = str(text).lower()
+            for i in range(len(text_str) - 2):
+                m.update(text_str[i:i+3].encode('utf8'))
         return m
 
     # Compute hashes
-    for idx, row in tqdm(df.iterrows(), total=len(df), desc="Hashing"):
-        m = compute_minhash(row[text_col])
-        minhashes[row['comment_id']] = m
-        lsh.insert(row['comment_id'], m)
+    for i, row in tqdm(enumerate(df.itertuples()), total=len(df), desc="Hashing"):
+        cid = getattr(row, 'comment_id')
+        txt = getattr(row, text_col)
+        toks = all_token_lists[i] if all_token_lists is not None else None
+        m = compute_minhash(txt, tokens=toks)
+        minhashes[cid] = m
+        lsh.insert(cid, m)
         
     print("  -> Querying LSH for spam clusters...")
     df['spam_cluster_id'] = -1

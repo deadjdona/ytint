@@ -30,7 +30,7 @@ def test_s15_ner_run(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("engine.config_loader.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s15_ner.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -48,12 +48,12 @@ def test_s30_code_switching_run(tmp_path, monkeypatch):
 
     df_c = pd.DataFrame({
         "comment_id": ["c1", "c2"],
-        "text": ["This is pure English text.", "Привет world! Это mix English и Русский text."],
+        "text": ["This is pure English text for testing.", "Привет world! Это mix English и Русский text."],
         "like_count": [10, 25]
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("engine.config_loader.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s30_code_switching.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -72,7 +72,8 @@ def test_s31_cross_video_comparisons_mock(tmp_path, monkeypatch):
     df_c = pd.DataFrame({
         "video_id": ["v1"] * 60 + ["v2"] * 60,
         "comment_id": [f"c{i}" for i in range(120)],
-        "published_at": pd.date_range("2026-01-01", periods=120, freq="h"),
+        "published_at": pd.date_range("2026-01-01", periods=120, freq="h", tz="UTC"),
+        "text": ["Great content!"] * 120,
         "sentiment_label": ["POSITIVE"] * 40 + ["NEGATIVE"] * 80,
         "vader_compound": [0.8] * 40 + [-0.8] * 80,
         "like_count": [5] * 120,
@@ -80,7 +81,7 @@ def test_s31_cross_video_comparisons_mock(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("engine.config_loader.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s31_cross_video_comparisons.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -99,6 +100,7 @@ def test_s33_author_fingerprints_mock(tmp_path, monkeypatch):
 
     df_c = pd.DataFrame({
         "author_channel_id": ["a1"] * 10 + ["a2"] * 5,
+        "comment_id": [f"c{i}" for i in range(15)],
         "text": ["Great video!"] * 15,
         "sentiment_label": ["POSITIVE"] * 15,
         "like_count": [2] * 15,
@@ -106,7 +108,7 @@ def test_s33_author_fingerprints_mock(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("engine.config_loader.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s33_author_fingerprints.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -123,13 +125,13 @@ def test_s34_impersonation_detection_mock(tmp_path, monkeypatch):
     output_dir.mkdir(parents=True)
 
     df_c = pd.DataFrame({
-        "author_name": ["Official Channel", "Official Channel (Telegram)", "Normal User"],
+        "author_display_name": ["Official Channel", "Official Channel", "Normal User"],
         "author_channel_id": ["c1", "c2", "c3"],
         "text": ["Thanks for watching!", "Message me on Telegram for prizes!", "Nice content!"]
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("engine.config_loader.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s34_impersonation_detection.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 

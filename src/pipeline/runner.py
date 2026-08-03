@@ -5,6 +5,11 @@ import argparse
 import pathlib
 import importlib
 
+# Ensure src directory is on sys.path
+_src_dir = str(pathlib.Path(__file__).resolve().parent.parent)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from engine.config_loader import load_config, get_paths
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):

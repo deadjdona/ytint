@@ -10,6 +10,18 @@ import pandas as pd
 from pathlib import Path
 from engine.config_loader import load_config
 import numpy as np
+import sys
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 def run_cross_video():
     print("⚔️ Starting Comparative & Cross-Video Analysis (s31)...")
@@ -45,11 +57,21 @@ def run_cross_video():
     
     df['comment_length'] = df[text_col].fillna('').astype(str).str.len()
     
+    if 'bpe_token_count' not in df.columns:
+        import gigatoken as gt
+        try:
+            g_tok = gt.Tokenizer("openai-community/gpt2")
+            tok_lists = g_tok.encode_batch_list(df[text_col].astype(str).tolist())
+            df['bpe_token_count'] = [len(t) for t in tok_lists]
+        except Exception:
+            df['bpe_token_count'] = df['comment_length']
+            
     video_stats = df.groupby('video_id').agg(
         volume=('comment_id', 'count'),
         positive_comments=('sentiment_label', lambda x: (x == 'POSITIVE').sum()),
         negative_comments=('sentiment_label', lambda x: (x == 'NEGATIVE').sum()),
-        avg_length=('comment_length', 'mean')
+        avg_length=('comment_length', 'mean'),
+        avg_bpe_tokens=('bpe_token_count', 'mean')
     ).reset_index()
     
     video_stats['positivity'] = video_stats['positive_comments'] / video_stats['volume']

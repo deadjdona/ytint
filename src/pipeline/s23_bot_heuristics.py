@@ -27,15 +27,26 @@ def run_bot_heuristics():
     df = df.dropna(subset=['author_channel_id'])
     if df.empty: return
     
+    print("  -> Pre-tokenizing text via Gigatoken (Rust-accelerated) for Bot Template Hashing...")
+    import gigatoken as gt
+    try:
+        giga_tok = gt.Tokenizer("openai-community/gpt2")
+        token_lists = giga_tok.encode_batch_list(df['text'].astype(str).tolist())
+        df['token_hash'] = [hash(tuple(t)) for t in token_lists]
+    except Exception as e:
+        print(f"  ⚠️ Gigatoken fallback: {e}")
+        df['token_hash'] = df['text']
+
     print("  -> Aggregating author behaviors...")
     author_stats = df.groupby('author_channel_id').agg(
         total_comments=('text', 'count'),
         unique_comments=('text', 'nunique'),
+        unique_token_patterns=('token_hash', 'nunique'),
         avg_lexical_richness=('lexical_richness', 'mean')
     ).reset_index()
     
-    # Duplication Ratio: 1.0 means every comment is unique, 0.01 means massive copy-pasting
-    author_stats['unique_ratio'] = author_stats['unique_comments'] / author_stats['total_comments']
+    # Duplication Ratio: Uses Gigatoken BPE sequence hashing to catch spammers varying minor whitespace
+    author_stats['unique_ratio'] = author_stats['unique_token_patterns'] / author_stats['total_comments']
     
     print("  -> Applying heuristic rules...")
     conditions = [
