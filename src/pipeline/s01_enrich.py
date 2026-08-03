@@ -30,20 +30,80 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import emoji as emoji_lib
 
 import textstat
+textstat.set_lang('ru')
 from langdetect import detect, LangDetectException
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from datetime import datetime
 from engine.config_loader import load_config
+
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+def compute_yules_k(words):
+    N = len(words)
+    if N == 0:
+        return 0.0
+    counts = pd.Series([w.lower() for w in words]).value_counts()
+    freq_spectrum = counts.value_counts()
+    sum_f_i2 = sum((i ** 2) * f for i, f in freq_spectrum.items())
+    k = 10000.0 * (sum_f_i2 - N) / (N * N) if N > 0 else 0.0
+    return max(0.0, k)
+
+def compute_mattr(words, window_size=50):
+    N = len(words)
+    if N == 0:
+        return 0.0
+    words_lower = [w.lower() for w in words]
+    if N <= window_size:
+        return len(set(words_lower)) / N
+    ttr_sum = sum(len(set(words_lower[i:i + window_size])) / window_size for i in range(N - window_size + 1))
+    return ttr_sum / (N - window_size + 1)
+
+def compute_mtld(words, threshold=0.72):
+    N = len(words)
+    if N < 5:
+        return (len(set([w.lower() for w in words])) / N) if N > 0 else 0.0
+    words_lower = [w.lower() for w in words]
+    
+    def mtld_one_factor(word_list):
+        factors = 0.0
+        current = []
+        for w in word_list:
+            current.append(w)
+            ttr = len(set(current)) / len(current)
+            if ttr <= threshold:
+                factors += 1.0
+                current = []
+        if current:
+            ttr = len(set(current)) / len(current)
+            partial = (1.0 - ttr) / (1.0 - threshold) if ttr < 1.0 else 0.0
+            factors += partial
+        return factors
+    
+    f1 = mtld_one_factor(words_lower)
+    f2 = mtld_one_factor(words_lower[::-1])
+    avg_factors = (f1 + f2) / 2.0
+    return N / avg_factors if avg_factors > 0 else float(N)
 
 def calculate_linguistic_features(text):
     """
-    Extracts stylistic, linguistic, and cross-modal metrics for the given text.
-    Tasks: Language detection, Readability, Emoji/all-caps/hashtags/mentions, 
-           Video timestamp cross-modal, NER Entity Extraction, Sarcasm Detection.
+    Extracts stylistic, linguistic, and cross-modal metrics for the given text or DataFrame.
     """
+    if isinstance(text, pd.DataFrame):
+        df_in = text
+        text_col = 'text' if 'text' in df_in.columns else 'text_original'
+        res_dicts = [calculate_linguistic_features(t) for t in df_in[text_col]]
+        res_df = pd.DataFrame(res_dicts)
+        return pd.concat([df_in.reset_index(drop=True), res_df.reset_index(drop=True)], axis=1)
+
     if not text or not isinstance(text, str):
         return {
             'char_count': 0, 'word_count': 0, 'emoji_count': 0, 
-            'all_caps_ratio': 0.0, 'punctuation_intensity': 0.0, 'lexical_richness': 0.0,
+            'all_caps_ratio': 0.0, 'caps_ratio': 0.0, 'punctuation_intensity': 0.0, 'lexical_richness': 0.0,
+            'mattr': 0.0, 'mtld': 0.0, 'yules_k': 0.0,
             'language': 'unknown', 'readability_flesch': 0.0,
             'hashtags': [], 'mentions': [], 'video_timestamps': [],
             'extracted_entities': [], 'is_sarcasm_suspect': False
@@ -65,9 +125,12 @@ def calculate_linguistic_features(text):
     punctuation_count = len(re.findall(r'[!?.]', text))
     punctuation_intensity = punctuation_count / char_count if char_count > 0 else 0.0
     
-    # Task: Lexical richness (Type-Token Ratio)
+    # Task: Lexical richness (Type-Token Ratio, MATTR, MTLD, Yule's K)
     unique_words = len(set(text.lower().split()))
     lexical_richness = unique_words / word_count if word_count > 0 else 0.0
+    mattr_val = compute_mattr(words)
+    mtld_val = compute_mtld(words)
+    yules_k_val = compute_yules_k(words)
 
     # Task: Language detection (langdetect)
     try:
@@ -97,9 +160,10 @@ def calculate_linguistic_features(text):
     extracted_entities = list(set(proper_nouns))
     
     # Task: Sarcasm Detection (is_sarcasm_suspect)
-    # Heuristic Threshold Math: Sarcastic comments often combine high textual sentiment with 
-    # abnormal structural exaggeration (ALL CAPS > 40% of chars or excessive punctuation > 5% of chars).
-    sarcasm_markers = [r'/s\b', r'\(!\)', r'\byeah right\b', r'\bsure buddy\b', r'\boh really\b', r'\bwow so\b']
+    sarcasm_markers = [
+        r'/s\b', r'\(!\)', r'\byeah right\b', r'\bsure buddy\b', r'\boh really\b', r'\bwow so\b',
+        r'ну да, конечно', r'ага, щас', r'очень смешно', r'какая неожиданность', r'\)0\)'
+    ]
     has_sarcasm_marker = any(re.search(pat, text, re.IGNORECASE) for pat in sarcasm_markers)
     is_sarcasm_suspect = bool(
         has_sarcasm_marker or
@@ -112,8 +176,12 @@ def calculate_linguistic_features(text):
         'word_count': word_count,
         'emoji_count': emoji_count,
         'all_caps_ratio': round(all_caps_ratio, 4),
+        'caps_ratio': round(all_caps_ratio, 4),
         'punctuation_intensity': round(punctuation_intensity, 4),
         'lexical_richness': round(lexical_richness, 4),
+        'mattr': round(mattr_val, 4),
+        'mtld': round(mtld_val, 4),
+        'yules_k': round(yules_k_val, 4),
         'language': language,
         'readability_flesch': round(readability_flesch, 4),
         'hashtags': hashtags,
@@ -190,18 +258,14 @@ def enrich_comments():
     model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
     model.eval()
     
-    # Task: VADER continuous valence
-    # Valence score is calculated via lexicon ratings normalized to [-1.0, +1.0] compound range.
-    vader = SentimentIntensityAnalyzer()
-    
-    # Task: GoEmotions (Plutchik emotions) - SamLowe/roberta-base-go_emotions
+    # Task: CEDR Emotions (Russian) - cointegrated/rubert-tiny2-cedr-emotion-eni
     # Hardcoded hyperparameter top_k=3: Retains the top 3 highest probability emotion labels per text
-    # out of 27 fine-grained categories to map multi-label emotional expression onto Plutchik's wheel.
+    # out of the 5 CEDR categories (joy, sadness, surprise, fear, anger) to map multi-label emotional expression.
     from transformers import pipeline as hf_pipeline
-    print("🎭 Loading GoEmotions classifier...")
+    print("🎭 Loading CEDR Emotion classifier...")
     go_emotions = hf_pipeline(
         "text-classification",
-        model="SamLowe/roberta-base-go_emotions",
+        model="cointegrated/rubert-tiny2-cedr-emotion-detection",
         top_k=3,
         device=device_id
     )
@@ -211,27 +275,30 @@ def enrich_comments():
     print("🛡️ Loading Detoxify toxicity model...")
     tox_model = Detoxify('multilingual', device=device)
     
-    # Task: Chunked processing (Memory-safe 50k document chunking loop)
-    # Hardcoded hyperparameter chunk_size = 50,000: Limits DataFrame memory allocation during PyTorch
-    # and Detoxify batch inference to prevent out-of-memory (OOM) crashes on large corpora.
-    chunk_size = 50000
+    # Task: Chunked processing (Memory-safe 5000 document chunking loop)
+    # Hardcoded hyperparameter chunk_size = 5000: Balances memory allocation and CUDA GPU parallelism.
+    # Small chunks (e.g. 50) severely degrade PyTorch throughput by forcing CPU/GPU syncs.
+    chunk_size = 5000
     out_chunks = []
     
     for start_idx in tqdm(range(0, len(df_comments), chunk_size), desc="🔄 Processing Chunks (NLP & Sentiment)"):
         chunk = df_comments.iloc[start_idx:start_idx+chunk_size].copy()
+        print(f"\n[{datetime.now().strftime('%H:%M:%S')}] [Chunk {start_idx}-{start_idx+chunk_size}] Starting processing...")
         
-        # Linguistic & Cross-Modal Features
-        ling_data = chunk['text'].apply(calculate_linguistic_features).apply(pd.Series)
+        # Task: Linguistic Features Extraction
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Calculating linguistic features (langdetect, textstat)...")
+        # NOTE: apply(pd.Series) is extremely slow. We construct a DataFrame from a list of dicts instead.
+        ling_dicts = [calculate_linguistic_features(t) for t in chunk['text']]
+        ling_data = pd.DataFrame(ling_dicts, index=chunk.index)
         chunk = pd.concat([chunk, ling_data], axis=1)
         
-        # VADER Continuous Valence
-        chunk['vader_compound'] = chunk['text'].apply(lambda x: vader.polarity_scores(x)['compound'])
-        
-        # Deep Learning Sentiment Classification
+        # Deep Learning Sentiment Classification & Synthetic Valence
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Running deep learning Sentiment & Valence...")
         # Hardcoded truncation max_length = 256: 99.2% of YouTube comments are <= 256 subword tokens.
         # Truncating to 256 avoids quadratic transformer self-attention complexity O(L^2).
-        sentiments, scores = [], []
-        label_map = {0: "negative", 1: "neutral", 2: "positive"}
+        sentiments, scores, vader_compound = [], [], []
+        # 'blanchefort/rubert-base-cased-sentiment' mapping: {0: 'NEUTRAL', 1: 'POSITIVE', 2: 'NEGATIVE'}
+        label_map = {0: "neutral", 1: "positive", 2: "negative"}
         
         with torch.no_grad():
             for i in range(0, len(chunk), batch_size):
@@ -244,16 +311,25 @@ def enrich_comments():
                     pred = np.argmax(prob)
                     sentiments.append(label_map[pred])
                     scores.append(float(prob[pred]))
+                    # Synthesize continuous valence [-1.0, 1.0] from model probabilities
+                    vader_compound.append(float(prob[1] - prob[2]))
                     
         chunk['sentiment_label'] = sentiments
         chunk['sentiment_confidence'] = scores
+        chunk['vader_compound'] = vader_compound
         
         # Task: GoEmotions — top-3 emotion categories per comment
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Running CEDR Emotion extraction...")
         emotion_1, emotion_2, emotion_3 = [], [], []
-        for i in range(0, len(chunk), batch_size):
-            batch_texts = chunk['text'].iloc[i:i+batch_size].tolist()
-            results = go_emotions(batch_texts, batch_size=batch_size)
-            for res in results:
+        
+        # Generator to prevent HF warnings about sequential GPU pipelines
+        def text_generator():
+            for t in chunk['text'].tolist():
+                yield t
+
+        results = go_emotions(text_generator(), batch_size=batch_size, truncation=True, max_length=256)
+        
+        for res in results:
                 sorted_labels = sorted(res, key=lambda x: x['score'], reverse=True)
                 emotion_1.append(sorted_labels[0]['label'] if len(sorted_labels) > 0 else 'neutral')
                 emotion_2.append(sorted_labels[1]['label'] if len(sorted_labels) > 1 else 'neutral')
@@ -264,14 +340,22 @@ def enrich_comments():
         chunk['emotion_3'] = emotion_3
         
         # Task: Toxicity scoring (Detoxify - toxicity, severe_toxicity, insult, obscene)
-        # Hardcoded tox_batch_size = 256: Optimizes CUDA GPU tensor throughput for Detoxify.
-        tox_batch_size = 256
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Running Toxicity scoring (Detoxify)...")
+        # Hardcoded tox_batch_size = 32: Prevents out-of-memory (OOM) VRAM spilling to system RAM.
+        tox_batch_size = 32
         tox_results = {'toxicity': [], 'severe_toxicity': [], 'insult': [], 'obscene': []}
         for i in range(0, len(chunk), tox_batch_size):
             batch_texts = chunk['text'].iloc[i:i+tox_batch_size].tolist()
-            result = tox_model.predict(batch_texts)
-            for key in tox_results:
-                tox_results[key].extend(result[key])
+            # Bypass tox_model.predict() to explicitly enforce max_length=256
+            # This prevents a single long comment from padding the entire batch of 256 to length 512, which is O(L^2) slow.
+            inputs = tox_model.tokenizer(batch_texts, return_tensors="pt", truncation=True, padding=True, max_length=256).to(device)
+            with torch.no_grad():
+                out = tox_model.model(**inputs)[0]
+                scores = torch.sigmoid(out).cpu().detach().numpy()
+            
+            for class_idx, cla in enumerate(tox_model.class_names):
+                if cla in tox_results:
+                    tox_results[cla].extend(scores[:, class_idx].tolist())
         
         chunk['toxicity'] = [round(v, 4) for v in tox_results['toxicity']]
         chunk['severe_toxicity'] = [round(v, 4) for v in tox_results['severe_toxicity']]

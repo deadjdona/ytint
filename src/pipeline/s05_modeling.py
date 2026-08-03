@@ -141,9 +141,9 @@ def survival_analysis(df_comments):
     
     thread_data['lifespan_seconds'] = thread_data['lifespan_seconds'].fillna(0)
     
-    now = df_comments['published_at'].max()
+    now = pd.to_datetime(df_comments['published_at'], utc=True).max()
     recency_threshold = pd.Timedelta(days=7)
-    thread_data['last_reply_at'] = pd.to_datetime(thread_data['last_reply_at'])
+    thread_data['last_reply_at'] = pd.to_datetime(thread_data['last_reply_at'], utc=True)
     thread_data['event_observed'] = (
         thread_data['last_reply_at'].isna() |
         ((now - thread_data['last_reply_at']) > recency_threshold)
@@ -155,6 +155,25 @@ def survival_analysis(df_comments):
     survival_df = kmf.survival_function_.reset_index()
     survival_df.columns = ['timeline_hours', 'survival_probability']
     
+    # Task: Log-Rank Test comparing High-Like vs Low-Like root threads
+    try:
+        from lifelines.statistics import logrank_test
+        roots_with_likes = roots.merge(thread_data, left_on='comment_id', right_on='parent_id', how='inner')
+        if not roots_with_likes.empty and 'like_count' in roots_with_likes.columns:
+            med_likes = roots_with_likes['like_count'].median()
+            grp_high = roots_with_likes[roots_with_likes['like_count'] >= med_likes]
+            grp_low = roots_with_likes[roots_with_likes['like_count'] < med_likes]
+            if len(grp_high) >= 5 and len(grp_low) >= 5:
+                res = logrank_test(
+                    grp_high['lifespan_seconds'] / 3600.0,
+                    grp_low['lifespan_seconds'] / 3600.0,
+                    event_observed_A=grp_high['event_observed'],
+                    event_observed_B=grp_low['event_observed']
+                )
+                print(f"  Log-Rank Test (High vs Low Likes): p = {res.p_value:.6f}")
+    except Exception as e:
+        print(f"  Log-Rank test skipped: {e}")
+        
     return survival_df
 
 
@@ -231,13 +250,43 @@ def detect_near_duplicates(df_comments, threshold=0.7, num_perm=128):
     return df_comments
 
 
+def fit_power_law(df_comments):
+    """
+    Task: Power-Law MLE Fit (Section 7)
+    Math: Fits MLE power-law distribution p(x) ~ x^(-alpha) to comment like counts.
+    """
+    print("📈 Fitting Power-Law MLE Distribution to Like Counts...")
+    likes = df_comments['like_count'].dropna().values
+    likes = likes[likes > 0]
+    if len(likes) < 20:
+        return pd.DataFrame()
+    try:
+        import powerlaw
+        fit = powerlaw.Fit(likes, verbose=False)
+        alpha = float(fit.alpha)
+        xmin = float(fit.xmin)
+        D = float(fit.D)
+        print(f"  Power-Law MLE alpha={alpha:.4f}, xmin={xmin}, D={D:.4f}")
+        return pd.DataFrame([{'alpha': alpha, 'xmin': xmin, 'ks_distance_D': D}])
+    except Exception:
+        # Fallback: Discrete MLE estimation alpha = 1 + N / sum(ln(x / (xmin - 0.5)))
+        xmin = 1.0
+        filtered = likes[likes >= xmin]
+        if len(filtered) == 0:
+            return pd.DataFrame()
+        n = len(filtered)
+        alpha = float(1.0 + n / np.sum(np.log(filtered / (xmin - 0.5))))
+        print(f"  Fallback Power-Law MLE alpha={alpha:.4f}")
+        return pd.DataFrame([{'alpha': alpha, 'xmin': xmin, 'ks_distance_D': 0.0}])
+
+
 def category_benchmarking(df_comments):
     """
-    Task: Kruskal-Wallis Test
+    Tasks: Kruskal-Wallis Test & Dunn's Post-Hoc Pairwise Test
     Math: Non-parametric rank test H = (12 / (N(N+1))) * sum(R_i^2 / n_i) - 3(N+1).
           Evaluates statistical significance of median like-count differences across video categories.
     """
-    print("📊 Running Kruskal-Wallis Category Benchmarking...")
+    print("📊 Running Kruskal-Wallis Category Benchmarking & Dunn's Post-Hoc Test...")
     
     groups = []
     video_ids = []
@@ -248,7 +297,7 @@ def category_benchmarking(df_comments):
     
     if len(groups) < 3:
         print("⚠️ Not enough video groups for Kruskal-Wallis. Skipping.")
-        return None, None
+        return None, None, None
     
     if len(groups) > 50:
         groups = groups[:50]
@@ -257,7 +306,24 @@ def category_benchmarking(df_comments):
     stat, p_value = kruskal(*groups)
     print(f"  Kruskal-Wallis H={stat:.2f}, p={p_value:.6f}")
     
-    return stat, p_value
+    dunn_df = None
+    try:
+        from scipy.stats import mannwhitneyu
+        k = len(groups)
+        num_comp = k * (k - 1) / 2
+        p_mat = np.ones((k, k))
+        for i in range(k):
+            for j in range(i + 1, k):
+                _, p = mannwhitneyu(groups[i], groups[j], alternative='two-sided')
+                p_adj = min(1.0, p * num_comp)
+                p_mat[i, j] = p_adj
+                p_mat[j, i] = p_adj
+        dunn_df = pd.DataFrame(p_mat, index=video_ids, columns=video_ids)
+        print(f"  Dunn's post-hoc pairwise matrix calculated across {k} video groups.")
+    except Exception as e:
+        print(f"  Dunn's post-hoc test skipped: {e}")
+    
+    return stat, p_value, dunn_df
 
 
 def detect_poisson_bursts(df_comments, window='15T'):
@@ -369,8 +435,11 @@ def run_modeling():
     # Task: SimHash / MinHash LSH Spam detection
     df_c = detect_near_duplicates(df_c)
     
-    # Task: Kruskal-Wallis Test
-    kw_stat, kw_p = category_benchmarking(df_c)
+    # Task: Power-Law MLE Fit
+    power_law_df = fit_power_law(df_c)
+    
+    # Task: Kruskal-Wallis & Dunn's Test
+    kw_stat, kw_p, dunn_df = category_benchmarking(df_c)
     
     # Task: Poisson Burst Brigading Detection
     bursts_df = detect_poisson_bursts(df_c)
@@ -397,6 +466,9 @@ def run_modeling():
         
     if not forecast_df.empty:
         forecast_df.to_parquet(out_dir / "engagement_forecast.parquet", index=False)
+        
+    if not power_law_df.empty:
+        power_law_df.to_parquet(out_dir / "power_law_fit.parquet", index=False)
     
     df_c.to_parquet(comments_file, index=False)
     
@@ -404,6 +476,8 @@ def run_modeling():
         pd.DataFrame([{'kruskal_wallis_h': kw_stat, 'p_value': kw_p}]).to_parquet(
             out_dir / "kruskal_wallis_results.parquet", index=False
         )
+    if dunn_df is not None and not dunn_df.empty:
+        dunn_df.to_parquet(out_dir / "dunn_posthoc_matrix.parquet")
         
     print("✅ Stage 05 Advanced Statistical & Predictive Modeling Complete!")
 

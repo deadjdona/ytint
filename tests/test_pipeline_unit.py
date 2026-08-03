@@ -4,10 +4,16 @@ import pytest
 import numpy as np
 import pandas as pd
 import networkx as nx
+from pathlib import Path
+
 from pipeline.s01_enrich import calculate_linguistic_features
 from pipeline.s02_network import compute_author_metrics, compute_bipartite_graph, compute_cocommenting_jaccard
 from pipeline.s04_aggregation import gini, compute_half_life
 from pipeline.s05_modeling import detect_anomalies, survival_analysis, stl_decomposition, detect_near_duplicates, detect_poisson_bursts
+from pipeline.s06_visualize import (
+    plot_kaplan_meier, plot_umap_semantics, plot_author_pareto, plot_diurnal_heatmap,
+    plot_plutchik_radar, plot_sentiment_divergence, plot_toxicity_heatmap, plot_reply_depth_distribution, plot_lorenz_curve
+)
 
 
 def test_calculate_linguistic_features():
@@ -56,7 +62,7 @@ def test_network_metrics():
     assert B.number_of_nodes() > 0
 
     J_G = compute_cocommenting_jaccard(df_comments, max_authors=10, min_jaccard=0.0)
-    assert isinstance(J_G, dict)
+    assert isinstance(J_G, nx.Graph)
 
 
 def test_detect_anomalies_isolation_forest():
@@ -112,5 +118,30 @@ def test_detect_poisson_bursts():
     """Verify Poisson burst detection."""
     dates = list(pd.date_range("2026-01-01", periods=10, freq="min")) + [pd.Timestamp("2026-01-01 00:05:00")] * 500
     df_comments = pd.DataFrame({"published_at": dates})
-    burst_df = detect_poisson_bursts(df_comments, window="5T")
+    burst_df = detect_poisson_bursts(df_comments, window="5min")
     assert isinstance(burst_df, pd.DataFrame)
+
+
+def test_visualizations_headless_rendering(tmp_path):
+    """Verify plot generation functions run headlessly without error."""
+    out_dir = tmp_path / "plots"
+    out_dir.mkdir()
+
+    # Kaplan Meier
+    df_survival = pd.DataFrame({"timeline_hours": [0, 1, 2], "survival_probability": [1.0, 0.8, 0.5]})
+    plot_kaplan_meier(df_survival, out_dir)
+    assert (out_dir / "kaplan_meier_survival.png").exists()
+
+    # UMAP
+    df_semantics = pd.DataFrame({"umap_x": [0.1, 0.2], "umap_y": [0.3, 0.4], "intent_label": ["praise", "question"]})
+    plot_umap_semantics(df_semantics, out_dir)
+    assert (out_dir / "umap_semantics.png").exists()
+
+    # Author Pareto
+    df_authors = pd.DataFrame({"frequency": [100, 50, 10]})
+    plot_author_pareto(df_authors, out_dir)
+    assert (out_dir / "author_pareto.png").exists()
+
+    # Lorenz Curve
+    plot_lorenz_curve(df_authors, out_dir)
+    assert (out_dir / "lorenz_curve.png").exists()

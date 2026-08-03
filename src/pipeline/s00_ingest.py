@@ -56,6 +56,9 @@ def migrate_from_commentsuite():
     # milliseconds, but older data may use seconds, so auto-detect the scale.
     df_comments['published_at'] = parse_comment_dates(df_comments['comment_date'])
 
+    # Retain canonical text column and text_original alias for downstream pipeline compatibility
+    df_comments['text_original'] = df_comments['text']
+
     # Drop the raw unparsed date column to keep parquet files lightweight
     df_comments = df_comments.drop(columns=['comment_date'])
 

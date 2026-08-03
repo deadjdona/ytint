@@ -129,6 +129,22 @@ def compute_author_metrics(df_comments):
         betweenness = nx.betweenness_centrality(G_auth, k=min(500, G_auth.number_of_nodes()))
     else:
         betweenness = nx.betweenness_centrality(G_auth)
+        
+    # Task: Reciprocity
+    print("📈 Computing Reciprocity...")
+    try:
+        reciprocity = nx.reciprocity(G_auth, G_auth.nodes())
+    except Exception:
+        reciprocity = {n: 0.0 for n in G_auth.nodes()}
+        
+    # Task: Clique enumeration
+    print("🤝 Computing Clique Memberships (Max Clique Size)...")
+    try:
+        # node_clique_number computes the size of the largest maximal clique containing each node
+        clique_numbers = nx.node_clique_number(G_undirected)
+    except Exception as e:
+        print(f"⚠️ Clique calculation failed: {e}")
+        clique_numbers = {n: 1 for n in G_auth.nodes()}
     
     df_authors = pd.DataFrame({
         'author_channel_id': list(G_auth.nodes()),
@@ -136,7 +152,9 @@ def compute_author_metrics(df_comments):
         'in_degree_centrality': [in_degree[n] for n in G_auth.nodes()],
         'community_id': [communities[n] for n in G_auth.nodes()],
         'k_core': [core_numbers.get(n, 0) for n in G_auth.nodes()],
-        'betweenness_centrality': [betweenness.get(n, 0.0) for n in G_auth.nodes()]
+        'betweenness_centrality': [betweenness.get(n, 0.0) for n in G_auth.nodes()],
+        'reciprocity': [reciprocity.get(n, 0.0) for n in G_auth.nodes()],
+        'max_clique_size': [clique_numbers.get(n, 1) for n in G_auth.nodes()]
     })
     
     return df_authors, G_auth

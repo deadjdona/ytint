@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+root_dir = Path(__file__).resolve().parent.parent
+src_dir = root_dir / "src"
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
 import pandas as pd
 
 from pipeline.topic_assignment import attach_topics

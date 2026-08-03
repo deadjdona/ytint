@@ -7,6 +7,17 @@ import importlib
 
 from engine.config_loader import load_config, get_paths
 
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -90,7 +101,210 @@ class PipelineRunner:
                 "inputs": [self.interim / "comments_clean.parquet", self.output / "authors_final.parquet"],
                 "outputs": [self.output / "xgboost_like_predictor.pkl", self.output / "kaplan_meier_survival.parquet"]
             },
+            "s07": {
+                "desc": "Cross-Modal Reaction Mapping",
+                "module": "pipeline.s07_cross_modal",
+                "entry_func": "run_cross_modal",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "video_reaction_map.parquet"]
+            },
+            "s08": {
+                "desc": "Integrity & Bot Detection",
+                "module": "pipeline.s08_integrity",
+                "entry_func": "run_integrity_detection",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.interim / "integrity_flags.parquet"]
+            },
+            "s09": {
+                "desc": "Thread Polarization Dynamics",
+                "module": "pipeline.s09_polarization",
+                "entry_func": "run_polarization_dynamics",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "thread_polarization_corpus.parquet"]
+            },
+            "s10": {
+                "desc": "Topic Evolution over Time",
+                "module": "pipeline.s10_topic_evolution",
+                "entry_func": "run_topic_evolution",
+                "inputs": [self.interim / "comments_clean.parquet", self.output / "topic_metadata.parquet"],
+                "outputs": [self.output / "topic_evolution.parquet"]
+            },
+            "s11": {
+                "desc": "Reply Latency Distribution",
+                "module": "pipeline.s11_reply_latency",
+                "entry_func": "run_reply_latency",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "reply_latency.parquet"]
+            },
+            "s12": {
+                "desc": "Shelf Life of Likes",
+                "module": "pipeline.s12_shelf_life",
+                "entry_func": "run_shelf_life",
+                "inputs": [self.interim / "comments_clean.parquet", self.interim / "videos_clean.parquet"],
+                "outputs": [self.output / "shelf_life_likes.parquet"]
+            },
+            "s13": {
+                "desc": "Topic x Video Matrix",
+                "module": "pipeline.s13_topic_matrix",
+                "entry_func": "run_topic_matrix",
+                "inputs": [self.interim / "comments_clean.parquet", self.output / "topic_metadata.parquet"],
+                "outputs": [self.output / "topic_video_matrix.parquet"]
+            },
+            "s14": {
+                "desc": "Word Co-occurrence Network",
+                "module": "pipeline.s14_cooccurrence",
+                "entry_func": "run_cooccurrence",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "word_cooccurrence_edges.parquet", self.output / "word_cooccurrence_nodes.parquet"]
+            },
+            "s15": {
+                "desc": "Named Entity Extraction",
+                "module": "pipeline.s15_ner",
+                "entry_func": "run_ner",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "named_entities.parquet"]
+            },
+            "s16": {
+                "desc": "Hashtag & Mention Networks",
+                "module": "pipeline.s16_tags_mentions",
+                "entry_func": "run_tag_networks",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "tag_network_edges.parquet", self.output / "tag_network_nodes.parquet"]
+            },
+            "s17": {
+                "desc": "Author-Video Bipartite Graph",
+                "module": "pipeline.s17_bipartite",
+                "entry_func": "run_bipartite",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "bipartite_edges.parquet", self.output / "bipartite_nodes.parquet"]
+            },
+            "s18": {
+                "desc": "Co-commenting Graph",
+                "module": "pipeline.s18_cocommenting",
+                "entry_func": "run_cocommenting",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "cocomment_edges.parquet", self.output / "cocomment_nodes.parquet"]
+            },
+            "s19": {
+                "desc": "Acquisition Cohorts",
+                "module": "pipeline.s19_cohorts",
+                "entry_func": "run_cohorts",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "cohort_retention.parquet", self.output / "cohort_retention_pct.parquet"]
+            },
+            "s20": {
+                "desc": "Cross-Video Overlap",
+                "module": "pipeline.s20_overlap",
+                "entry_func": "run_overlap",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "video_overlap_matrix.parquet"]
+            },
+            "s21": {
+                "desc": "Topic-Cohort Clustering",
+                "module": "pipeline.s21_topic_cohorts",
+                "entry_func": "run_topic_cohorts",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "topic_cohorts.parquet"]
+            },
+            "s22": {
+                "desc": "Commenting Frequency Tiers",
+                "module": "pipeline.s22_frequency_tiers",
+                "entry_func": "run_frequency_tiers",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "frequency_tiers.parquet"]
+            },
+            "s23": {
+                "desc": "Bot Heuristics Classifier",
+                "module": "pipeline.s23_bot_heuristics",
+                "entry_func": "run_bot_heuristics",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "bot_classifications.parquet"]
+            },
+            "s24": {
+                "desc": "Drive-by vs Loyalists",
+                "module": "pipeline.s24_driveby_loyalists",
+                "entry_func": "run_driveby_loyalists",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "driveby_loyalists.parquet"]
+            },
+            "s25": {
+                "desc": "Position Bias & Branching Factor",
+                "module": "pipeline.s25_position_bias",
+                "entry_func": "run_position_bias",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "position_bias.parquet"]
+            },
+            "s26": {
+                "desc": "Arrival Speed Classification",
+                "module": "pipeline.s26_arrival_speed",
+                "entry_func": "run_arrival_speed",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "arrival_speed.parquet"]
+            },
+            "s27": {
+                "desc": "Thread Width & Branching",
+                "module": "pipeline.s27_thread_width",
+                "entry_func": "run_thread_width",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "thread_width_dist.parquet"]
+            },
+            "s28": {
+                "desc": "Conversation Resolution Patterns",
+                "module": "pipeline.s28_resolution_patterns",
+                "entry_func": "run_resolution_patterns",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "resolution_patterns.parquet"]
+            },
+            "s29": {
+                "desc": "Initiator/Response Patterns",
+                "module": "pipeline.s29_initiator_patterns",
+                "entry_func": "run_initiator_patterns",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "initiator_patterns.parquet"]
+            },
+            "s30": {
+                "desc": "Code-Switching Detection",
+                "module": "pipeline.s30_code_switching",
+                "entry_func": "run_code_switching",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "code_switching_impact.parquet"]
+            },
+            "s31": {
+                "desc": "Comparative & Cross-Video",
+                "module": "pipeline.s31_cross_video_comparisons",
+                "entry_func": "run_cross_video",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "video_profile_radar.parquet"]
+            },
+            "s32": {
+                "desc": "Suspicious Like Inflation",
+                "module": "pipeline.s32_anomaly_inflation",
+                "entry_func": "run_like_inflation",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "like_inflation.parquet"]
+            },
+            "s33": {
+                "desc": "Author Fingerprints",
+                "module": "pipeline.s33_author_fingerprints",
+                "entry_func": "run_author_fingerprints",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "author_fingerprints.parquet"]
+            },
+            "s34": {
+                "desc": "Impersonation Detection",
+                "module": "pipeline.s34_impersonation_detection",
+                "entry_func": "run_impersonation_detection",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "impersonation_detection.parquet"]
+            },
             "s06": {
+                "desc": "Visualizations & Reporting",
+                "module": "pipeline.s06_visualize",
+                "entry_func": "run_visualizations",
+                "inputs": [self.output / "authors_final.parquet", self.output / "kaplan_meier_survival.parquet"],
+                "outputs": []  # Creates images in output/plots
+            },
+            "s99": {
                 "desc": "Visualizations & Reporting",
                 "module": "pipeline.s06_visualize",
                 "entry_func": "run_visualizations",
@@ -146,10 +360,28 @@ class PipelineRunner:
             logger.exception(f"❌ Fatal Runtime Crash inside Stage [{stage_id}]: {e}")
             sys.exit(1)
 
+    def resolve_stage_id(self, stage_input: str) -> str:
+        if not stage_input:
+            return None
+        if stage_input in self.registry:
+            return stage_input
+        norm = stage_input.lower().strip()
+        if not norm.startswith("s"):
+            norm = f"s{int(norm):02d}" if norm.isdigit() else f"s{norm}"
+        if norm in self.registry:
+            return norm
+        matches = [k for k in self.registry if k.startswith(norm)]
+        if matches:
+            return matches[0]
+        return stage_input
+
     def run(self, force_stage: str = None, run_from: str = None):
         logger.info(f"Initializing ytint Processing Engine Execution Grid. Root context: {self.root_dir}")
         stages = sorted(list(self.registry.keys()))
         
+        force_stage = self.resolve_stage_id(force_stage)
+        run_from = self.resolve_stage_id(run_from)
+
         if force_stage and force_stage not in self.registry:
             logger.error(f"❌ Requested stage '{force_stage}' does not exist in pipeline footprint.")
             sys.exit(1)

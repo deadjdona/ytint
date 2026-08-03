@@ -1,9 +1,15 @@
 """Unit tests for the src/engine/ package modules."""
 
+import sys
+from pathlib import Path
+root_dir = Path(__file__).resolve().parent.parent
+src_dir = root_dir / "src"
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
 import pytest
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from engine.config_loader import load_config, get_paths, _find_project_root
 from engine.language import detect_corpus_languages, build_stopword_set, corpus_stopwords
 from engine.changepoint import select_pelt_penalty

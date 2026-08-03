@@ -214,3 +214,26 @@
 - Network centrality × toxicity → influence vs harm  
 - Reply-depth × sentiment trajectory → polarization  
 - Timestamped reactions × transcript → audience reaction map  
+
+---
+
+## 🚀 Pipeline Architecture (Implementation Stages)
+The analysis is formally orchestrated through a sequential pipeline located in `src/pipeline/`:
+
+- **[s00] Ingest**: Raw SQLite Data Ingestion & Synthesis.
+- **[s01] Enrich**: Temporal, Linguistic, Sentiment, Emotion (GoEmotions/CEDR), and Toxicity (Detoxify) Enrichment.
+- **[s02] Network & Topics**: Author interaction graph building, community detection, and NLP topic modelling.
+- **[s03] Narrative & Semantics**: Semantic embeddings (UMAP) and narrative trajectory extraction.
+- **[s04] Aggregation & Synthesis**: Data aggregation (diurnal heatmaps, STL time-series) and RFM (Recency, Frequency, Monetary) cohort segmentation.
+- **[s05] Modeling**: Predictive modelling (XGBoost) and SHAP feature importance to predict comment likes and engagement.
+- **[s06] Visualize**: Headless generation of all core analytical charts (Survival plots, Pareto charts, UMAPs, Joyplots, Radar charts, Heatmaps, etc.).
+
+---
+
+## 🔮 Planned Future Stages
+Based on the foundational dimensions, the following advanced analytical stages are slated for future implementation:
+
+1. **Cross-Modal Reaction Mapping**: Aggregating extracted `video_timestamps` to map the exact video moments that trigger emotional spikes (visualized via Timeline Reaction Ribbons).
+2. **Integrity & Bot Detection**: Utilizing MinHash (LSH) clustering and temporal burst detection to automatically flag spam templates, duplicate comments, and coordinated bot brigading.
+3. **Thread Polarization Dynamics**: Tracing sentiment trajectory and decay within deep reply threads (depth 5+) to mathematically model the anatomy of online arguments.
+4. **Topic Evolution over Time**: Mapping how semantic intent and topic prevalence shift across the dataset over months/years using flowing Streamgraphs or Alluvial Diagrams.
