@@ -17,6 +17,19 @@ Code Review Task Alignment:
 - 14. STL Decomposition Multi-Panel: plot_stl_decomposition() -> stl_decomposition.png
 """
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 import os
 import numpy as np
 import pandas as pd
@@ -33,6 +46,8 @@ from engine.config_loader import load_config
 sns.set_theme(style="whitegrid", palette="muted")
 plt.rcParams['figure.figsize'] = (10, 6)
 plt.rcParams['figure.dpi'] = 300
+plt.rcParams['font.family'] = ['sans-serif']
+plt.rcParams['font.sans-serif'] = ['Arial', 'Segoe UI Emoji', 'DejaVu Sans']
 
 
 # ============================================================
@@ -679,12 +694,12 @@ def plot_ner_distribution(out_dir, ner_file):
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     
     if not top_per.empty:
-        sns.barplot(x=top_per.values, y=top_per.index, palette='Blues_r', ax=axes[0])
+        sns.barplot(x=top_per.values, y=top_per.index, hue=top_per.index, palette='Blues_r', legend=False, ax=axes[0])
         axes[0].set_title('Top Mentioned Persons (PER)')
         axes[0].set_xlabel('Mentions')
         
     if not top_org.empty:
-        sns.barplot(x=top_org.values, y=top_org.index, palette='Greens_r', ax=axes[1])
+        sns.barplot(x=top_org.values, y=top_org.index, hue=top_org.index, palette='Greens_r', legend=False, ax=axes[1])
         axes[1].set_title('Top Mentioned Organizations (ORG)')
         axes[1].set_xlabel('Mentions')
         
@@ -709,8 +724,8 @@ def plot_sarcasm_distribution(out_dir, comments_file):
     # 2. Sarcasm by Sentiment Label
     if 'sentiment_label' in df.columns:
         sarcasm_df = df[df['is_sarcasm_suspect'] == True]
-        sns.countplot(data=sarcasm_df, x='sentiment_label', order=['positive', 'neutral', 'negative'],
-                      palette={'positive': '#2a9d8f', 'neutral': '#e9c46a', 'negative': '#e76f51'}, ax=axes[1])
+        sns.countplot(data=sarcasm_df, x='sentiment_label', hue='sentiment_label', order=['positive', 'neutral', 'negative'],
+                      palette={'positive': '#2a9d8f', 'neutral': '#e9c46a', 'negative': '#e76f51'}, legend=False, ax=axes[1])
         axes[1].set_title('Sentiment Classification of Sarcastic Comments')
         axes[1].set_xlabel('Sentiment Assigned by XLM-RoBERTa')
         axes[1].set_ylabel('Count')
@@ -738,8 +753,8 @@ def plot_linguistic_features(out_dir, comments_file):
     axes[0, 0].set_xlabel('Richness Score')
     
     # 2. Emoji Usage by Sentiment
-    sns.boxplot(data=df, x='sentiment_label', y='emoji_count', order=['positive', 'neutral', 'negative'],
-                palette={'positive': '#2a9d8f', 'neutral': '#e9c46a', 'negative': '#e76f51'}, ax=axes[0, 1], showfliers=False)
+    sns.boxplot(data=df, x='sentiment_label', y='emoji_count', hue='sentiment_label', order=['positive', 'neutral', 'negative'],
+                palette={'positive': '#2a9d8f', 'neutral': '#e9c46a', 'negative': '#e76f51'}, legend=False, ax=axes[0, 1], showfliers=False)
     axes[0, 1].set_title('Emoji Usage across Sentiment')
     axes[0, 1].set_ylabel('Emojis per Comment')
     
@@ -1072,6 +1087,7 @@ def plot_driveby_loyalists(out_dir, dist_file):
     
     # Clean up x-labels to just the short name
     labels = [c.split('.')[1].strip() for c in df['classification']]
+    ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels, fontsize=12)
     
     plt.tight_layout()
@@ -1358,6 +1374,47 @@ def plot_impersonation(out_dir, impersonation_file):
     plt.savefig(out_dir / 'impersonation_detection.png')
     plt.close()
 
+def plot_audience_intent(out_dir, intent_file):
+    print("🎯 Generating Audience Demand & Intent Distribution...")
+    df = pd.read_parquet(intent_file)
+    if df.empty: return
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    palette = {'CONTENT_IDEA': '#06d6a0', 'QUESTION_CONFUSION': '#118ab2', 'CRITIQUE_FEEDBACK': '#ffd166', 'APPRECIATION': '#ef476f', 'DEBATE_OPINION': '#073b4c'}
+    colors = [palette.get(c, '#888888') for c in df['audience_intent']]
+    axes[0].pie(df['comment_count'], labels=df['audience_intent'], autopct='%1.1f%%', colors=colors, startangle=140)
+    axes[0].set_title('Audience Conversational Intent Share', pad=15, fontsize=13)
+    
+    sns.barplot(data=df, x='avg_likes', y='audience_intent', hue='audience_intent', palette=palette, legend=False, ax=axes[1])
+    axes[1].set_title('Average Engagement (Likes) by Intent', pad=15, fontsize=13)
+    axes[1].set_xlabel('Average Likes per Comment')
+    axes[1].set_ylabel('')
+    
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    plt.figtext(0.5, 0.015, "Explanation: Categorizes audience comments into content ideas, questions, critiques, and appreciation. Highlights which types receive the highest community upvotes.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / 'audience_intent_distribution.png')
+    plt.close()
+
+def plot_cib_rings(out_dir, cib_rings_file):
+    print("🕸️ Generating Coordinated Inauthentic Behavior (CIB) Graph...")
+    df = pd.read_parquet(cib_rings_file)
+    if df.empty: return
+    
+    top_rings = df.head(15).copy()
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.barplot(data=top_rings, x='total_synchronized_events', y='ring_id', palette='Reds_r', hue='ring_id', legend=False, ax=ax)
+    ax.set_xscale('log')
+    ax.set_title('Top Coordinated Inauthentic Behavior (CIB) Rings by Sync Events (Log Scale)', pad=15, fontsize=14)
+    ax.set_xlabel('Total Synchronized Event Pairings Across Videos (Log Scale)', fontsize=11)
+    ax.set_ylabel('CIB Ring Identifier', fontsize=11)
+    
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    plt.figtext(0.5, 0.015, "Explanation: Identifies multi-account astroturfing rings that repeatedly comment in tightly synchronized time windows across videos.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / 'cib_rings_graph.png')
+    plt.close()
+
 def run_visualizations():
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
@@ -1411,6 +1468,8 @@ def run_visualizations():
     inflation_file = out_dir / "like_inflation.parquet"
     fingerprint_file = out_dir / "author_fingerprints.parquet"
     impersonation_file = out_dir / "impersonation_detection.parquet"
+    intent_summary_file = out_dir / "audience_intent_summary.parquet"
+    cib_rings_file = out_dir / "cib_rings.parquet"
     
     print(f"🎨 Initializing Visualization Engine (Outputting to {plots_dir})...")
     
@@ -1547,6 +1606,10 @@ def run_visualizations():
         plot_author_fingerprints(plots_dir, fingerprint_file)
     if impersonation_file.exists():
         plot_impersonation(plots_dir, impersonation_file)
+    if intent_summary_file.exists():
+        plot_audience_intent(plots_dir, intent_summary_file)
+    if cib_rings_file.exists():
+        plot_cib_rings(plots_dir, cib_rings_file)
 
         
     print("✅ Stage 06 Visualizations Complete! 🎆")

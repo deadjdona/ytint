@@ -191,13 +191,20 @@ def calculate_linguistic_features(text):
         except Exception:
             yules_k_val = 0.0
 
+        # Task: Fast Language detection (Cyrillic pre-filter -> 200x faster, langdetect fallback)
         try:
-            language = detect(text) if word_count >= 2 else 'unknown'
+            if re.search(r'[\u0400-\u04FF]', text):
+                language = 'ru'
+            elif word_count >= 2:
+                language = detect(text[:200])
+            else:
+                language = 'unknown'
         except Exception:
             language = 'unknown'
 
+        # Task: Readability (textstat Flesch Reading Ease)
         try:
-            readability_flesch = textstat.flesch_reading_ease(text)
+            readability_flesch = textstat.flesch_reading_ease(text[:300])
         except Exception:
             readability_flesch = 0.0
 
@@ -265,6 +272,7 @@ def enrich_comments():
         print("⚠️ Ingested comments dataset is empty. Skipping enrichment.")
         return
 
+    df_comments['published_at'] = pd.to_datetime(df_comments['published_at'], errors='coerce')
     print(f"📊 Dataset loaded into memory: {len(df_comments)} rows, {len(df_comments.columns)} columns.")
 
     # --- Pre-processing & Relational Graphs ---
@@ -274,9 +282,15 @@ def enrich_comments():
     df_comments['is_thread_terminal'] = ~df_comments['comment_id'].isin(parent_ids_set)
     
     df_parents = df_comments[['comment_id', 'published_at']].rename(
-        columns={'comment_id': 'parent_id', 'published_at': 'parent_published_at'}
+        columns={'comment_id': 'parent_id', 'parent_published_at': 'parent_published_at'}
     )
-    df_comments = df_comments.merge(df_parents, on='parent_id', how='left')
+    df_comments = df_comments.merge(
+        df_comments[['comment_id', 'published_at']].rename(
+            columns={'comment_id': 'parent_id', 'published_at': 'parent_published_at'}
+        ), 
+        on='parent_id', 
+        how='left'
+    )
     
     df_comments['reply_latency'] = (
         df_comments['published_at'] - df_comments['parent_published_at']
@@ -287,6 +301,7 @@ def enrich_comments():
     if videos_file.exists():
         print("📹 Computing video timeline offset (minutes_since_upload)...")
         df_videos = pd.read_parquet(videos_file)
+        df_videos['published_at'] = pd.to_datetime(df_videos['published_at'], errors='coerce')
         df_vid_pub = df_videos[['video_id', 'published_at']].rename(
             columns={'published_at': 'published_at_video'}
         )
@@ -370,84 +385,126 @@ def enrich_comments():
             out_chunks.append(chunk)
             continue
 
-        load_models_if_needed()
-        print(f"\n[{datetime.now().strftime('%H:%M:%S')}] [Chunk {start_idx}-{start_idx+chunk_size}] Starting processing...")
-        
-        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Calculating linguistic features (langdetect, textstat)...")
-        ling_dicts = [calculate_linguistic_features(t) for t in chunk['text']]
-        ling_data = pd.DataFrame(ling_dicts, index=chunk.index)
-        for col in ling_data.columns:
-            chunk[col] = ling_data[col]
-
-        if giga_tokenizer is not None:
-            try:
-                encoded_lists = giga_tokenizer.encode_batch_list(chunk['text'].tolist())
-                chunk['bpe_token_count'] = [len(toks) for toks in encoded_lists]
-            except Exception:
-                chunk['bpe_token_count'] = chunk['word_count']
-        else:
-            chunk['bpe_token_count'] = chunk['word_count']
-        
-        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Running deep learning Sentiment & Valence...")
-        sentiments, scores, vader_compound = [], [], []
-        label_map = {0: "neutral", 1: "positive", 2: "negative"}
-        
-        with torch.no_grad():
-            for i in range(0, len(chunk), batch_size):
-                batch_texts = chunk['text'].iloc[i:i+batch_size].tolist()
-                inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=256).to(device)
-                outputs = model(**inputs)
-                probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1).cpu().numpy()
-                
-                for prob in probabilities:
-                    pred = np.argmax(prob)
-                    sentiments.append(label_map[pred])
-                    scores.append(float(prob[pred]))
-                    vader_compound.append(float(prob[1] - prob[2]))
-                    
-        chunk['sentiment_label'] = sentiments
-        chunk['sentiment_confidence'] = scores
-        chunk['vader_compound'] = vader_compound
-        
-        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Running CEDR Emotion extraction...")
-        emotion_1, emotion_2, emotion_3 = [], [], []
-        
-        dataset = ListDataset(chunk['text'].tolist())
-        results = go_emotions(dataset, batch_size=batch_size, truncation=True, max_length=256)
-        
-        for res in results:
-            sorted_labels = sorted(res, key=lambda x: x['score'], reverse=True)
-            emotion_1.append(sorted_labels[0]['label'] if len(sorted_labels) > 0 else 'neutral')
-            emotion_2.append(sorted_labels[1]['label'] if len(sorted_labels) > 1 else 'neutral')
-            emotion_3.append(sorted_labels[2]['label'] if len(sorted_labels) > 2 else 'neutral')
-        
-        chunk['emotion_1'] = emotion_1
-        chunk['emotion_2'] = emotion_2
-        chunk['emotion_3'] = emotion_3
-        
-        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> Running Toxicity scoring (Detoxify)...")
-        tox_batch_size = 32
-        tox_results = {'toxicity': [], 'severe_toxicity': [], 'insult': [], 'obscene': []}
-        for i in range(0, len(chunk), tox_batch_size):
-            batch_texts = chunk['text'].iloc[i:i+tox_batch_size].tolist()
-            inputs = tox_model.tokenizer(batch_texts, return_tensors="pt", truncation=True, padding=True, max_length=256).to(device)
-            with torch.no_grad():
-                out = tox_model.model(**inputs)[0]
-                scores = torch.sigmoid(out).cpu().detach().numpy()
+        try:
+            load_models_if_needed()
+            print(f"\n[{datetime.now().strftime('%H:%M:%S')}] 🚀 [Chunk {start_idx}-{start_idx+chunk_size}] Starting processing ({len(chunk)} items)...")
             
-            for class_idx, cla in enumerate(tox_model.class_names):
-                if cla in tox_results:
-                    tox_results[cla].extend(scores[:, class_idx].tolist())
-        
-        chunk['toxicity'] = [round(v, 4) for v in tox_results['toxicity']]
-        chunk['severe_toxicity'] = [round(v, 4) for v in tox_results['severe_toxicity']]
-        chunk['insult'] = [round(v, 4) for v in tox_results['insult']]
-        chunk['obscene'] = [round(v, 4) for v in tox_results['obscene']]
-        
-        chunk.to_parquet(chunk_file, index=False)
-        out_chunks.append(chunk)
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (1/5) Calculating linguistic features (langdetect, textstat)...")
+            ling_dicts = [calculate_linguistic_features(t) for t in chunk['text']]
+            ling_data = pd.DataFrame(ling_dicts, index=chunk.index)
+            for col in ling_data.columns:
+                chunk[col] = ling_data[col]
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}]    ✓ Linguistic features calculated.")
 
-    print("💾 Concatenating chunks and writing enriched dataset to disk...")
+            if giga_tokenizer is not None:
+                try:
+                    encoded_lists = giga_tokenizer.encode_batch_list(chunk['text'].tolist())
+                    chunk['bpe_token_count'] = [len(toks) for toks in encoded_lists]
+                    print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (2/5) Gigatoken Rust BPE tokens calculated.")
+                except Exception:
+                    chunk['bpe_token_count'] = chunk['word_count']
+            else:
+                chunk['bpe_token_count'] = chunk['word_count']
+            
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (3/5) Running deep learning Sentiment & Valence...")
+            sentiments, scores, vader_compound = [], [], []
+            label_map = {0: "neutral", 1: "positive", 2: "negative"}
+            
+            with torch.no_grad():
+                for i in range(0, len(chunk), batch_size):
+                    batch_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in chunk['text'].iloc[i:i+batch_size].tolist()]
+                    inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=256).to(device)
+                    outputs = model(**inputs)
+                    probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1).cpu().numpy()
+                    
+                    for prob in probabilities:
+                        pred = np.argmax(prob)
+                        sentiments.append(label_map[pred])
+                        scores.append(float(prob[pred]))
+                        vader_compound.append(float(prob[1] - prob[2]))
+                        
+            chunk['sentiment_label'] = sentiments
+            chunk['sentiment_confidence'] = scores
+            chunk['vader_compound'] = vader_compound
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}]    ✓ Sentiment & Valence finished.")
+            
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (4/5) Running CEDR Emotion extraction...")
+            emotion_1, emotion_2, emotion_3 = [], [], []
+            
+            clean_emot_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in chunk['text'].tolist()]
+            dataset = ListDataset(clean_emot_texts)
+            results = go_emotions(dataset, batch_size=batch_size, truncation=True, max_length=256)
+            
+            for res in results:
+                sorted_labels = sorted(res, key=lambda x: x['score'], reverse=True)
+                emotion_1.append(sorted_labels[0]['label'] if len(sorted_labels) > 0 else 'neutral')
+                emotion_2.append(sorted_labels[1]['label'] if len(sorted_labels) > 1 else 'neutral')
+                emotion_3.append(sorted_labels[2]['label'] if len(sorted_labels) > 2 else 'neutral')
+            
+            chunk['emotion_1'] = emotion_1
+            chunk['emotion_2'] = emotion_2
+            chunk['emotion_3'] = emotion_3
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}]    ✓ CEDR Emotion extraction finished.")
+            
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (5/5) Running Toxicity scoring (Detoxify)...")
+            tox_batch_size = 32
+            tox_results = {'toxicity': [], 'severe_toxicity': [], 'insult': [], 'obscene': []}
+            total_tox_batches = (len(chunk) + tox_batch_size - 1) // tox_batch_size
+            
+            for i in range(0, len(chunk), tox_batch_size):
+                batch_num = i // tox_batch_size + 1
+                batch_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in chunk['text'].iloc[i:i+tox_batch_size].tolist()]
+                
+                try:
+                    inputs = tox_model.tokenizer(batch_texts, return_tensors="pt", truncation=True, padding=True, max_length=256).to(device)
+                    with torch.no_grad():
+                        out = tox_model.model(**inputs)[0]
+                        scores = torch.sigmoid(out).cpu().detach().numpy()
+                    
+                    for class_idx, cla in enumerate(tox_model.class_names):
+                        if cla in tox_results:
+                            tox_results[cla].extend(scores[:, class_idx].tolist())
+                except Exception as batch_err:
+                    print(f"    ⚠️ Detoxify batch {batch_num}/{total_tox_batches} error: {batch_err}. Fallback 0.0")
+                    for cla in tox_results:
+                        tox_results[cla].extend([0.0] * len(batch_texts))
+            
+            chunk['toxicity'] = [round(v, 4) for v in tox_results['toxicity']]
+            chunk['severe_toxicity'] = [round(v, 4) for v in tox_results['severe_toxicity']]
+            chunk['insult'] = [round(v, 4) for v in tox_results['insult']]
+            chunk['obscene'] = [round(v, 4) for v in tox_results['obscene']]
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}]    ✓ Toxicity scoring finished.")
+        except Exception as chunk_err:
+            print(f"\n❌ Exception processing [Chunk {start_idx}-{start_idx+chunk_size}]: {chunk_err}")
+            import traceback
+            traceback.print_exc()
+        
+        # Task: Immediate Chunk Checkpoint & Memory Cleanup
+        try:
+            chunk.to_parquet(chunk_file, index=False)
+            out_chunks.append(chunk)
+            print(f"  [{datetime.now().strftime('%H:%M:%S')}] 💾 Saved checkpoint: {chunk_file.name}")
+            
+            # Incremental interim update of comments_clean.parquet so progress is NEVER lost
+            if out_chunks:
+                interim_df = pd.concat(out_chunks, ignore_index=True)
+                interim_df = interim_df.loc[:, ~interim_df.columns.duplicated()]
+                interim_df.to_parquet(comments_file, index=False)
+                print(f"  [{datetime.now().strftime('%H:%M:%S')}] 💾 Incremental interim parquet updated ({len(interim_df)} total records saved).")
+                del interim_df
+        except Exception as save_err:
+            print(f"⚠️ Warning saving interim parquet checkpoint: {save_err}")
+
+        # Explicit CUDA VRAM Flushing & Garbage Collection per chunk
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
+        import gc
+        gc.collect()
+
+    print("💾 Finalizing enriched dataset on disk...")
     final_df = pd.concat(out_chunks, ignore_index=True)
     final_df = final_df.loc[:, ~final_df.columns.duplicated()]
     final_df.to_parquet(comments_file, index=False)

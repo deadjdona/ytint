@@ -4,6 +4,19 @@ Uses MinHash LSH for near-duplicate spam cluster detection and rolling
 time-windows for temporal bot burst/brigading detection.
 """
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 import pandas as pd
 import numpy as np
 from pathlib import Path

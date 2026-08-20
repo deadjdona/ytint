@@ -14,6 +14,7 @@ Code Review Task Alignment:
 - OOM safeguards: Weakly connected component pruning (>100k nodes) & author caps
 """
 
+import sys
 import pandas as pd
 import numpy as np
 import networkx as nx
@@ -21,6 +22,12 @@ import community.community_louvain as community_louvain
 from itertools import combinations
 from pathlib import Path
 from engine.config_loader import load_config
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 def compute_thread_metrics(df_comments):
     """

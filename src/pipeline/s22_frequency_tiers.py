@@ -4,6 +4,19 @@ Groups authors into behavioral tiers based on their total comment volume,
 revealing the distribution between casual viewers and hardcore super-fans.
 """
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 import pandas as pd
 from pathlib import Path
 from engine.config_loader import load_config
@@ -43,8 +56,7 @@ def run_frequency_tiers():
             return "5. Mega-Fan / Bot (100+)"
             
     tiers = author_counts.apply(get_tier)
-    tier_distribution = tiers.value_counts().reset_index()
-    tier_distribution.columns = ['tier', 'author_count']
+    tier_distribution = tiers.value_counts().rename_axis('tier').reset_index(name='author_count')
     tier_distribution = tier_distribution.sort_values('tier')
     
     out_file = out_dir / "frequency_tiers.parquet"

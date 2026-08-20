@@ -13,6 +13,19 @@ Code Review Task Alignment:
 - Kruskal-Wallis Test: category_benchmarking() across video engagement distributions
 """
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 import os
 import numpy as np
 import pandas as pd
@@ -134,14 +147,14 @@ def survival_analysis(df_comments):
     replies = df_comments[df_comments['parent_id'].notna() & (df_comments['parent_id'] != "")]
     
     thread_lifespans = replies.groupby('parent_id').agg(
-        lifespan_seconds=('reply_latency_seconds', 'max'),
+        lifespan_minutes=('reply_latency', 'max'),
         last_reply_at=('published_at', 'max')
     ).reset_index()
     
     thread_data = roots[['comment_id']].rename(columns={'comment_id': 'parent_id'})
     thread_data = thread_data.merge(thread_lifespans, on='parent_id', how='left')
     
-    thread_data['lifespan_seconds'] = thread_data['lifespan_seconds'].fillna(0)
+    thread_data['lifespan_minutes'] = thread_data['lifespan_minutes'].fillna(0)
     
     now = pd.to_datetime(df_comments['published_at'], utc=True).max()
     recency_threshold = pd.Timedelta(days=7)
@@ -152,7 +165,7 @@ def survival_analysis(df_comments):
     ).astype(int)
     
     kmf = KaplanMeierFitter()
-    kmf.fit(durations=thread_data['lifespan_seconds'] / 3600.0, event_observed=thread_data['event_observed'])
+    kmf.fit(durations=thread_data['lifespan_minutes'] / 60.0, event_observed=thread_data['event_observed'])
     
     survival_df = kmf.survival_function_.reset_index()
     survival_df.columns = ['timeline_hours', 'survival_probability']
@@ -167,8 +180,8 @@ def survival_analysis(df_comments):
             grp_low = roots_with_likes[roots_with_likes['like_count'] < med_likes]
             if len(grp_high) >= 5 and len(grp_low) >= 5:
                 res = logrank_test(
-                    grp_high['lifespan_seconds'] / 3600.0,
-                    grp_low['lifespan_seconds'] / 3600.0,
+                    grp_high['lifespan_minutes'] / 60.0,
+                    grp_low['lifespan_minutes'] / 60.0,
                     event_observed_A=grp_high['event_observed'],
                     event_observed_B=grp_low['event_observed']
                 )

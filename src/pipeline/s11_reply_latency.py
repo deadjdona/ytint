@@ -4,6 +4,19 @@ Calculates the time difference (latency) between a root comment
 (or parent comment) and its replies to measure conversational velocity.
 """
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 import pandas as pd
 from pathlib import Path
 from engine.config_loader import load_config
@@ -24,9 +37,11 @@ def run_reply_latency():
     
     # Filter out comments with no parent (root comments have no latency)
     replies = df[df['parent_id'].notna() & (df['parent_id'] != "")].copy()
+    out_file = out_dir / "reply_latency.parquet"
     
     if replies.empty:
-        print("⚠️ No replies found in dataset. Skipping latency calculation.")
+        print("⚠️ No replies found in dataset. Writing empty latency parquet.")
+        pd.DataFrame(columns=['comment_id', 'parent_id', 'latency_minutes', 'latency_hours']).to_parquet(out_file)
         return
         
     # We need the parent's published_at. We can do a self-join.

@@ -4,6 +4,19 @@ Classifies authors based on their average response time (days since upload).
 Distinguishes between "First Responders" (always comment immediately) and "Necromancers" (comment on years-old videos).
 """
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 import pandas as pd
 from pathlib import Path
 from engine.config_loader import load_config
@@ -21,7 +34,8 @@ def run_arrival_speed():
         return
         
     print("  -> Loading comments...")
-    df = pd.read_parquet(comments_file, columns=['author_channel_id', 'days_since_upload'])
+    df = pd.read_parquet(comments_file, columns=['author_channel_id', 'minutes_since_upload'])
+    df['days_since_upload'] = df['minutes_since_upload'] / 1440.0
     df = df.dropna()
     if df.empty: return
     
@@ -44,8 +58,7 @@ def run_arrival_speed():
     
     author_speed['classification'] = np.select(conditions, choices, default="Unknown")
     
-    distribution = author_speed['classification'].value_counts().reset_index()
-    distribution.columns = ['classification', 'author_count']
+    distribution = author_speed['classification'].value_counts().rename_axis('classification').reset_index(name='author_count')
     distribution = distribution.sort_values('classification')
     
     out_file = out_dir / "arrival_speed.parquet"

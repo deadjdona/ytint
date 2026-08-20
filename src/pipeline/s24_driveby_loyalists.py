@@ -5,6 +5,19 @@ distinguishing between those who only ever engaged with a single video (Drive-by
 versus those who return for multiple videos (Loyalists).
 """
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 import pandas as pd
 from pathlib import Path
 from engine.config_loader import load_config

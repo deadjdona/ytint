@@ -302,6 +302,20 @@ class PipelineRunner:
                 "inputs": [self.interim / "comments_clean.parquet"],
                 "outputs": [self.output / "impersonation_detection.parquet"]
             },
+            "s35": {
+                "desc": "Audience Demand & Content Intent Mining",
+                "module": "pipeline.s35_audience_intent",
+                "entry_func": "run_audience_intent",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "audience_intent_summary.parquet", self.output / "audience_content_requests.parquet"]
+            },
+            "s36": {
+                "desc": "Coordinated Inauthentic Behavior (CIB) Detection",
+                "module": "pipeline.s36_cib_detection",
+                "entry_func": "run_cib_detection",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "cib_rings.parquet", self.output / "cib_coordinated_comments.parquet"]
+            },
             "s06": {
                 "desc": "Visualizations & Reporting",
                 "module": "pipeline.s06_visualize",
@@ -390,9 +404,10 @@ class PipelineRunner:
         if force_stage and force_stage not in self.registry:
             logger.error(f"❌ Requested stage '{force_stage}' does not exist in pipeline footprint.")
             sys.exit(1)
-        if run_from and run_from not in self.registry:
-            logger.error(f"❌ Sequential starter target '{run_from}' does not exist in pipeline footprint.")
-            sys.exit(1)
+        if force_stage:
+            self.execute_stage(force_stage)
+            logger.info(f"🎉 Targeted Execution of Stage [{force_stage}] Completed.")
+            return
 
         cascade = False
         for s in stages:
@@ -400,7 +415,7 @@ class PipelineRunner:
             if run_from and s >= run_from:
                 cascade = True
                 
-            if force_stage == s or cascade or self.stage_requires_execution(s):
+            if cascade or self.stage_requires_execution(s):
                 self.execute_stage(s)
                 # Lock cascade open: Once an upstream script transforms data, force update downstream layers
                 cascade = True
