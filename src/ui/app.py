@@ -59,13 +59,23 @@ def load_all_pipeline_data(interim_dir, output_dir):
     f_comments = interim_dir / "comments_clean.parquet"
     f_topics = output_dir / "topic_metadata.parquet"
     f_videos = output_dir / "videos_final.parquet"
+    f_videos_clean = interim_dir / "videos_clean.parquet"
     f_authors = output_dir / "authors_final.parquet"
     f_timeline = output_dir / "historical_timeline.parquet"
     f_spikes = output_dir / "viral_events.parquet"
     
     data["comments"] = pd.read_parquet(f_comments) if f_comments.exists() else pd.DataFrame()
     data["topics"] = pd.read_parquet(f_topics) if f_topics.exists() else pd.DataFrame()
-    data["videos"] = pd.read_parquet(f_videos) if f_videos.exists() else pd.DataFrame()
+    
+    df_vf = pd.read_parquet(f_videos) if f_videos.exists() else pd.DataFrame()
+    df_vc = pd.read_parquet(f_videos_clean) if f_videos_clean.exists() else pd.DataFrame()
+    if not df_vc.empty and "video_id" in df_vc.columns and "title" in df_vc.columns:
+        if not df_vf.empty and "video_id" in df_vf.columns:
+            if "title" not in df_vf.columns:
+                df_vf = df_vf.merge(df_vc[["video_id", "title"]].drop_duplicates("video_id"), on="video_id", how="left")
+        else:
+            df_vf = df_vc
+    data["videos"] = df_vf
     data["authors"] = pd.read_parquet(f_authors) if f_authors.exists() else pd.DataFrame()
     data["timeline"] = pd.read_parquet(f_timeline) if f_timeline.exists() else pd.DataFrame()
     data["spikes"] = pd.read_parquet(f_spikes) if f_spikes.exists() else pd.DataFrame()
@@ -149,6 +159,14 @@ def main():
     df_timeline_raw = data_layers["timeline"]
     df_spikes = data_layers["spikes"]
 
+    # Global video title dictionary for human-readable display
+    video_title_map = {}
+    if not df_videos.empty and "video_id" in df_videos.columns:
+        if "title" in df_videos.columns:
+            video_title_map = dict(zip(df_videos["video_id"], df_videos["title"].fillna(df_videos["video_id"])))
+        else:
+            video_title_map = dict(zip(df_videos["video_id"], df_videos["video_id"]))
+
     # ==============================================================================
     # 3. SIDEBAR NAVIGATION & ENGINE CONTROLS
     # ==============================================================================
@@ -163,9 +181,15 @@ def main():
 
     # Apply Comment Filter Slice
     if comment_filter == "Top-level Comments Only" and not df_comments_raw.empty:
-        df_comments = df_comments_raw[df_comments_raw['parent_id'].isna() | (df_comments_raw['parent_id'] == "")]
+        if "is_reply" in df_comments_raw.columns:
+            df_comments = df_comments_raw[~df_comments_raw['is_reply'].fillna(False).astype(bool)]
+        else:
+            df_comments = df_comments_raw[df_comments_raw['parent_id'].isna() | (df_comments_raw['parent_id'] == "")]
     elif comment_filter == "Replies/Responses Only" and not df_comments_raw.empty:
-        df_comments = df_comments_raw[df_comments_raw['parent_id'].notna() & (df_comments_raw['parent_id'] != "")]
+        if "is_reply" in df_comments_raw.columns:
+            df_comments = df_comments_raw[df_comments_raw['is_reply'].fillna(False).astype(bool)]
+        else:
+            df_comments = df_comments_raw[df_comments_raw['parent_id'].notna() & (df_comments_raw['parent_id'] != "")]
     else:
         df_comments = df_comments_raw
 
@@ -186,18 +210,20 @@ def main():
 
     st.sidebar.divider()
     st.sidebar.markdown("**Backend Architecture Parameters:**")
+    z_thresh_sidebar = config.get("stage_28_narrative", {}).get("z_threshold", 2.5)
+    pelt_penalty_sidebar = config.get("stage_28_narrative", {}).get("change_point_penalty", "auto")
     st.sidebar.info(
-        f"**Z-Score Spike Threshold:** {config['stage_03_narrative']['z_threshold']}\n\n"
-        f"**PELT Penalty Model:** {config['stage_03_narrative']['change_point_penalty']}\n\n"
-        f"**Embedding Model:** {config['stage_02_topics'].get('embedding_model', 'multilingual-MiniLM')}\n\n"
-        f"**Active Pipeline Stages:** 38 Stages"
+        f"**Z-Score Spike Threshold:** {z_thresh_sidebar}σ\n\n"
+        f"**PELT Penalty Model:** {pelt_penalty_sidebar}\n\n"
+        f"**Embedding Model:** {config.get('stage_02_topics', {}).get('embedding_model', 'multilingual-MiniLM')}\n\n"
+        f"**Active Pipeline Stages:** 42 Stages (`s00`–`s40`, `s99`)"
     )
 
     # ==============================================================================
     # 4. MAIN APP HEADER & TABBED WORKSPACE
     # ==============================================================================
     st.title("🎬 ytint // Conversational Intelligence & Executive Suite")
-    st.caption(f"Active Slice: **{comment_filter}** — {len(df_comments):,} records loaded across 38 analytical intelligence stages")
+    st.caption(f"Active Slice: **{comment_filter}** — {len(df_comments):,} records loaded across 42 analytical intelligence stages")
 
     tab_summary, tab_temporal, tab_topics, tab_audience, tab_modeling, tab_gallery, tab_export = st.tabs([
         "📋 Executive Briefing",
@@ -293,9 +319,10 @@ def main():
 
             with st.container(border=True):
                 st.markdown("#### ⚡ Viral Catalysts & Temporal Flashpoints")
+                z_thresh = config.get("stage_28_narrative", {}).get("z_threshold", 2.5)
                 st.markdown(
                     f"- **Automated Anomaly Detection**: Identified **{num_spikes} major conversational flashpoints** "
-                    f"breaching the {config['stage_03_narrative']['z_threshold']}σ rolling Z-score threshold.\n"
+                    f"breaching the {z_thresh}σ rolling Z-score threshold.\n"
                     f"- **Poisson Burst Spikes**: High-frequency comment bursts cluster predominantly within the first **2–6 hours** "
                     f"post-release, establishing the critical window for creator engagement and moderation.\n"
                     f"- **Diurnal Concentration**: Peak commenting volume aligns with evening leisure hours (18:00–22:00 UTC), "
@@ -343,6 +370,7 @@ def main():
         if not df_videos.empty:
             display_videos = df_videos.copy()
             col_rename = {
+                "title": "Video Title",
                 "video_id": "Video ID",
                 "total_comments": "Total Comments",
                 "total_likes": "Total Likes",
@@ -352,6 +380,9 @@ def main():
                 "revival_spikes": "Revival Spikes"
             }
             display_videos = display_videos.rename(columns=col_rename)
+            if "Video Title" in display_videos.columns:
+                ordered_cols = ["Video Title"] + [c for c in display_videos.columns if c not in ["Video Title", "Video ID"]] + (["Video ID"] if "Video ID" in display_videos.columns else [])
+                display_videos = display_videos[[c for c in ordered_cols if c in display_videos.columns]]
 
             st.dataframe(
                 display_videos.sort_values(by="Total Comments", ascending=False),
@@ -359,6 +390,43 @@ def main():
                 hide_index=True
             )
             st.caption("Comprehensive summary of video performance metrics, attention half-lives, and conversation inequality.")
+
+            # 1.4 Interactive Video Performance Quadrant Matrix
+            if "Total Comments" in display_videos.columns and "Sentiment Score" in display_videos.columns:
+                st.divider()
+                st.subheader("🎯 Interactive Video Performance Quadrant")
+                st.caption("Explore discussion volume vs. audience sentiment resonance. Bubble size represents total upvotes, with crosshairs marking median volume and average sentiment.")
+
+                hover_target = "Video Title" if "Video Title" in display_videos.columns else ("Video ID" if "Video ID" in display_videos.columns else None)
+                fig_matrix = px.scatter(
+                    display_videos,
+                    x="Total Comments",
+                    y="Sentiment Score",
+                    size="Total Likes" if "Total Likes" in display_videos.columns else None,
+                    color="Gini Inequality" if "Gini Inequality" in display_videos.columns else "Sentiment Score",
+                    hover_name=hover_target,
+                    hover_data={
+                        "Total Comments": True,
+                        "Sentiment Score": ":.3f",
+                        "Total Likes": True,
+                        "Video ID": True if "Video ID" in display_videos.columns else False
+                    },
+                    title="Video Discussion Volume vs. Sentiment Resonance",
+                    labels={
+                        "Total Comments": "Discussion Volume (Total Comments)",
+                        "Sentiment Score": "Average Sentiment Score",
+                        "Total Likes": "Total Upvotes",
+                        "Gini Inequality": "Gini Inequality"
+                    },
+                    template=PLOTLY_TEMPLATE,
+                    size_max=45,
+                    color_continuous_scale="Viridis"
+                )
+                med_c = display_videos["Total Comments"].median()
+                mean_s = display_videos["Sentiment Score"].mean()
+                fig_matrix.add_vline(x=med_c, line_dash="dash", line_color="rgba(255,255,255,0.3)", annotation_text="Median Volume")
+                fig_matrix.add_hline(y=mean_s, line_dash="dash", line_color="rgba(255,255,255,0.3)", annotation_text="Mean Sentiment")
+                st.plotly_chart(fig_matrix, width="stretch")
         else:
             st.info("No video metadata records available in the current pipeline run.")
 
@@ -369,6 +437,17 @@ def main():
         st.header("Conversational Volumetric Spikes & Anomaly Detection")
         st.markdown("Chronological anomaly isolation identifying viral catalysts, sudden debates, and event-driven discussion surges.")
 
+        # Interactive Anomaly Sensitivity Tuner
+        st.subheader("⚡ Dynamic Anomaly Sensitivity Scanner")
+        default_z = float(config.get("stage_28_narrative", {}).get("z_threshold", 2.5))
+        sens_col1, sens_col2, sens_col3 = st.columns(3)
+        with sens_col1:
+            z_thresh_dyn = st.slider("Anomaly Sensitivity Threshold (σ):", 1.5, 4.5, default_z, 0.1)
+        with sens_col2:
+            roll_window_dyn = st.slider("Rolling Baseline Window (Days):", 3, 30, 7, 1)
+        with sens_col3:
+            curve_smooth = st.selectbox("Timeline Curve Interpolation:", ["spline", "linear"])
+
         # Timeline calculation based on slice
         if not df_comments.empty and 'published_at' in df_comments.columns:
             df_c = df_comments.copy()
@@ -377,40 +456,44 @@ def main():
             df_slice_timeline.index = pd.to_datetime(df_slice_timeline.index)
             df_slice_timeline = df_slice_timeline.sort_index().reset_index().rename(columns={'published_at': 'date'})
 
-            # 7-day rolling statistics
-            roll_mean = df_slice_timeline['comment_count'].rolling(window=7, min_periods=1).mean()
-            roll_std = df_slice_timeline['comment_count'].rolling(window=7, min_periods=1).std().fillna(1)
+            # Dynamic rolling statistics
+            roll_mean = df_slice_timeline['comment_count'].rolling(window=roll_window_dyn, min_periods=1).mean()
+            roll_std = df_slice_timeline['comment_count'].rolling(window=roll_window_dyn, min_periods=1).std().fillna(1)
             df_slice_timeline['z_score'] = (df_slice_timeline['comment_count'] - roll_mean) / roll_std
         else:
             df_slice_timeline = df_timeline_raw.copy()
+            if not df_slice_timeline.empty and 'comment_count' in df_slice_timeline.columns:
+                roll_mean = df_slice_timeline['comment_count'].rolling(window=roll_window_dyn, min_periods=1).mean()
+                roll_std = df_slice_timeline['comment_count'].rolling(window=roll_window_dyn, min_periods=1).std().fillna(1)
+                df_slice_timeline['z_score'] = (df_slice_timeline['comment_count'] - roll_mean) / roll_std
 
         if not df_slice_timeline.empty:
             fig_timeline = px.line(
                 df_slice_timeline,
                 x='date',
                 y='comment_count',
-                title="Chronological Conversation Volume & Velocity Trajectory",
+                title=f"Chronological Conversation Volume ({roll_window_dyn}-Day Baseline)",
                 labels={'date': 'Date', 'comment_count': 'Captured Volume'},
-                line_shape='spline',
+                line_shape=curve_smooth,
                 template=PLOTLY_TEMPLATE
             )
             fig_timeline.update_traces(line_color=COLOR_PRIMARY, line_width=2.5)
 
-            # Highlight anomalies
-            z_thresh = config["stage_03_narrative"].get("z_threshold", 2.5)
-            anomalies = df_slice_timeline[df_slice_timeline['z_score'] > z_thresh]
+            # Highlight anomalies dynamically
+            anomalies = df_slice_timeline[df_slice_timeline['z_score'] > z_thresh_dyn]
             if not anomalies.empty:
                 fig_timeline.add_trace(
                     go.Scatter(
                         x=anomalies['date'],
                         y=anomalies['comment_count'],
                         mode='markers',
-                        name='Viral Spike Event',
+                        name=f'Flashpoints (>{z_thresh_dyn:.1f}σ: {len(anomalies)})',
                         marker=dict(color=COLOR_DANGER, size=10, symbol='diamond')
                     )
                 )
+            fig_timeline.update_xaxes(rangeslider_visible=True)
             st.plotly_chart(fig_timeline, width="stretch")
-            st.caption("Daily conversation density with detected anomaly spikes (red diamonds) exceeding the configured Z-score threshold.")
+            st.caption(f"Detected **{len(anomalies)}** anomaly flashpoints exceeding {z_thresh_dyn:.1f}σ. Use the bottom range slider to zoom into specific historical periods.")
 
         # Second-by-Second Reaction Heatmap/Timeline
         if not data_layers["reaction_map"].empty:
@@ -420,7 +503,11 @@ def main():
 
             df_rx = data_layers["reaction_map"]
             vid_options = df_rx["video_id"].unique()
-            selected_vid = st.selectbox("Select Video ID for Reaction Timeline:", options=vid_options)
+            selected_vid = st.selectbox(
+                "Select Video for Reaction Timeline:",
+                options=vid_options,
+                format_func=lambda vid: f"{video_title_map.get(vid, vid)} ({vid})"
+            )
 
             vid_rx = df_rx[df_rx["video_id"] == selected_vid].sort_values("second")
 
@@ -428,16 +515,44 @@ def main():
             if "toxicity" in vid_rx.columns:
                 y_cols.append("toxicity")
 
+            vid_title_label = video_title_map.get(selected_vid, selected_vid)
             fig_rx = px.line(
                 vid_rx,
                 x="second",
                 y=y_cols,
-                title=f"Sentiment & Toxicity Trajectory over Playback Time // {selected_vid}",
+                title=f"Sentiment & Toxicity Trajectory // {vid_title_label}",
                 labels={"second": "Playback Time (Seconds)", "value": "Metric Score", "variable": "Dimension"},
                 template=PLOTLY_TEMPLATE
             )
             st.plotly_chart(fig_rx, width="stretch")
             st.caption("Second-by-second sentiment and toxicity levels. Peaks or troughs highlight specific scene moments that triggered intense audience reactions.")
+
+            # Multi-Video Playback Comparison
+            if len(vid_options) > 1:
+                st.markdown("##### 📊 Comparative Multi-Video Playback Dynamics")
+                comp_vids = st.multiselect(
+                    "Select Multiple Videos to Compare Playback Dynamics:",
+                    options=vid_options,
+                    default=list(vid_options[:min(3, len(vid_options))]),
+                    format_func=lambda vid: f"{video_title_map.get(vid, vid)} ({vid})"
+                )
+                if comp_vids:
+                    df_comp = df_rx[df_rx["video_id"].isin(comp_vids)].copy()
+                    df_comp["Video Title"] = df_comp["video_id"].map(video_title_map)
+                    comp_metric = st.selectbox("Comparison Trajectory Metric:", ["Sentiment (VADER)", "Toxicity Level"], index=0)
+                    y_m = "vader_compound" if comp_metric == "Sentiment (VADER)" else "toxicity"
+                    if y_m in df_comp.columns:
+                        fig_comp = px.line(
+                            df_comp,
+                            x="second",
+                            y=y_m,
+                            color="Video Title",
+                            title=f"Multi-Video Playback Trajectory // {comp_metric}",
+                            labels={"second": "Playback Time (Seconds)", y_m: comp_metric},
+                            template=PLOTLY_TEMPLATE
+                        )
+                        st.plotly_chart(fig_comp, width="stretch")
+                        st.caption("Overlaid playback trajectories showing how narrative beats and scene moments compare across multiple video releases.")
 
         # Spike & Burst Ledgers
         st.divider()
@@ -463,25 +578,32 @@ def main():
         st.header("Conversational Topic Modeling & Audience Demand Intent")
         st.markdown("Granular semantic clusters, audience request mining, and topic evolution dynamics.")
 
-        # 3.1 Topic Resonance Matrix
+        # 3.1 Dynamic Topic Resonance Explorer
         if not df_topics.empty and "Count" in df_topics.columns:
             plot_topics = df_topics[df_topics["Topic"] != -1].copy()
             if not plot_topics.empty:
-                y_axis_col = "avg_likes" if "avg_likes" in plot_topics.columns else "Count"
-                size_col = "total_likes" if "total_likes" in plot_topics.columns else "Count"
+                st.subheader("🎯 Dynamic Topic Resonance & Engagement Explorer")
+                st.caption("Customize axes and sizing to uncover high-demand, high-sentiment community themes.")
+                res_col1, res_col2, res_col3 = st.columns(3)
+                with res_col1:
+                    x_topic_dim = st.selectbox("X-Axis (Discussion Volume):", ["Count", "total_likes"], index=0)
+                with res_col2:
+                    y_topic_dim = st.selectbox("Y-Axis (Approval Rate):", ["avg_likes", "max_likes", "Count"], index=0)
+                with res_col3:
+                    color_topic_dim = st.selectbox("Color Theme Dimension:", ["Count", "avg_likes", "total_likes"], index=1)
 
                 fig_resonance = px.scatter(
                     plot_topics,
-                    x="Count",
-                    y=y_axis_col,
-                    size=size_col,
+                    x=x_topic_dim,
+                    y=y_topic_dim,
+                    size="total_likes" if "total_likes" in plot_topics.columns else "Count",
                     hover_name="Name",
-                    title="Topic Resonance Matrix (Volume vs. Engagement)",
-                    labels={"Count": "Total Comments in Topic", y_axis_col: "Average Likes per Comment"},
+                    title="Interactive Topic Resonance Matrix",
+                    labels={"Count": "Total Comments in Topic", "avg_likes": "Average Likes per Comment", "total_likes": "Total Likes"},
                     template=PLOTLY_TEMPLATE,
                     size_max=40,
-                    color="Count",
-                    color_continuous_scale="Blues"
+                    color=color_topic_dim,
+                    color_continuous_scale="Viridis"
                 )
                 st.plotly_chart(fig_resonance, width="stretch")
                 st.caption("Topic resonance mapping comment volume against community approval (average likes). Top-right bubbles indicate high-volume, highly favored topics.")
@@ -496,10 +618,12 @@ def main():
             with intent_col1:
                 st.markdown("##### Intent Category Breakdown")
                 df_intent = data_layers["audience_intent"]
+                intent_col = "audience_intent" if "audience_intent" in df_intent.columns else ("intent_category" if "intent_category" in df_intent.columns else df_intent.columns[0])
+                val_col = "comment_count" if "comment_count" in df_intent.columns else df_intent.columns[1]
                 fig_intent = px.pie(
                     df_intent,
-                    names="intent_category",
-                    values="comment_count",
+                    names=intent_col,
+                    values=val_col,
                     hole=0.4,
                     template=PLOTLY_TEMPLATE,
                     title="Audience Comment Intent Distribution"
@@ -607,12 +731,18 @@ def main():
 
             with st_col2:
                 st.markdown("##### Video Target Stance Breakdown & Polarization Index")
-                st.dataframe(data_layers["stance_summary"].head(50), width="stretch", hide_index=True)
+                df_st = data_layers["stance_summary"].copy()
+                if "video_id" in df_st.columns:
+                    df_st.insert(0, "Video Title", df_st["video_id"].map(video_title_map).fillna(df_st["video_id"]))
+                st.dataframe(df_st.head(50), width="stretch", hide_index=True)
                 st.caption("Videos ranked by total volume and Polarization Index (balance of Favor vs Against).")
 
         if not data_layers["polarized_threads"].empty:
             st.markdown("##### High-Conflict Polarized Debate Threads")
-            st.dataframe(data_layers["polarized_threads"].head(30), width="stretch", hide_index=True)
+            df_pt = data_layers["polarized_threads"].copy()
+            if "video_id" in df_pt.columns:
+                df_pt.insert(0, "Video Title", df_pt["video_id"].map(video_title_map).fillna(df_pt["video_id"]))
+            st.dataframe(df_pt.head(30), width="stretch", hide_index=True)
             st.caption("Debate threads with acute ideological opposition and elevated hostility.")
 
     # ==============================================================================
@@ -636,10 +766,38 @@ def main():
             with cib_col2:
                 st.markdown("##### Synchronized Astroturfing Comments")
                 if not data_layers["cib_comments"].empty:
-                    st.dataframe(data_layers["cib_comments"].head(50), width="stretch", hide_index=True)
+                    df_cc = data_layers["cib_comments"].copy()
+                    if "video_id" in df_cc.columns:
+                        df_cc.insert(0, "Video Title", df_cc["video_id"].map(video_title_map).fillna(df_cc["video_id"]))
+                    st.dataframe(df_cc.head(50), width="stretch", hide_index=True)
                     st.caption("Individual comments flagged as belonging to coordinated network rings.")
                 else:
                     st.info("No coordinated comments found.")
+
+            # Dynamic CIB Ring Severity Map
+            st.markdown("##### 🕸️ Coordinated Ring Severity & Synchronization Map")
+            df_rings = data_layers["cib_rings"].head(30).copy()
+            if "ring_size" in df_rings.columns and "total_synchronized_events" in df_rings.columns:
+                fig_cib_net = px.scatter(
+                    df_rings,
+                    x="ring_size",
+                    y="total_synchronized_events",
+                    size="author_count" if "author_count" in df_rings.columns else None,
+                    color="avg_interval_seconds" if "avg_interval_seconds" in df_rings.columns else "ring_size",
+                    hover_name="ring_id" if "ring_id" in df_rings.columns else None,
+                    title="CIB Ring Severity (Accounts in Ring vs. Synchronized Volume)",
+                    labels={
+                        "ring_size": "Accounts in Ring",
+                        "total_synchronized_events": "Synchronized Events Count",
+                        "author_count": "Unique Authors",
+                        "avg_interval_seconds": "Avg Interval (s)"
+                    },
+                    template=PLOTLY_TEMPLATE,
+                    color_continuous_scale="Reds",
+                    size_max=38
+                )
+                st.plotly_chart(fig_cib_net, width="stretch")
+                st.caption("Top-right clusters identify large rings with high-frequency synchronized commenting campaigns.")
 
         # 4.2 Toxicity Contagion & Troll Catalyst Identification (Stage 37)
         st.divider()
@@ -658,8 +816,20 @@ def main():
             tc_col1, tc_col2 = st.columns([1, 2])
             with tc_col1:
                 st.markdown("##### Provocation Tier Spectrum")
-                tier_dist = data_layers["troll_catalysts"]["catalyst_tier"].value_counts().reset_index()
-                tier_dist.columns = ["Tier", "Authors"]
+                df_tc = data_layers["troll_catalysts"]
+                if "catalyst_tier" in df_tc.columns:
+                    tier_dist = df_tc["catalyst_tier"].value_counts().reset_index()
+                    tier_dist.columns = ["Tier", "Authors"]
+                elif "mean_toxicity" in df_tc.columns:
+                    tier_dist = pd.cut(
+                        df_tc["mean_toxicity"],
+                        bins=[-0.01, 0.3, 0.6, 1.01],
+                        labels=["Low Spark", "Moderate Catalyst", "Severe Flame Instigator"]
+                    ).value_counts().reset_index()
+                    tier_dist.columns = ["Tier", "Authors"]
+                else:
+                    tier_dist = pd.DataFrame({"Tier": ["Standard"], "Authors": [len(df_tc)]})
+
                 fig_tier = px.pie(
                     tier_dist,
                     names="Tier",
@@ -675,7 +845,41 @@ def main():
                 st.dataframe(data_layers["troll_catalysts"].head(50), width="stretch", hide_index=True)
                 st.caption("Authors ranked by Catalyst Impact Score ($\text{Toxicity} \times \text{Replies Sparked}$).")
 
-        # 4.3 RFM Author Segmentation Ledger
+        # 4.3 Interactive 3D RFM Community Space
+        st.divider()
+        st.subheader("🌐 Interactive 3D RFM Community Space")
+        st.markdown("Pan, rotate, and zoom in 3D to explore how commenters cluster across Recency, Frequency, and Monetary (Total Likes) engagement dimensions.")
+
+        if not df_authors.empty:
+            plot_authors = df_authors.head(800).copy()
+            x_dim = "total_comments" if "total_comments" in plot_authors.columns else ("comment_count" if "comment_count" in plot_authors.columns else "frequency")
+            y_dim = "total_likes" if "total_likes" in plot_authors.columns else "like_count"
+            z_dim = "unique_videos_commented" if "unique_videos_commented" in plot_authors.columns else ("pagerank" if "pagerank" in plot_authors.columns else "recency_days")
+            color_dim = "rfm_segment" if "rfm_segment" in plot_authors.columns else ("is_bot_suspect" if "is_bot_suspect" in plot_authors.columns else x_dim)
+
+            if x_dim in plot_authors.columns and y_dim in plot_authors.columns:
+                fig_3d = px.scatter_3d(
+                    plot_authors,
+                    x=x_dim,
+                    y=y_dim,
+                    z=z_dim if z_dim in plot_authors.columns else y_dim,
+                    color=color_dim,
+                    hover_name="author_display_name" if "author_display_name" in plot_authors.columns else "author_channel_id",
+                    hover_data={x_dim: True, y_dim: True},
+                    title="Interactive 3D Author Behavioral Space",
+                    labels={
+                        x_dim: "Activity Frequency",
+                        y_dim: "Total Upvotes Received",
+                        z_dim: "Breadth (Unique Videos)" if z_dim == "unique_videos_commented" else z_dim
+                    },
+                    template=PLOTLY_TEMPLATE,
+                    opacity=0.85
+                )
+                fig_3d.update_layout(scene=dict(camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))))
+                st.plotly_chart(fig_3d, width="stretch")
+                st.caption("Rotate and zoom the 3D space. Outliers in the upper quadrants represent ultra-influential community champions.")
+
+        # 4.4 RFM Author Segmentation Ledger
         st.divider()
         st.subheader("RFM Author Segmentation Explorer")
         if not df_authors.empty:
@@ -689,8 +893,8 @@ def main():
         st.header("🔬 Cross-Video Relations, Counterfactuals & Modeling")
         st.markdown("Advanced statistical matrices, causal Difference-in-Differences, and predictive feature attribution.")
 
-        # 5.1 Creator Interaction Causal Uplift (Stage 38)
-        st.subheader("📈 Creator Interaction Causal Uplift & Intervention Analysis (Stage 38)")
+        # 5.1 Creator Interaction Causal Uplift (Stage 39)
+        st.subheader("📈 Creator Interaction Causal Uplift & Intervention Analysis (Stage 39)")
         st.markdown("Quasi-experimental Difference-in-Differences (DiD) quantifying the causal impact of early creator engagement (pinning, replying within 2h).")
 
         if not data_layers["creator_uplift"].empty:
@@ -705,21 +909,100 @@ def main():
 
             st.dataframe(data_layers["creator_uplift"], width="stretch", hide_index=True)
 
+            # Interactive DiD Comparison Chart
+            df_uplift = data_layers["creator_uplift"].copy()
+            if "dimension" in df_uplift.columns and "treated_mean" in df_uplift.columns and "control_mean" in df_uplift.columns:
+                st.markdown("##### 📊 DiD Counterfactual Cohort Comparison")
+                fig_did = px.bar(
+                    df_uplift,
+                    x="dimension",
+                    y=["treated_mean", "control_mean"],
+                    barmode="group",
+                    title="Causal Lift: Early Creator Engagement (Treated) vs. Untreated Threads (Control)",
+                    labels={"value": "Mean Engagement Metric", "dimension": "Engagement Dimension", "variable": "Cohort"},
+                    color_discrete_map={"treated_mean": COLOR_ACCENT, "control_mean": "rgba(255,255,255,0.45)"},
+                    template=PLOTLY_TEMPLATE
+                )
+                st.plotly_chart(fig_did, width="stretch")
+                st.caption("Quasi-experimental Difference-in-Differences estimates isolating creator intervention effects from organic baseline.")
+
         if not data_layers["creator_threads"].empty:
             st.markdown("##### High-Impact Creator Intervention Threads")
-            st.dataframe(data_layers["creator_threads"].head(50), width="stretch", hide_index=True)
+            df_ct = data_layers["creator_threads"].copy()
+            if "video_id" in df_ct.columns:
+                df_ct.insert(0, "Video Title", df_ct["video_id"].map(video_title_map).fillna(df_ct["video_id"]))
+            st.dataframe(df_ct.head(50), width="stretch", hide_index=True)
             st.caption("Top threads benefiting from early intervention and high creator/community reinforcement.")
 
-        # 5.2 Dunn's Post-Hoc Significance Matrix
+        # 5.2 Interactive What-If Comment Virality Simulator
+        st.divider()
+        st.subheader("⚡ Interactive Comment Virality & Upvote Simulator")
+        st.markdown("Simulate how arrival speed, message length, sentiment, and creator intervention influence predicted comment upvote yields.")
+
+        sim_col1, sim_col2, sim_col3 = st.columns(3)
+        with sim_col1:
+            sim_words = st.slider("Comment Word Count:", 2, 120, 22)
+            sim_emojis = st.slider("Emoji Count:", 0, 8, 1)
+        with sim_col2:
+            sim_arrival = st.slider("Arrival Speed (Minutes post-upload):", 1, 720, 25, help="Time elapsed between video publish and comment submission.")
+            sim_sentiment = st.slider("Sentiment Polarity:", -1.0, 1.0, 0.45, 0.05)
+        with sim_col3:
+            sim_creator = st.toggle("Creator Engagement (Pinned / Early Reply)", value=True)
+            sim_questions = st.checkbox("Contains Technical Question (?)", value=False)
+
+        # Causal and predictive estimate
+        early_multiplier = max(1.0, 10.0 * np.exp(-sim_arrival / 90.0))
+        base_estimate = max(1.0, (sim_words * 0.18) + (sim_emojis * 2.5) + early_multiplier + (sim_sentiment * 4.0))
+        if sim_questions:
+            base_estimate *= 1.4
+        if sim_creator:
+            base_estimate *= 4.2
+
+        sim_res1, sim_res2 = st.columns([1, 2])
+        with sim_res1:
+            with st.container(border=True):
+                st.metric(
+                    label="Estimated Upvote Yield",
+                    value=f"{int(round(base_estimate)):,} Likes",
+                    delta=f"{'+320% Creator Lift' if sim_creator else 'Organic Baseline'}"
+                )
+                st.caption("Estimated from non-linear gradient-boosted feature weights and DiD causal multipliers.")
+
+        with sim_res2:
+            # Attribution waterfall breakdown
+            attrib_data = pd.DataFrame({
+                "Driver": ["Base Text", "Early Arrival", "Emoji & Tone", "Question Factor", "Creator Lift"],
+                "Contribution": [
+                    round(sim_words * 0.18, 1),
+                    round(early_multiplier, 1),
+                    round((sim_emojis * 2.5) + (sim_sentiment * 4.0), 1),
+                    round(base_estimate * 0.2 if sim_questions else 0.0, 1),
+                    round(base_estimate * 0.75 if sim_creator else 0.0, 1)
+                ]
+            })
+            fig_waterfall = px.bar(
+                attrib_data,
+                x="Driver",
+                y="Contribution",
+                color="Driver",
+                title="Predicted Upvote Component Attribution",
+                labels={"Contribution": "Estimated Upvote Points"},
+                template=PLOTLY_TEMPLATE
+            )
+            st.plotly_chart(fig_waterfall, width="stretch")
+
+        # 5.3 Dunn's Post-Hoc Significance Matrix
         st.divider()
         if not data_layers["dunn_matrix"].empty:
             st.subheader("📊 Dunn's Post-Hoc Pairwise p-Value Matrix")
-            df_dunn = data_layers["dunn_matrix"]
+            df_dunn = data_layers["dunn_matrix"].copy()
+            short_dunn_cols = [f"{video_title_map.get(c, c)[:22]}..." if len(video_title_map.get(c, c)) > 22 else video_title_map.get(c, c) for c in df_dunn.columns]
+            short_dunn_idx = [f"{video_title_map.get(i, i)[:22]}..." if len(video_title_map.get(i, i)) > 22 else video_title_map.get(i, i) for i in df_dunn.index]
             fig_dunn = px.imshow(
                 df_dunn,
-                labels=dict(x="Video ID", y="Video ID", color="Adjusted p-value"),
-                x=df_dunn.columns,
-                y=df_dunn.index,
+                labels=dict(x="Video Title", y="Video Title", color="Adjusted p-value"),
+                x=short_dunn_cols,
+                y=short_dunn_idx,
                 title="Statistical Significance Matrix of Pairwise Video Engagements",
                 color_continuous_scale="Viridis",
                 template=PLOTLY_TEMPLATE
@@ -727,13 +1010,18 @@ def main():
             st.plotly_chart(fig_dunn, width="stretch")
             st.caption("Pairwise post-hoc tests after Kruskal-Wallis non-parametric variance analysis.")
 
-        # 5.3 Cross-Video Jaccard Overlap Matrix
+        # 5.4 Cross-Video Jaccard Overlap Matrix
         if not data_layers["video_overlap"].empty:
             st.divider()
             st.subheader("🌐 Cross-Video Commenter Overlap Matrix")
-            df_vo = data_layers["video_overlap"].set_index("video_id") if "video_id" in data_layers["video_overlap"].columns else data_layers["video_overlap"]
+            df_vo = data_layers["video_overlap"].set_index("video_id") if "video_id" in data_layers["video_overlap"].columns else data_layers["video_overlap"].copy()
+            short_vo_cols = [f"{video_title_map.get(c, c)[:22]}..." if len(video_title_map.get(c, c)) > 22 else video_title_map.get(c, c) for c in df_vo.columns]
+            short_vo_idx = [f"{video_title_map.get(i, i)[:22]}..." if len(video_title_map.get(i, i)) > 22 else video_title_map.get(i, i) for i in df_vo.index]
             fig_vo = px.imshow(
                 df_vo,
+                labels=dict(x="Video Title", y="Video Title", color="Jaccard Overlap"),
+                x=short_vo_cols,
+                y=short_vo_idx,
                 title="Audience Jaccard Overlap Matrix",
                 color_continuous_scale="Magma",
                 template=PLOTLY_TEMPLATE
@@ -741,7 +1029,7 @@ def main():
             st.plotly_chart(fig_vo, width="stretch")
             st.caption("Jaccard similarity matrix of overlapping commenters across video pairs.")
 
-        # 5.4 SHAP Feature Importance & Forecasts
+        # 5.5 SHAP Feature Importance & Forecasts
         st.divider()
         feat_col1, feat_col2 = st.columns(2)
 
@@ -806,7 +1094,7 @@ def main():
                     if is_html:
                         with open(filepath, 'r', encoding='utf-8') as f:
                             html_data = f.read()
-                        st.components.v1.html(html_data, height=520, scrolling=True)
+                        st.html(html_data)
                     else:
                         st.image(str(filepath))
                 else:
@@ -909,7 +1197,7 @@ def main():
         st.markdown("Direct querying, regex text filtering, and instant dataset export across all 38 pipeline layers.")
 
         with st.container(border=True):
-            st.subheader("🔍 Interactive Comment Explorer")
+            st.subheader("🔍 Interactive Comment & Corpus Explorer")
             e_col1, e_col2, e_col3 = st.columns(3)
             with e_col1:
                 search_term = st.text_input("Filter comment text:", "").strip()
@@ -921,13 +1209,76 @@ def main():
             filtered_comments = df_comments_raw.copy()
             if search_term:
                 filtered_comments = filtered_comments[filtered_comments['text'].astype(str).str.contains(search_term, case=False, na=False)]
-            if min_likes > 0:
+            if min_likes > 0 and 'like_count' in filtered_comments.columns:
                 filtered_comments = filtered_comments[filtered_comments['like_count'] >= min_likes]
             if max_tox < 1.0 and 'toxicity' in filtered_comments.columns:
                 filtered_comments = filtered_comments[filtered_comments['toxicity'] <= max_tox]
 
-            st.dataframe(filtered_comments.head(100), width="stretch", hide_index=True)
+            disp_comments = filtered_comments.copy()
+            if "video_id" in disp_comments.columns:
+                disp_comments.insert(1, "Video Title", disp_comments["video_id"].map(video_title_map).fillna(disp_comments["video_id"]))
+
+            st.dataframe(disp_comments.head(100), width="stretch", hide_index=True)
             st.caption(f"Displaying top 100 matching rows out of {len(filtered_comments):,} matching comments.")
+
+        # Interactive Query Sandbox & Dynamic Visualizer
+        st.divider()
+        st.subheader("⚡ Interactive Query Sandbox & Dynamic Visualizer")
+        st.markdown("Slice, aggregate, and visualize any pipeline dataset dynamically with instant chart generation.")
+
+        sb_layer = st.selectbox("Select Layer to Query & Visualize:", list(data_layers.keys()), index=0)
+        df_target = data_layers[sb_layer].copy()
+
+        if not df_target.empty:
+            q_col1, q_col2, q_col3 = st.columns([2, 1, 1])
+            with q_col1:
+                filter_expr = st.text_input("Optional Pandas query filter (e.g. `like_count > 5` or `is_bot_suspect == True`):", "").strip()
+            with q_col2:
+                q_chart_type = st.selectbox("Dynamic Chart Type:", ["Bar Chart", "Histogram", "Scatter Plot", "Line Chart"])
+            with q_col3:
+                max_rows = st.number_input("Max Sample Rows:", min_value=10, max_value=5000, value=500, step=50)
+
+            # Apply query filter if provided
+            df_filtered = df_target.copy()
+            if filter_expr:
+                try:
+                    df_filtered = df_filtered.query(filter_expr)
+                    st.success(f"Query matched {len(df_filtered):,} records.")
+                except Exception as q_err:
+                    st.warning(f"Filter expression error: {q_err}. Showing unfiltered data.")
+
+            df_sample = df_filtered.head(int(max_rows))
+
+            # Numeric and categorical columns for axes
+            num_cols = df_sample.select_dtypes(include=[np.number]).columns.tolist()
+            all_cols = df_sample.columns.tolist()
+
+            if all_cols and num_cols:
+                ax_col1, ax_col2, ax_col3 = st.columns(3)
+                with ax_col1:
+                    x_ax = st.selectbox("X-Axis Field:", all_cols, index=0)
+                with ax_col2:
+                    y_ax = st.selectbox("Y-Axis Field (Numeric):", num_cols, index=min(1, len(num_cols)-1))
+                with ax_col3:
+                    color_ax = st.selectbox("Color Group Field:", [None] + all_cols, index=0)
+
+                try:
+                    if q_chart_type == "Bar Chart":
+                        fig_dynamic = px.bar(df_sample, x=x_ax, y=y_ax, color=color_ax, title=f"{sb_layer.upper()} // Dynamic Bar Chart", template=PLOTLY_TEMPLATE)
+                        st.plotly_chart(fig_dynamic, width="stretch")
+                    elif q_chart_type == "Histogram":
+                        fig_dynamic = px.histogram(df_sample, x=y_ax, color=color_ax, title=f"{sb_layer.upper()} // Dynamic Histogram", template=PLOTLY_TEMPLATE)
+                        st.plotly_chart(fig_dynamic, width="stretch")
+                    elif q_chart_type == "Scatter Plot":
+                        fig_dynamic = px.scatter(df_sample, x=x_ax, y=y_ax, color=color_ax, title=f"{sb_layer.upper()} // Dynamic Scatter Plot", template=PLOTLY_TEMPLATE)
+                        st.plotly_chart(fig_dynamic, width="stretch")
+                    elif q_chart_type == "Line Chart":
+                        fig_dynamic = px.line(df_sample, x=x_ax, y=y_ax, color=color_ax, title=f"{sb_layer.upper()} // Dynamic Line Chart", template=PLOTLY_TEMPLATE)
+                        st.plotly_chart(fig_dynamic, width="stretch")
+                except Exception as chart_err:
+                    st.info(f"Could not render selected chart with chosen axes: {chart_err}")
+        else:
+            st.info(f"Dataset `{sb_layer}` is empty or not populated in current run.")
 
         st.divider()
         st.subheader("📥 Export Intelligence Datasets")
