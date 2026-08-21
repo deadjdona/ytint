@@ -56,14 +56,13 @@ graph TD
 uv python install 3.12
 uv venv .venv --python 3.12
 .\.venv\Scripts\Activate.ps1
-uv pip install -r requirements.txt
+uv pip install -e .
 ```
 
 ### 2. Run the Intelligence Pipeline
 
 ```powershell
 # Execute the full 42-stage end-to-end pipeline sweep
-$env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m pipeline.runner
 
 # Run or rebuild from a specific stage

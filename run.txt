@@ -5,7 +5,7 @@ Run these commands from the repository root in PowerShell.
 ## Validate artifacts and code
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -v
 .\.venv\Scripts\python.exe -m compileall -q src tests verify.py
 .\.venv\Scripts\python.exe verify.py
 ```
@@ -15,14 +15,18 @@ Run these commands from the repository root in PowerShell.
 The pipeline expects `data/raw/commentsuite.sqlite3`. Stages read and write the Parquet artifacts configured in `config/settings.yaml`.
 
 ```powershell
-$env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m pipeline.runner
 ```
 
-To rebuild a stage and all downstream stages:
+To execute a single stage:
 
 ```powershell
-$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m pipeline.runner --stage s07
+```
+
+To rebuild from a specific stage onward:
+
+```powershell
 .\.venv\Scripts\python.exe -m pipeline.runner --from-stage s02
 ```
 
@@ -31,5 +35,5 @@ $env:PYTHONPATH = "src"
 `src/app.py` is the canonical Streamlit dashboard.
 
 ```powershell
-.\.venv\Scripts\streamlit.exe run src/app.py
+.\.venv\Scripts\python.exe -m streamlit run src/app.py
 ```
