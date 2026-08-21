@@ -12,25 +12,69 @@ stage_01_enrich:
   batch_size: 32 # Keep this modest to ensure it fits in GPU memory
 
 stage_02_topics:
-# Multilingual (50+ languages incl. ru/uk) — all-MiniLM-L6-v2 is English-only
-# and produces degraded embeddings (not just labels) on Cyrillic input.
+  # Multilingual (50+ languages incl. ru/uk)
   embedding_model: "paraphrase-multilingual-MiniLM-L12-v2"
   min_topic_size: 25
-# floor only, see effective_min_size in s02_topics.py
 
-stage_03_narrative:
+stage_28_narrative:
   change_point_penalty: "auto"
   z_threshold: 2.5
+
+# === Forensic & Analytical Detection Thresholds ===
+
+stage_26_integrity:
+  lsh_threshold: 0.8           # MinHash Jaccard similarity threshold for near-duplicate spam clusters
+  lsh_num_perm: 128            # Number of MinHash permutation hashes
+  burst_window_minutes: 5      # Rolling time-series bin size in minutes for burst brigading
+  burst_multiplier: 10.0       # Volume multiplier over median rate to flag temporal brigading bursts
+
+stage_20_frequency_tiers:
+  casual_max: 5                # Upper comment count bound for Casual tier (2-5)
+  regular_max: 20              # Upper comment count bound for Regular tier (6-20)
+  superfan_max: 100            # Upper comment count bound for Super-Fan tier (21-100)
+
+stage_24_bot_heuristics:
+  tier1_min_comments: 10       # Comment volume cutoff for Tier 1 spam duplicate check
+  tier1_max_unique_ratio: 0.2  # Max unique token ratio to classify as duplicate spammer
+  tier2_min_comments: 50       # Comment volume cutoff for high-volume Tier 2 duplicate check
+  tier2_max_unique_ratio: 0.5  # Max unique token ratio for high-volume accounts
+  reused_name_min_comments: 5  # Comments cutoff for accounts with duplicate display names
+  reused_name_max_unique: 0.3  # Max unique ratio for accounts with duplicate display names
+
+stage_21_driveby_loyalists:
+  driveby_max_videos: 1        # Max unique videos commented on for Drive-by tier
+  casual_max_videos: 3         # Max unique videos commented on for Casual tier (2-3)
+
+stage_27_like_inflation:
+  min_like_count: 5            # Minimum absolute likes required to evaluate like inflation
+  inflation_quantile: 0.99     # Quantile threshold for top anomalous like-to-reply ratios
+  min_inflation_ratio: 20.0    # Floor threshold for like-to-reply ratio (likes per reply)
+  bot_inflation_ratio: 10.0    # Lower threshold when author is already classified as a suspected bot
+
+stage_23_impersonation:
+  min_name_length: 6           # Minimum display name length to avoid false positives on short/common names
+  min_unique_accounts: 2       # Minimum distinct channel IDs sharing the same display name to flag
+
+stage_25_cib:
+  time_window_seconds: 120     # Max temporal delta in seconds between comments to flag as synchronized
+  min_cooccurrences: 2         # Minimum synchronized events across video uploads to flag as CIB ring
+
+stage_15_toxicity:
+  toxicity_threshold: 0.5      # Minimum toxicity score (0.0 to 1.0) to classify a comment as toxic
+  catalyst_min_toxic: 2        # Minimum toxic comments for author to qualify as Troll Catalyst
+  catalyst_min_score: 10.0     # Minimum catalyst impact score for high instigator tier
+
+stage_39_creator_uplift:
+  early_window_minutes: 120    # Time window (minutes since upload) defining early creator intervention
 
 ui:
   palette:
     background: "#0b0e14"      # Deep Kibana dark canvas
     sidebar: "#11151c"         # Structural slate navigation tone
-    surface: "#171d26"         # 👈 Added: Lighter dark tone for metric cards
-    grid: "#283243"            # 👈 Added: Subtle border line for card grids
+    surface: "#171d26"         # Lighter dark tone for metric cards
+    grid: "#283243"            # Subtle border line for card grids
     text: "#e2e8f0"            # Clean off-white text readability
     primary: "#0066fe"         # Bloomberg crisp operational blue
     accent: "#00f0ff"          # Cyber cyan highlight tracking
     sentiment_pos: "#00ff66"   # Viridian positive metric accent
     sentiment_neg: "#ff3366"   # Crimson negative metric accent
-    

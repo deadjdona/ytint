@@ -7,10 +7,10 @@ import networkx as nx
 from pathlib import Path
 
 from pipeline.s01_enrich import calculate_linguistic_features
-from pipeline.s02_network import compute_author_metrics, compute_bipartite_graph, compute_cocommenting_jaccard
-from pipeline.s04_aggregation import gini, compute_half_life
-from pipeline.s05_modeling import detect_anomalies, survival_analysis, stl_decomposition, detect_near_duplicates, detect_poisson_bursts
-from pipeline.s06_visualize import (
+from pipeline.s16_network import compute_author_metrics, compute_bipartite_graph, compute_cocommenting_jaccard
+from pipeline.s19_aggregation import gini, compute_half_life
+from pipeline.s38_modeling import detect_anomalies, survival_analysis, stl_decomposition, detect_near_duplicates, detect_poisson_bursts
+from pipeline.s99_visualize import (
     plot_kaplan_meier, plot_umap_semantics, plot_author_pareto, plot_diurnal_heatmap,
     plot_plutchik_radar, plot_sentiment_divergence, plot_toxicity_heatmap, plot_reply_depth_distribution, plot_lorenz_curve
 )

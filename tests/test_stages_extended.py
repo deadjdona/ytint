@@ -9,11 +9,11 @@ if str(src_dir) not in sys.path:
 
 import pytest
 import pandas as pd
-from pipeline.s15_ner import run_ner
-from pipeline.s30_code_switching import run_code_switching
-from pipeline.s31_cross_video_comparisons import run_cross_video
-from pipeline.s33_author_fingerprints import run_author_fingerprints
-from pipeline.s34_impersonation_detection import run_impersonation_detection
+from pipeline.s03_ner import run_ner
+from pipeline.s08_code_switching import run_code_switching
+from pipeline.s37_cross_video_comparisons import run_cross_video
+from pipeline.s22_author_fingerprints import run_author_fingerprints
+from pipeline.s23_impersonation_detection import run_impersonation_detection
 
 
 def test_s15_ner_run(tmp_path, monkeypatch):
@@ -30,7 +30,7 @@ def test_s15_ner_run(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("pipeline.s15_ner.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s03_ner.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -53,7 +53,7 @@ def test_s30_code_switching_run(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("pipeline.s30_code_switching.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s08_code_switching.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -81,7 +81,7 @@ def test_s31_cross_video_comparisons_mock(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("pipeline.s31_cross_video_comparisons.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s37_cross_video_comparisons.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -108,7 +108,7 @@ def test_s33_author_fingerprints_mock(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("pipeline.s33_author_fingerprints.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s22_author_fingerprints.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 
@@ -131,7 +131,7 @@ def test_s34_impersonation_detection_mock(tmp_path, monkeypatch):
     })
     df_c.to_parquet(interim_dir / "comments_clean.parquet", index=False)
 
-    monkeypatch.setattr("pipeline.s34_impersonation_detection.load_config", lambda: {
+    monkeypatch.setattr("pipeline.s23_impersonation_detection.load_config", lambda: {
         "paths": {"interim_dir": str(interim_dir), "output_dir": str(output_dir)}
     })
 

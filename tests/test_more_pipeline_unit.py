@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 
 from pipeline.s02_topics import compute_semantic_drift
-from pipeline.s04_aggregation import aggregate_data
+from pipeline.s19_aggregation import aggregate_data
 
 
 def test_compute_semantic_drift(tmp_path):
@@ -48,7 +48,7 @@ def test_aggregate_data_mock(tmp_path, monkeypatch):
         },
         "_root_dir": tmp_path
     }
-    monkeypatch.setattr("pipeline.s04_aggregation.load_config", lambda: mock_config)
+    monkeypatch.setattr("pipeline.s19_aggregation.load_config", lambda: mock_config)
 
     aggregate_data()
 

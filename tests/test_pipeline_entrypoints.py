@@ -5,8 +5,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
-def test_s04_main_guard_calls_compile_ui_metrics_without_arguments():
-    tree = ast.parse((PROJECT_ROOT / "src" / "pipeline" / "s04_synthesis.py").read_text(encoding="utf-8"))
+def test_s40_main_guard_calls_compile_ui_metrics_without_arguments():
+    tree = ast.parse((PROJECT_ROOT / "src" / "pipeline" / "s40_synthesis.py").read_text(encoding="utf-8"))
     calls = [
         node
         for node in ast.walk(tree)

@@ -10,7 +10,7 @@ if str(src_dir) not in sys.path:
 import pytest
 import pandas as pd
 import numpy as np
-from pipeline.s05_modeling import (
+from pipeline.s38_modeling import (
     fit_power_law,
     category_benchmarking,
     detect_poisson_bursts,

@@ -1,4 +1,4 @@
-"""Stage 3: Topic & Semantic Modeling (s02_topics.py)
+"""Stage 02: BERTopic Modeling
 
 Code Review Task Alignment:
 - BERTopic Clustering: Multilingual embeddings, UMAP (5D), HDBSCAN

@@ -9,7 +9,7 @@ if str(src_dir) not in sys.path:
 
 import pandas as pd
 
-from pipeline.s04_synthesis import compile_ui_metrics, get_project_root
+from pipeline.s40_synthesis import compile_ui_metrics, get_project_root
 
 
 def test_get_project_root():
@@ -43,7 +43,7 @@ def test_compile_ui_metrics_mock(tmp_path, monkeypatch):
     })
     df_topics.to_parquet(output_dir / "topic_metadata.parquet", index=False)
 
-    monkeypatch.setattr("pipeline.s04_synthesis.get_project_root", lambda: tmp_path)
+    monkeypatch.setattr("pipeline.s40_synthesis.get_project_root", lambda: tmp_path)
 
     compile_ui_metrics()
 

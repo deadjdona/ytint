@@ -9,7 +9,7 @@ if str(src_dir) not in sys.path:
 
 import pandas as pd
 
-from pipeline.s03_narrative import compile_narrative
+from pipeline.s28_narrative import compile_narrative
 
 
 def test_compile_narrative_mock_pipeline(tmp_path, monkeypatch):
@@ -39,7 +39,7 @@ def test_compile_narrative_mock_pipeline(tmp_path, monkeypatch):
         },
         "_root_dir": tmp_path
     }
-    monkeypatch.setattr("pipeline.s03_narrative.load_config", lambda: mock_config)
+    monkeypatch.setattr("pipeline.s28_narrative.load_config", lambda: mock_config)
 
     compile_narrative()
 

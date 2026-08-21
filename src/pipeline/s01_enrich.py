@@ -1,4 +1,4 @@
-"""Stage 1: Data Enrichment (s01_enrich.py)
+"""Stage 01: Sentiment & Linguistic Feature Extraction
 
 Code Review Task Alignment:
 - reply_latency: Self-join on parent_id with timestamp delta
