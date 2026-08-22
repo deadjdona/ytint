@@ -18,27 +18,49 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
-
 import pandas as pd
 from pathlib import Path
 from engine.config_loader import load_config
 import numpy as np
 
+
+def _safe_read_parquet(path: Path, desired_columns: list[str]) -> pd.DataFrame:
+    """Read only columns that exist in the target parquet file to avoid schema mismatch errors."""
+    try:
+        import pyarrow.parquet as pq
+        available = set(pq.read_schema(path).names)
+        cols_to_load = [c for c in desired_columns if c in available]
+        if not cols_to_load:
+            return pd.read_parquet(path)
+        return pd.read_parquet(path, columns=cols_to_load)
+    except Exception:
+        return pd.read_parquet(path)
+
+
 def run_bot_heuristics():
-    print("🤖 Starting Bot Heuristics Classifier (s23)...")
+    print("🤖 Starting Bot Heuristics Classifier (s24)...")
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
     out_dir = Path(config["paths"]["output_dir"])
     
     comments_file = interim_dir / "comments_clean.parquet"
     if not comments_file.exists():
-        print("⚠️ Missing comments_clean.parquet. Skipping s23.")
+        print("⚠️ Missing comments_clean.parquet. Skipping s24.")
         return
         
     print("  -> Loading comments for bot detection...")
-    df = pd.read_parquet(comments_file, columns=['author_channel_id', 'text', 'lexical_richness'])
+    df = _safe_read_parquet(comments_file, ['author_channel_id', 'text', 'lexical_richness'])
+    if 'author_channel_id' not in df.columns or 'text' not in df.columns:
+        print("⚠️ Missing required columns ('author_channel_id', 'text') in comments_clean.parquet. Skipping s24.")
+        return
+        
     df = df.dropna(subset=['author_channel_id'])
-    if df.empty: return
+    if df.empty:
+        print("⚠️ No valid comments found with author_channel_id.")
+        return
+        
+    if 'lexical_richness' not in df.columns:
+        df['lexical_richness'] = 0.5
     
     print("  -> Pre-tokenizing text via Gigatoken (Rust-accelerated) for Bot Template Hashing...")
     import gigatoken as gt
@@ -65,13 +87,28 @@ def run_bot_heuristics():
     authors_file = out_dir / "authors_final.parquet"
     if authors_file.exists():
         print("  -> Integrating author graph centrality & name reuse from authors_final.parquet...")
-        df_authors = pd.read_parquet(authors_file, columns=['author_channel_id', 'is_display_name_reused', 'pagerank', 'is_bot_suspect'])
-        author_stats = author_stats.merge(df_authors, on='author_channel_id', how='left')
-        author_stats['is_display_name_reused'] = author_stats['is_display_name_reused'].fillna(False)
-        author_stats['is_bot_suspect'] = author_stats['is_bot_suspect'].fillna(False)
+        df_authors = _safe_read_parquet(authors_file, ['author_channel_id', 'is_display_name_reused', 'pagerank', 'is_bot_suspect'])
+        if 'author_channel_id' in df_authors.columns:
+            author_stats = author_stats.merge(df_authors, on='author_channel_id', how='left')
+        
+        if 'is_display_name_reused' in author_stats.columns:
+            author_stats['is_display_name_reused'] = author_stats['is_display_name_reused'].fillna(False).astype(bool)
+        else:
+            author_stats['is_display_name_reused'] = False
+
+        if 'is_bot_suspect' in author_stats.columns:
+            author_stats['is_bot_suspect'] = author_stats['is_bot_suspect'].fillna(False).astype(bool)
+        else:
+            author_stats['is_bot_suspect'] = False
+            
+        if 'pagerank' in author_stats.columns:
+            author_stats['pagerank'] = author_stats['pagerank'].fillna(0.0).astype(float)
+        else:
+            author_stats['pagerank'] = 0.0
     else:
         author_stats['is_display_name_reused'] = False
         author_stats['is_bot_suspect'] = False
+        author_stats['pagerank'] = 0.0
 
     # Configuration parameters
     stage_cfg = config.get("stage_24_bot_heuristics", {})
@@ -99,6 +136,7 @@ def run_bot_heuristics():
     out_file = out_dir / "bot_classifications.parquet"
     author_stats.to_parquet(out_file, index=False)
     print("✅ Generated Bot Heuristics.")
+
 
 if __name__ == "__main__":
     run_bot_heuristics()

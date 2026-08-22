@@ -3,15 +3,11 @@
 1. Video Profile Radar: Generates comparative dimensions (Positivity, Negativity, Branching, Volume, Length) 
    for the top videos.
 2. Controversy Impact: Auto-detects the most toxic/negative video and compares channel-wide 
-   sentiment 7 days before vs 7 days after its release.
+   sentiment 14 days before vs 14 days after its release.
+3. Causal Impact: Counterfactual time-series modeling to quantify causal effect of controversy on channel volume.
 """
 
-import pandas as pd
-from pathlib import Path
-from engine.config_loader import load_config
-import numpy as np
 import sys
-
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -23,15 +19,21 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
+import pandas as pd
+from pathlib import Path
+from engine.config_loader import load_config
+import numpy as np
+
+
 def run_cross_video():
-    print("⚔️ Starting Comparative & Cross-Video Analysis (s31)...")
+    print("⚔️ Starting Comparative & Cross-Video Analysis (s37)...")
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
     out_dir = Path(config["paths"]["output_dir"])
     
     comments_file = interim_dir / "comments_clean.parquet"
     if not comments_file.exists():
-        print("⚠️ Missing comments_clean.parquet. Skipping s31.")
+        print("⚠️ Missing comments_clean.parquet. Skipping s37.")
         return
         
     print("  -> Loading comments...")
@@ -129,9 +131,8 @@ def run_cross_video():
         
         controversy_data.to_parquet(out_dir / "controversy_impact.parquet", index=False)
         
-        # CausalImpact Counterfactual Time-Series Modeling
+        # 3. Counterfactual Time-Series Modeling (Synthetic Control / OLS baseline)
         try:
-            from causalimpact import CausalImpact
             daily_series = df.groupby([df['pub_date'].dt.date, 'video_id']).size().unstack(fill_value=0)
             if cv_vid in daily_series.columns and len(daily_series.columns) >= 2:
                 other_vids = [c for c in daily_series.columns if c != cv_vid]
@@ -143,14 +144,51 @@ def run_cross_video():
                 post_end = ci_data.index.max()
                 
                 if pre_start < pre_end and post_start <= post_end:
-                    ci = CausalImpact(ci_data, [str(pre_start), str(pre_end)], [str(post_start), str(post_end)])
-                    ci_summary = ci.summary_data
-                    ci_summary.to_parquet(out_dir / "causal_impact_summary.parquet")
-                    print("  ✅ CausalImpact counterfactual model computed for controversy event.")
+                    from statsmodels.regression.linear_model import OLS
+                    from statsmodels.tools.tools import add_constant
+                    from scipy import stats
+                    
+                    pre_mask = (ci_data.index >= pre_start) & (ci_data.index <= pre_end)
+                    post_mask = (ci_data.index >= post_start) & (ci_data.index <= post_end)
+                    
+                    pre_df = ci_data[pre_mask]
+                    post_df = ci_data[post_mask]
+                    
+                    if len(pre_df) >= 3 and len(post_df) >= 1:
+                        X_pre = add_constant(pre_df[['x1']], has_constant='add')
+                        y_pre = pre_df['y']
+                        model = OLS(y_pre, X_pre).fit()
+                        
+                        X_post = add_constant(post_df[['x1']], has_constant='add')
+                        if 'const' not in X_post.columns:
+                            X_post['const'] = 1.0
+                        y_post = post_df['y']
+                        y_post_pred = model.predict(X_post)
+                        
+                        actual_cum = float(np.sum(y_post))
+                        pred_cum = float(np.sum(y_post_pred))
+                        abs_effect = float(actual_cum - pred_cum)
+                        rel_effect = float((abs_effect / max(pred_cum, 1.0)) * 100.0)
+                        
+                        pre_residuals = model.resid
+                        post_residuals = y_post - y_post_pred
+                        t_stat, p_val = stats.ttest_ind(post_residuals, pre_residuals, equal_var=False) if len(pre_residuals) > 1 and len(post_residuals) > 1 else (0.0, 1.0)
+                        
+                        ci_summary = pd.DataFrame([
+                            {'metric': 'Actual Post Cumulative Volume', 'value': actual_cum},
+                            {'metric': 'Counterfactual Baseline Cumulative Volume', 'value': pred_cum},
+                            {'metric': 'Absolute Causal Impact (Comments)', 'value': abs_effect},
+                            {'metric': 'Relative Causal Impact (%)', 'value': rel_effect},
+                            {'metric': 'P-Value (Significance)', 'value': float(p_val) if not np.isnan(p_val) else 1.0},
+                            {'metric': 'Pre-Intervention R2', 'value': float(model.rsquared)}
+                        ])
+                        ci_summary.to_parquet(out_dir / "causal_impact_summary.parquet", index=False)
+                        print(f"  ✅ Causal counterfactual model computed: {rel_effect:+.1f}% impact (p={p_val:.4f}).")
         except Exception as e:
             print(f"  CausalImpact model skipped: {e}")
             
-        print("✅ Cross-video and controversy data generated.")
+    print("✅ Cross-video and controversy data generated.")
+
 
 if __name__ == "__main__":
     run_cross_video()

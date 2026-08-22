@@ -39,6 +39,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from statsmodels.tsa.seasonal import STL
 from datasketch import MinHash, MinHashLSH
 from scipy.stats import kruskal
+from tqdm import tqdm
 import warnings
 from engine.config_loader import load_config
 
@@ -254,32 +255,53 @@ def detect_near_duplicates(df_comments, threshold=0.7, num_perm=128):
     minhashes = {}
     
     texts = df_comments['text'].tolist()
+    n_docs = len(texts)
     
-    for idx in range(len(texts)):
-        m = MinHash(num_perm=num_perm)
-        if token_lists is not None:
-            for tok in token_lists[idx]:
-                m.update(str(tok).encode('utf8'))
-        else:
-            words = str(texts[idx]).lower().split()
-            for word in words:
-                m.update(word.encode('utf8'))
-        minhashes[idx] = m
-        try:
-            lsh.insert(str(idx), m)
-        except ValueError:
-            pass
+    print(f"  ⚡ Computing MinHash signatures & indexing {n_docs:,} documents...")
+    with lsh.insertion_session():
+        for idx in tqdm(range(n_docs), desc="  Indexing MinHash signatures", unit="doc", mininterval=0.5):
+            m = MinHash(num_perm=num_perm)
+            if token_lists is not None:
+                unique_tokens = set(token_lists[idx])
+                m.update_batch([tok.to_bytes(4, 'little') if isinstance(tok, int) else str(tok).encode('utf8') for tok in unique_tokens])
+            else:
+                unique_words = set(str(texts[idx]).lower().split())
+                m.update_batch([w.encode('utf8') for w in unique_words])
+            minhashes[idx] = m
+            try:
+                lsh.insert(str(idx), m)
+            except ValueError:
+                pass
     
+    print(f"  🔎 Verifying near-duplicate spam clusters from LSH buckets (threshold={threshold})...")
+    # Directly inspect LSH hash buckets with >= 3 candidates to avoid O(N) full index scanning
+    candidate_buckets = []
+    seen_buckets = set()
+    for ht in lsh.hashtables:
+        for bucket in ht._dict.values():
+            if len(bucket) >= 3:
+                frozen = frozenset(bucket)
+                if frozen not in seen_buckets:
+                    seen_buckets.add(frozen)
+                    candidate_buckets.append(bucket)
+
     spam_flags = set()
-    for idx, m in minhashes.items():
-        result = lsh.query(m)
-        if len(result) >= 3:
-            spam_flags.add(idx)
+    for bucket in tqdm(candidate_buckets, desc="  Verifying candidate clusters", unit="cluster"):
+        items = [int(k) for k in bucket if int(k) in minhashes]
+        if len(items) < 3:
+            continue
+        rep_m = minhashes[items[0]]
+        matching = [k for k in items if rep_m.jaccard(minhashes[k]) >= threshold]
+        if len(matching) >= 3:
+            for k in matching:
+                spam_flags.add(k)
     
-    print(f"🚨 Flagged {len(spam_flags)} comments as potential spam near-duplicates.")
+    print(f"🚨 Flagged {len(spam_flags):,} comments as potential spam near-duplicates.")
     
     df_comments['is_spam_duplicate'] = False
-    df_comments.loc[list(spam_flags), 'is_spam_duplicate'] = True
+    if spam_flags:
+        target_indices = [df_comments.index[i] for i in spam_flags if i < len(df_comments)]
+        df_comments.loc[target_indices, 'is_spam_duplicate'] = True
     return df_comments
 
 
