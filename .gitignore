@@ -26,6 +26,7 @@ yarn-error.log*
 data/database.sqlite
 data/raw/
 data/interim/
+data/output/
 
 # ---- ML / Model Artifacts ----
 *.pt
