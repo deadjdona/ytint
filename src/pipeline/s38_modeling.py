@@ -534,7 +534,7 @@ def run_modeling():
     if dunn_df is not None and not dunn_df.empty:
         dunn_df.to_parquet(out_dir / "dunn_posthoc_matrix.parquet")
         
-    print("✅ Stage 05 Advanced Statistical & Predictive Modeling Complete!")
+    print("✅ Stage 38 Advanced Statistical & Predictive Modeling Complete!")
 
 if __name__ == "__main__":
     run_modeling()

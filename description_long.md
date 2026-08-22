@@ -173,7 +173,7 @@
   - 📊 **Visualization:** Bipartite network layout or incidence matrix heatmap.
 - **Co-commenting graph**: edge weights via Jaccard
   - 📊 **Visualization:** Chord diagram showing user overlap between different video series.
-- **Reply networks**: directed edges A→B
+- **Reply networks**: directed edges A → B (A replied to B)
   - 📊 **Visualization:** Directed force graph colored by community detection (Louvain clusters).
 - **Community detection**: Louvain, Leiden, Infomap
   - 📊 **Visualization:** Cluster map where node color denotes the community and size denotes PageRank.

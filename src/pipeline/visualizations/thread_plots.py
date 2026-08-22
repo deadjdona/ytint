@@ -36,17 +36,20 @@ def plot_reply_depth_distribution(df_comments, out_dir):
     plt.close()
 
 def plot_thread_polarization(out_dir, slopes_file):
-    print("🌪️ Generating Thread Polarization Decay...")
+    print("🌪️ Generating Thread Polarization Decay Slopes...")
     df = pd.read_parquet(slopes_file)
     if df.empty: return
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.histplot(df['decay_slope'], bins=30, kde=True, color='darkorange', ax=ax)
-    ax.axvline(0, color='black', linestyle='--')
-    ax.set_title('Thread Sentiment Decay Slopes (Polarization)', pad=15)
-    ax.set_xlabel('Sentiment Decay Slope (Negative = increasingly toxic over depth)')
+    sns.histplot(df['decay_slope'], bins=35, kde=True, color='darkorange', ax=ax)
+    ax.axvline(0, color='black', linestyle='--', linewidth=1.2, label='Neutral Equilibrium (Slope = 0)')
+    ax.set_title('Thread Sentiment Decay Slopes (Conversational Polarization)', pad=15, fontsize=14)
+    ax.set_xlabel('Sentiment Trajectory Slope (Negative = Decays into Toxicity, Positive = Deepening Praise)')
+    ax.set_ylabel('Thread Count')
+    ax.legend(loc='upper right')
     plt.tight_layout(rect=[0, 0.04, 1, 1])
-    plt.figtext(0.5, 0.015, "Explanation: Shows whether deep reply threads tend to devolve into toxicity (left of zero) or remain polite (right).", ha="center", fontsize=10, color="dimgray", wrap=True)
-    plt.savefig(out_dir / 'thread_polarization.png')
+    plt.figtext(0.5, 0.015, "Explanation: Distribution of sentiment trajectory slopes across conversation threads. Negative slopes indicate discussions that devolve into hostility over consecutive replies.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / 'thread_decay_slopes.png', dpi=150)
+    plt.savefig(out_dir / 'thread_polarization.png', dpi=150)
     plt.close()
 
 def plot_reply_latency_distribution(out_dir, latency_file):
@@ -60,7 +63,8 @@ def plot_reply_latency_distribution(out_dir, latency_file):
     ax.set_ylabel('Number of Replies')
     plt.tight_layout(rect=[0, 0.04, 1, 1])
     plt.figtext(0.5, 0.015, "Explanation: Log-scale distribution showing how quickly users respond to each other. Peaks indicate the 'half-life' of a conversation.", ha="center", fontsize=10, color="dimgray", wrap=True)
-    plt.savefig(out_dir / 'reply_latency_distribution.png')
+    plt.savefig(out_dir / 'reply_latency.png', dpi=150)
+    plt.savefig(out_dir / 'reply_latency_distribution.png', dpi=150)
     plt.close()
 
 def plot_position_bias(out_dir, bias_file):
@@ -133,7 +137,8 @@ def plot_thread_width(out_dir, width_file):
     
     plt.tight_layout()
     plt.figtext(0.5, 0.015, "Explanation: Shows the distribution of how many replies top-level comments spawn. Most comments get 1 reply, while viral debates spawn massive widths.", ha="center", fontsize=11, color="dimgray", wrap=True)
-    plt.savefig(out_dir / 'thread_width_dist.png')
+    plt.savefig(out_dir / 'thread_width.png', dpi=150)
+    plt.savefig(out_dir / 'thread_width_dist.png', dpi=150)
     plt.close()
 
 def plot_resolution_patterns(out_dir, pattern_file):

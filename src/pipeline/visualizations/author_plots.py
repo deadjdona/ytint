@@ -44,7 +44,7 @@ def plot_author_pareto(df_authors, out_dir):
     plt.savefig(out_dir / "author_pareto.png")
     plt.close()
 
-def plot_force_directed_network(interim_dir, out_dir, max_nodes=2000):
+def plot_force_directed_network(interim_dir, out_dir, max_nodes=500):
     """
     Task 8: Force-Directed Network Layout
     Force-directed layout of the author interaction network, colored by community.
@@ -63,42 +63,48 @@ def plot_force_directed_network(interim_dir, out_dir, max_nodes=2000):
         return
     
     df_c = pd.read_parquet(comments_file, columns=['comment_id', 'parent_id', 'author_channel_id'])
+    
+    # Process only reply rows for edge construction
+    replies_df = df_c[df_c['parent_id'].notna() & (df_c['parent_id'] != '')].copy()
+    if replies_df.empty:
+        return
+
     comment_to_author = dict(zip(df_c['comment_id'], df_c['author_channel_id']))
     
     edges = []
-    for row in df_c.itertuples():
-        if pd.notna(row.parent_id) and row.parent_id in comment_to_author:
-            a, b = row.author_channel_id, comment_to_author[row.parent_id]
-            if pd.notna(a) and pd.notna(b) and a != b:
-                edges.append((a, b))
+    for row in replies_df.itertuples():
+        parent_author = comment_to_author.get(row.parent_id)
+        if parent_author and row.author_channel_id != parent_author:
+            edges.append((row.author_channel_id, parent_author))
     
+    if not edges:
+        return
+
     G = nx.DiGraph()
     G.add_edges_from(edges)
     
     if G.number_of_nodes() > max_nodes:
-        G_und = G.to_undirected()
-        core = nx.k_core(G_und, k=3)
-        if core.number_of_nodes() > 0:
-            G = G.subgraph(core.nodes()).copy()
-        else:
-            top_nodes = sorted(G.degree, key=lambda x: x[1], reverse=True)[:max_nodes]
-            G = G.subgraph([n for n, _ in top_nodes]).copy()
+        top_nodes = [n for n, _ in sorted(G.degree, key=lambda x: x[1], reverse=True)[:max_nodes]]
+        G = G.subgraph(top_nodes).copy()
     
+    if G.number_of_nodes() == 0:
+        return
+
     community_map = dict(zip(df_auth['author_channel_id'], df_auth.get('community_id', 0)))
     
     fig, ax = plt.subplots(figsize=(14, 14))
-    pos = nx.spring_layout(G, k=0.5, iterations=50, seed=42)
+    pos = nx.spring_layout(G, k=0.5, iterations=30, seed=42)
     colors = [community_map.get(n, 0) for n in G.nodes()]
     
-    nx.draw_networkx_nodes(G, pos, node_color=colors, cmap='tab20', node_size=15, alpha=0.7, ax=ax)
-    nx.draw_networkx_edges(G, pos, alpha=0.05, arrows=False, ax=ax)
+    nx.draw_networkx_nodes(G, pos, node_color=colors, cmap='tab20', node_size=25, alpha=0.8, ax=ax)
+    nx.draw_networkx_edges(G, pos, alpha=0.08, arrows=False, ax=ax)
     
-    ax.set_title(f"Author Interaction Network (N={G.number_of_nodes()}, colored by community)", fontsize=14)
+    ax.set_title(f"Author Interaction Network (Top {G.number_of_nodes()} Key Authors, colored by community)", fontsize=14)
     ax.axis('off')
     
     plt.tight_layout(rect=[0, 0.04, 1, 1])
     plt.figtext(0.5, 0.015, "Explanation: Network graph mapping who replies to whom. Colors indicate distinct conversational echo-chambers or communities.", ha="center", fontsize=10, color="dimgray", wrap=True)
-    plt.savefig(out_dir / 'author_network_force.png')
+    plt.savefig(out_dir / 'author_network_force.png', dpi=150)
     plt.close()
 
 def plot_rfm_3d(df_authors, out_dir):
@@ -173,6 +179,10 @@ def plot_bipartite_network(out_dir, edges_file, nodes_file):
     for _, row in edges.iterrows():
         G.add_edge(row['source'], row['target'])
         
+    if G.number_of_nodes() > 500:
+        top_nodes = [n for n, _ in sorted(G.degree, key=lambda x: x[1], reverse=True)[:500]]
+        G = G.subgraph(top_nodes).copy()
+        
     videos = [n for n, attr in nodes.iterrows() if attr['type'] == 'video' and n in G.nodes()]
     
     node_colors = []
@@ -184,15 +194,15 @@ def plot_bipartite_network(out_dir, edges_file, nodes_file):
     for n in G.nodes():
         if n in videos:
             node_colors.append('#06d6a0')
-            sz = (nodes.loc[n, 'weight'] / max_v_weight) * 3000 + 500
+            sz = (nodes.loc[n, 'weight'] / max_v_weight) * 3000 + 500 if n in nodes.index else 500
             node_sizes.append(sz)
         else:
             node_colors.append('#118ab2')
-            sz = (nodes.loc[n, 'weight'] / max_a_weight) * 300 + 50
+            sz = (nodes.loc[n, 'weight'] / max_a_weight) * 300 + 50 if n in nodes.index else 50
             node_sizes.append(sz)
             
     fig, ax = plt.subplots(figsize=(16, 16))
-    pos = nx.spring_layout(G, k=0.3, iterations=50, seed=42)
+    pos = nx.spring_layout(G, k=0.3, iterations=30, seed=42)
     
     nx.draw_networkx_edges(G, pos, alpha=0.15, edge_color='gray', ax=ax)
     nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, alpha=0.8, ax=ax)
@@ -223,6 +233,10 @@ def plot_cocommenting_network(out_dir, edges_file, nodes_file):
     for _, row in edges.iterrows():
         G.add_edge(row['source'], row['target'], weight=row['weight'])
         
+    if G.number_of_nodes() > 500:
+        top_nodes = [n for n, _ in sorted(G.degree, key=lambda x: x[1], reverse=True)[:500]]
+        G = G.subgraph(top_nodes).copy()
+        
     node_colors = '#ff9f1c' # Orange for co-commenters
     node_sizes = []
     
@@ -233,7 +247,7 @@ def plot_cocommenting_network(out_dir, edges_file, nodes_file):
         node_sizes.append(sz)
             
     fig, ax = plt.subplots(figsize=(14, 14))
-    pos = nx.spring_layout(G, k=0.4, iterations=50, seed=42)
+    pos = nx.spring_layout(G, k=0.4, iterations=30, seed=42)
     
     edge_widths = [d['weight'] for u, v, d in G.edges(data=True)]
     max_w = max(edge_widths) if edge_widths else 1

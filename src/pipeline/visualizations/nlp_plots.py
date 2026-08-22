@@ -17,34 +17,63 @@ def plot_umap_semantics(df_semantics, out_dir):
     """
     print("🌌 Generating UMAP Semantic Clusters...")
     
-    df_plot = df_semantics.dropna(subset=['umap_x', 'umap_y', 'intent_label'])
-    
+    req_cols = [c for c in ['umap_x', 'umap_y'] if c in df_semantics.columns]
+    if len(req_cols) < 2:
+        return
+        
+    color_col = None
+    for candidate in ['intent_label', 'topic_name', 'topic', 'sentiment']:
+        if candidate in df_semantics.columns:
+            color_col = candidate
+            break
+            
+    subset_cols = ['umap_x', 'umap_y']
+    if color_col:
+        subset_cols.append(color_col)
+        
+    df_plot = df_semantics.dropna(subset=subset_cols).copy()
+    if df_plot.empty:
+        return
+        
     plt.figure(figsize=(12, 8))
     
-    if len(df_plot) > 10000:
+    if len(df_plot) > 10000 and not color_col:
         print("⚠️ Large dataset detected. Using Hexbin aggregation to prevent visual overplotting & crashes...")
         hb = plt.hexbin(df_plot['umap_x'], df_plot['umap_y'], gridsize=50, cmap='viridis', mincnt=1)
         cb = plt.colorbar(hb, label='Comment Density')
-        plt.title(f"UMAP Semantic Density Space (N={len(df_plot)})", pad=15)
+        plt.title(f"UMAP Semantic Density Space (N={len(df_plot):,})", pad=15)
+    elif color_col:
+        sample_df = df_plot.sample(min(len(df_plot), 5000), random_state=42) if len(df_plot) > 5000 else df_plot
+        sns.scatterplot(
+            data=sample_df, 
+            x='umap_x', 
+            y='umap_y', 
+            hue=color_col, 
+            alpha=0.65, 
+            s=25,
+            linewidth=0,
+            palette='tab10' if sample_df[color_col].nunique() <= 10 else 'viridis'
+        )
+        title_suffix = color_col.replace('_', ' ').title()
+        plt.title(f"UMAP Semantic Clusters by {title_suffix} (Sample N={len(sample_df):,})", pad=15, fontsize=13)
+        plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=9)
     else:
         sns.scatterplot(
             data=df_plot, 
             x='umap_x', 
             y='umap_y', 
-            hue='intent_label', 
             alpha=0.6, 
             s=20,
             linewidth=0
         )
-        plt.title(f"UMAP Semantic Clusters by Intent (N={len(df_plot)})", pad=15)
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.title(f"UMAP Semantic Clusters (N={len(df_plot):,})", pad=15)
         
-    plt.xlabel("UMAP Dimension 1")
-    plt.ylabel("UMAP Dimension 2")
+    plt.xlabel("UMAP Dimension 1", fontsize=11)
+    plt.ylabel("UMAP Dimension 2", fontsize=11)
     
-    plt.tight_layout(rect=[0, 0.04, 1, 1])
-    plt.figtext(0.5, 0.015, "Explanation: 2D projection of comment meanings. Proximity indicates semantic similarity; colors denote inferred user intent.", ha="center", fontsize=10, color="dimgray", wrap=True)
-    plt.savefig(out_dir / "umap_semantics.png")
+    plt.tight_layout(rect=[0.02, 0.05, 0.98, 0.95])
+    plt.figtext(0.5, 0.015, "Explanation: 2D projection of comment meanings. Proximity indicates semantic similarity; colors denote inferred topic or user intent.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / "umap_semantics.png", dpi=150)
     plt.close()
 
 def plot_cooccurrence_network(out_dir, edges_file, nodes_file):
@@ -90,13 +119,18 @@ def plot_ner_distribution(out_dir, ner_file):
     
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     
+    def _clean_labels(series):
+        return [str(s).encode('ascii', 'replace').decode('ascii').replace('?', '').strip() or str(s) for s in series]
+
     if not top_per.empty:
-        sns.barplot(x=top_per.values, y=top_per.index, hue=top_per.index, palette='Blues_r', legend=False, ax=axes[0])
+        per_labels = _clean_labels(top_per.index)
+        sns.barplot(x=top_per.values, y=per_labels, hue=per_labels, palette='Blues_r', legend=False, ax=axes[0])
         axes[0].set_title('Top Mentioned Persons (PER)')
         axes[0].set_xlabel('Mentions')
         
     if not top_org.empty:
-        sns.barplot(x=top_org.values, y=top_org.index, hue=top_org.index, palette='Greens_r', legend=False, ax=axes[1])
+        org_labels = _clean_labels(top_org.index)
+        sns.barplot(x=top_org.values, y=org_labels, hue=org_labels, palette='Greens_r', legend=False, ax=axes[1])
         axes[1].set_title('Top Mentioned Organizations (ORG)')
         axes[1].set_xlabel('Mentions')
         

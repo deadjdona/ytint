@@ -59,43 +59,42 @@ def run_polarization_dynamics():
         df['thread_id'] = df['parent_id'].fillna(df['comment_id'])
     
     if 'thread_id' in df.columns:
-        print("  -> Calculating per-thread sentiment decay slopes (for depth >= 3)...")
-        # Find threads that have at least depth 3
-        max_depths = df.groupby('thread_id')['comment_depth'].max()
-        deep_threads = max_depths[max_depths >= 3].index
+        print("  -> Calculating per-thread sentiment decay slopes (for multi-comment threads >= 3)...")
+        thread_counts = df['thread_id'].value_counts()
+        multi_threads = thread_counts[thread_counts >= 3].index
         
-        df_deep = df[df['thread_id'].isin(deep_threads)].copy()
-        
-        slopes = []
-        for thread_id, group in df_deep.groupby('thread_id'):
-            # Sort by depth
-            group = group.sort_values('comment_depth')
-            # If multiple comments at same depth, take mean sentiment for that depth
-            group_agg = group.groupby('comment_depth')['vader_compound'].mean().reset_index()
-            
-            if len(group_agg) >= 3:
-                # Calculate linear regression slope
-                slope, intercept, r_value, p_value, std_err = linregress(
-                    group_agg['comment_depth'], 
-                    group_agg['vader_compound']
-                )
-                slopes.append({
-                    'thread_id': thread_id,
-                    'decay_slope': slope,
-                    'max_depth': group_agg['comment_depth'].max(),
-                    'comment_count': len(group)
-                })
+        if len(multi_threads) > 0:
+            sort_cols = ['thread_id']
+            if 'published_at' in df.columns:
+                sort_cols.append('published_at')
+            elif 'published_time' in df.columns:
+                sort_cols.append('published_time')
                 
-        df_slopes = pd.DataFrame(slopes)
-        
-        if not df_slopes.empty:
-            out_slopes_file = out_dir / "thread_decay_slopes.parquet"
-            df_slopes.to_parquet(out_slopes_file)
-            print(f"✅ Saved thread decay slopes to {out_slopes_file}")
+            df_multi = df[df['thread_id'].isin(multi_threads)].sort_values(sort_cols).copy()
+            df_multi['seq_idx'] = df_multi.groupby('thread_id').cumcount()
             
-            # Print a quick summary
-            avg_slope = df_slopes['decay_slope'].mean()
-            print(f"   -> Average thread sentiment slope: {avg_slope:.4f} (Negative = decays into toxicity)")
+            slopes = []
+            for thread_id, group in df_multi.groupby('thread_id'):
+                if len(group) >= 3:
+                    slope, intercept, r_value, p_value, std_err = linregress(
+                        group['seq_idx'],
+                        group['vader_compound']
+                    )
+                    slopes.append({
+                        'thread_id': thread_id,
+                        'decay_slope': float(slope),
+                        'comment_count': int(len(group)),
+                        'max_depth': int(group['comment_depth'].max()) if 'comment_depth' in group.columns else int(len(group) - 1),
+                        'r_squared': float(r_value ** 2)
+                    })
+                    
+            df_slopes = pd.DataFrame(slopes)
+            if not df_slopes.empty:
+                out_slopes_file = out_dir / "thread_decay_slopes.parquet"
+                df_slopes.to_parquet(out_slopes_file, index=False)
+                print(f"✅ Saved {len(df_slopes):,} thread decay slopes to {out_slopes_file.name}")
+                avg_slope = df_slopes['decay_slope'].mean()
+                print(f"   -> Average thread sentiment slope: {avg_slope:.4f} (Negative = decays into toxicity)")
             
     out_file = out_dir / "thread_polarization_corpus.parquet"
     depth_agg.to_parquet(out_file)

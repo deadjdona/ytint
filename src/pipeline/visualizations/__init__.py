@@ -58,6 +58,8 @@ from .temporal_plots import (
     plot_anomaly_scatter,
     plot_topic_streamgraph,
     plot_shelf_life,
+    plot_video_half_life,
+    plot_velocity_spikes,
     plot_topic_video_matrix,
     plot_cohort_retention,
     plot_video_overlap,
@@ -68,7 +70,8 @@ from .temporal_plots import (
 from .model_plots import (
     plot_kaplan_meier,
     plot_shap_summary,
-    plot_creator_uplift
+    plot_creator_uplift,
+    plot_poisson_bursts
 )
 
 def run_visualizations():
@@ -87,6 +90,9 @@ def run_visualizations():
     comments_file = interim_dir / "comments_clean.parquet"
     diurnal_file = out_dir / "diurnal_heatmap.parquet"
     stl_file = out_dir / "stl_decomposition.parquet"
+    videos_file = out_dir / "videos_final.parquet"
+    timeline_file = out_dir / "historical_timeline.parquet"
+    viral_file = out_dir / "viral_events.parquet"
     
     # Phase 3 File Paths
     reaction_file = out_dir / "video_reaction_map.parquet"
@@ -130,6 +136,7 @@ def run_visualizations():
     creator_uplift_file = out_dir / "creator_causal_uplift.parquet"
     stance_summary_file = out_dir / "stance_summary.parquet"
     stance_drift_file = out_dir / "stance_depth_drift.parquet"
+    bursts_file = out_dir / "poisson_bursts.parquet"
     
     print(f"🎨 Initializing Visualization Engine (Outputting to {plots_dir})...")
     
@@ -139,6 +146,10 @@ def run_visualizations():
     if survival_file.exists():
         df_surv = pd.read_parquet(survival_file)
         plot_kaplan_meier(df_surv, plots_dir)
+        
+    # 1b. Poisson Arrival Bursts
+    if bursts_file.exists():
+        plot_poisson_bursts(plots_dir, bursts_file)
         
     # 2. Semantic Cluster Scatter/Hexbin
     if semantics_file.exists():
@@ -217,6 +228,10 @@ def run_visualizations():
         plot_reply_latency_distribution(plots_dir, latency_file)
     if shelf_life_file.exists():
         plot_shelf_life(plots_dir, shelf_life_file)
+    if videos_file.exists():
+        plot_video_half_life(plots_dir, videos_file)
+    if timeline_file.exists() and viral_file.exists():
+        plot_velocity_spikes(plots_dir, timeline_file, viral_file)
     if matrix_file.exists():
         plot_topic_video_matrix(plots_dir, matrix_file)
     if coocc_edges_file.exists() and coocc_nodes_file.exists():
@@ -278,7 +293,7 @@ def run_visualizations():
         plot_stance_drift(plots_dir, stance_summary_file, stance_drift_file)
 
         
-    print("✅ Stage 06 Visualizations Complete! 🎆")
+    print("✅ Stage 99 Visualizations Complete! 🎆")
 
 __all__ = [
     "run_visualizations",
@@ -324,6 +339,8 @@ __all__ = [
     "plot_anomaly_scatter",
     "plot_topic_streamgraph",
     "plot_shelf_life",
+    "plot_video_half_life",
+    "plot_velocity_spikes",
     "plot_topic_video_matrix",
     "plot_cohort_retention",
     "plot_video_overlap",
@@ -332,5 +349,6 @@ __all__ = [
     "plot_cross_video",
     "plot_kaplan_meier",
     "plot_shap_summary",
-    "plot_creator_uplift"
+    "plot_creator_uplift",
+    "plot_poisson_bursts"
 ]

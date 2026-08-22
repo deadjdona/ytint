@@ -27,6 +27,13 @@ VISUAL_METADATA = {
         "how_to_read": "Top panel shows observed raw counts; second panel isolates macro multi-month trend; third panel isolates weekly recurring cycles; bottom panel isolates anomalous residual shocks.",
         "takeaway": "Separates organic channel growth from viral spike anomalies and day-of-week seasonality, enabling accurate underlying audience retention assessment."
     },
+    "reply_latency.png": {
+        "title": "Reply Latency & Response Velocity Distribution",
+        "summary": "Log-scale distribution measuring how quickly community members respond to root comments.",
+        "methodology": "Kernel Density Estimation (KDE) and log-transformed latency calculations $\\Delta t = t_{\\text{reply}} - t_{\\text{root}}$ across all reply chains.",
+        "how_to_read": "The horizontal axis shows response latency on a logarithmic scale (seconds, minutes, hours, days); the vertical axis shows comment density. Left-skewed peaks denote rapid conversational interplay.",
+        "takeaway": "High concentration in sub-minute latencies indicates real-time live event engagement or heated debates, while long tails reflect persistent evergreen search traffic."
+    },
     "reply_latency_distribution.png": {
         "title": "Reply Latency & Response Velocity Distribution",
         "summary": "Log-scale distribution measuring how quickly community members respond to root comments.",
@@ -41,12 +48,89 @@ VISUAL_METADATA = {
         "how_to_read": "The horizontal axis shows days since upload; the vertical axis shows the cumulative percentage of total likes attained. The steeper the curve, the more front-loaded the engagement.",
         "takeaway": "Reveals whether a video receives instant explosive upvotes from core subscribers or steady evergreen appreciation over weeks and months."
     },
+    "video_half_life.png": {
+        "title": "Video Attention Half-Life & Decay Distribution",
+        "summary": "Parametric exponential decay half-life modeling measuring how many days each video maintains active comment velocity before dropping by 50%.",
+        "methodology": "Nonlinear curve fitting $N(t) = N_0 e^{-\\lambda t}$ with right-censored imputation, deriving half-life $t_{1/2} = \\frac{\\ln 2}{\\lambda}$.",
+        "how_to_read": "Left panel shows the distribution of half-lives across all video uploads; right panel ranks the top evergreen catalog assets with the longest sustained engagement.",
+        "takeaway": "Differentiates ephemeral flash-in-the-pan uploads from timeless evergreen videos that steadily generate comments, likes, and search discovery over months."
+    },
+    "temporal_clustering.png": {
+        "title": "Video In-Playback Reaction Points & Velocity Curves",
+        "summary": "Tracks second-by-second comment timestamps and reaction spikes aligned against video duration.",
+        "methodology": "Timestamp clustering and density estimation projecting comment text timestamps (e.g., 03:42) along normalized video playback progress.",
+        "how_to_read": "The horizontal axis shows video playback timestamp; peaks pinpoint moments that triggered intense viewer comments and reactions.",
+        "takeaway": "Allows creators to pinpoint exact jokes, editing transitions, guest entrances, or key reveals that provoked the highest comment velocity."
+    },
     "reaction_timeline.png": {
-        "title": "Poisson Volumetric Bursts & Reaction Curves",
-        "summary": "Tracks instantaneous comment arrival bursts and second-by-second reaction spikes throughout video playback.",
-        "methodology": "Non-homogeneous Poisson point process model tracking comment timestamp clustering aligned against video duration seconds.",
-        "how_to_read": "The horizontal axis shows video timestamp / playback second; peaks indicate timestamps that provoked extreme emotional or cognitive audience reactions.",
-        "takeaway": "Allows creators to pinpoint exact jokes, controversial statements, editing transitions, or guest appearances that generated the most intense viewer reactions."
+        "title": "Video In-Playback Reaction Points & Velocity Curves",
+        "summary": "Tracks second-by-second comment timestamps and reaction spikes aligned against video duration.",
+        "methodology": "Timestamp clustering and density estimation projecting comment text timestamps (e.g., 03:42) along normalized video playback progress.",
+        "how_to_read": "The horizontal axis shows video playback timestamp; peaks pinpoint moments that triggered intense viewer comments and reactions.",
+        "takeaway": "Allows creators to pinpoint exact jokes, editing transitions, guest entrances, or key reveals that provoked the highest comment velocity."
+    },
+    "poisson_bursts.png": {
+        "title": "Poisson Volumetric Bursts & Brigading Anomaly Spikes",
+        "summary": "Non-homogeneous Poisson point process model tracking comment timestamp clustering and volume surges (p < 0.001) across 15-minute intervals.",
+        "methodology": "Models comment arrival counts as a Poisson process $X \\sim \\text{Poisson}(\\hat{\\lambda})$. Flags windows where $P(X \\ge x) < 0.001$, computing burst intensity multipliers.",
+        "how_to_read": "The horizontal axis shows the timeline; scatter points show anomalous 15-minute bursts colored and sized by the burst intensity multiplier (observed vs expected).",
+        "takeaway": "Detects coordinated brigading raids, external raid links, viral re-shares on Reddit/Twitter/Telegram, and news cycle mentions in real time."
+    },
+    "reply_depth_distribution.png": {
+        "title": "Conversation Tree Depth & Nested Discussion Slopes",
+        "summary": "Distribution measuring the structural depth of nested reply hierarchies across comment threads.",
+        "methodology": "Graph-theoretic tree traversal computing tree depth $d(v) = \\text{depth}(v)$ from root comments to terminal leaves.",
+        "how_to_read": "Bar charts display the proportion of comment threads reaching depths of 1, 2, 3, 4, and 5+ nested replies.",
+        "takeaway": "Deep trees (depth >= 4) signify highly engaging debates or controversy, whereas shallow trees (depth 1) indicate one-way feedback."
+    },
+    "thread_width.png": {
+        "title": "Thread Branching Breadth & Participant Width",
+        "summary": "Measures the number of distinct branch replies and participants engaging under each root discussion.",
+        "methodology": "Breadth aggregation calculating degree branching factor and distinct author counts per root thread.",
+        "how_to_read": "Histograms show how many replies a typical root comment accumulates.",
+        "takeaway": "Identifies wide multi-participant discussions that foster community-building versus narrow one-on-one arguments."
+    },
+    "thread_width_dist.png": {
+        "title": "Thread Branching Breadth & Participant Width",
+        "summary": "Measures the number of distinct branch replies and participants engaging under each root discussion.",
+        "methodology": "Breadth aggregation calculating degree branching factor and distinct author counts per root thread.",
+        "how_to_read": "Histograms show how many replies a typical root comment accumulates.",
+        "takeaway": "Identifies wide multi-participant discussions that foster community-building versus narrow one-on-one arguments."
+    },
+    "velocity_spikes.png": {
+        "title": "Viral Velocity Spikes & Surge Anomaly Timeline",
+        "summary": "Continuous timeline overlaying rolling trend lines with statistically anomalous daily comment volume spikes ($Z > 3.0$).",
+        "methodology": "Rolling 30-day window baseline estimation computing standard score $Z = \\frac{x - \\mu}{\\sigma}$ to identify viral breakout days.",
+        "how_to_read": "The line tracks daily comments and 7-day rolling trend; red callout markers highlight major viral spikes with peak comment counts and Z-scores.",
+        "takeaway": "Detects viral catalyst moments, external press coverage, algorithm recommendations, and coordinated discussion surges over channel history."
+    },
+    "integrity_scatter.png": {
+        "title": "Integrity & Data Quality Distribution",
+        "summary": "Scatter mapping of comment length versus like engagement, flagging anomalous velocity spikes and duplicate bursts.",
+        "methodology": "Bivariate outlier profiling measuring token length against logged like counts to identify anomalous patterns.",
+        "how_to_read": "Scatter dots display comment positions; outliers in upper margins indicate extraordinary engagement.",
+        "takeaway": "Ensures dataset integrity by validating that comment length and upvote distributions conform to expected power laws."
+    },
+    "resolution_patterns.png": {
+        "title": "Thread Resolution & Conversation Termination Patterns",
+        "summary": "Quantifies whether comment discussions end constructively with agreement, drift into silence, or escalate into hostility.",
+        "methodology": "Sequential sentiment delta comparison between root comments and terminal thread leaf replies.",
+        "how_to_read": "Categorical breakdown showing the proportion of threads that resolved positively, neutrally, or negatively.",
+        "takeaway": "Provides high-level insight into whether community discussions successfully reach consensus or remain polarized."
+    },
+    "thread_decay_slopes.png": {
+        "title": "Thread Sentiment Decay Slopes & Conversational Polarization",
+        "summary": "Distribution of sentiment trajectory slopes across nested reply chains, tracking whether discussions escalate into hostility.",
+        "methodology": "Linear regression $S(k) = \\alpha + \\beta \\cdot k$ fitted across sequential reply positions within threads with $\\ge 3$ comments.",
+        "how_to_read": "Values left of zero (negative slopes) denote threads that became increasingly negative as replies accumulated; values right of zero denote constructive elaborations.",
+        "takeaway": "Allows creators to identify whether debates stay polite and constructive or inevitably degrade into flame wars as reply depth increases."
+    },
+    "thread_polarization.png": {
+        "title": "Thread Sentiment Decay Slopes & Conversational Polarization",
+        "summary": "Distribution of sentiment trajectory slopes across nested reply chains, tracking whether discussions escalate into hostility.",
+        "methodology": "Linear regression $S(k) = \\alpha + \\beta \\cdot k$ fitted across sequential reply positions within threads with $\\ge 3$ comments.",
+        "how_to_read": "Values left of zero (negative slopes) denote threads that became increasingly negative as replies accumulated; values right of zero denote constructive elaborations.",
+        "takeaway": "Allows creators to identify whether debates stay polite and constructive or inevitably degrade into flame wars as reply depth increases."
     },
 
     # 2. NLP, Semantics & Emotion Spectrum

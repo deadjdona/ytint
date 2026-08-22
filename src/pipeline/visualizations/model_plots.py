@@ -77,3 +77,63 @@ def plot_creator_uplift(out_dir, uplift_file):
     plt.figtext(0.5, 0.015, "Explanation: Difference-in-Differences causal inference estimating the multiplier effect of creator intervention on thread engagement, sentiment, and toxicity.", ha="center", fontsize=10, color="dimgray", wrap=True)
     plt.savefig(out_dir / 'creator_causal_uplift.png')
     plt.close()
+
+def plot_poisson_bursts(out_dir, bursts_file):
+    """
+    Task: Poisson Burst Brigading Visualization
+    Plots statistically significant comment volume surges over time.
+    """
+    print("⚡ Generating Poisson Volumetric Bursts Plot...")
+    df = pd.read_parquet(bursts_file)
+    if df.empty:
+        return
+
+    df['window_start'] = pd.to_datetime(df['window_start'])
+    df = df.sort_values('window_start')
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    expected = df['expected_count'].iloc[0] if 'expected_count' in df.columns else df['comment_count'].mean()
+    intensity = df['comment_count'] / max(expected, 1.0)
+    
+    scatter = ax.scatter(
+        df['window_start'], 
+        df['comment_count'],
+        c=intensity, 
+        cmap='YlOrRd', 
+        s=np.clip(intensity * 12, 20, 180),
+        alpha=0.85,
+        edgecolors='black',
+        linewidth=0.5
+    )
+    
+    ax.axhline(expected, color='gray', linestyle='--', linewidth=1.2, label=f'Expected Poisson Baseline (λ={expected:.1f})')
+    
+    # Highlight top 3 highest burst events
+    top_bursts = df.nlargest(3, 'comment_count')
+    for _, row in top_bursts.iterrows():
+        ax.annotate(
+            f"{int(row['comment_count'])} comments",
+            xy=(row['window_start'], row['comment_count']),
+            xytext=(0, 12),
+            textcoords="offset points",
+            ha='center',
+            fontsize=9,
+            fontweight='bold',
+            color='#d90429',
+            arrowprops=dict(arrowstyle="->", color='#d90429', lw=1.2)
+        )
+    
+    cb = plt.colorbar(scatter, ax=ax, pad=0.02)
+    cb.set_label('Burst Multiplier (Observed / Expected λ)', fontsize=10)
+    
+    ax.set_title("Statistically Significant Poisson Arrival Bursts (p < 0.001)", pad=15, fontsize=14)
+    ax.set_xlabel("Timeline Window")
+    ax.set_ylabel("15-Minute Comment Volume")
+    ax.legend(loc="upper left")
+    
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    plt.figtext(0.5, 0.015, "Explanation: Statistically significant comment volume surges (p < 0.001 under Poisson arrival model), indicating coordinated brigading, viral shares, or external media mentions.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / "poisson_bursts.png")
+    plt.close()
+

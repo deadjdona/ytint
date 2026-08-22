@@ -1116,15 +1116,20 @@ def main():
         with t_col1:
             render_plot_card("kaplan_meier_survival.png")
             render_plot_card("poisson_bursts.png")
+            render_plot_card("velocity_spikes.png")
             render_plot_card("thread_decay_slopes.png")
-            render_plot_card("video_half_life.png")
+            render_plot_card("reply_depth_distribution.png")
+            render_plot_card("thread_width_dist.png")
             render_plot_card("shelf_life_likes.png")
+            render_plot_card("resolution_patterns.png")
         with t_col2:
             render_plot_card("diurnal_heatmap.png")
             render_plot_card("stl_decomposition.png")
-            render_plot_card("reply_latency.png")
-            render_plot_card("temporal_clustering.png")
-            render_plot_card("velocity_spikes.png")
+            render_plot_card("video_half_life.png")
+            render_plot_card("reply_latency_distribution.png")
+            render_plot_card("reaction_timeline.png")
+            render_plot_card("integrity_scatter.png")
+            render_plot_card("initiator_patterns.png")
 
         # ==============================================================================
         # Section 2: NLP, Semantics & Emotion Spectrum
@@ -1155,11 +1160,13 @@ def main():
         with n_col1:
             render_plot_card("rfm_3d.html", is_html=True)
             render_plot_card("author_network_force.png")
+            render_plot_card("bipartite_network.png")
             render_plot_card("bot_heuristics.png")
             render_plot_card("frequency_tiers.png")
             render_plot_card("driveby_loyalists.png")
         with n_col2:
             render_plot_card("cib_rings_graph.png")
+            render_plot_card("cocomment_network.png")
             render_plot_card("toxicity_contagion.png")
             render_plot_card("author_pareto.png")
             render_plot_card("lorenz_curve.png")

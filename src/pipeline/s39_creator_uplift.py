@@ -125,28 +125,29 @@ def compute_creator_causal_uplift(
     return uplift_summary, df_threads
 
 def run_creator_uplift():
-    """Main execution entrypoint for Stage 38."""
-    print("📈 Starting Creator Interaction Causal Uplift Analysis (s38)...")
+    """Main execution entrypoint for Stage 39."""
+    print("📈 Starting Creator Interaction Causal Uplift Analysis (s39)...")
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
     out_dir = Path(config["paths"]["output_dir"])
 
     comments_file = interim_dir / "comments_clean.parquet"
+    authors_file = out_dir / "authors_final.parquet"
+
     if not comments_file.exists():
-        print(f"⚠️ Missing {comments_file.name}. Skipping s38.")
+        print(f"⚠️ Missing {comments_file.name}. Skipping s39.")
         return
 
-    print("  -> Loading comments dataset...")
-    df = pd.read_parquet(comments_file)
-    if df.empty:
-        print("⚠️ Comments dataset is empty. Skipping s38.")
+    df_comments = pd.read_parquet(comments_file)
+    if df_comments.empty:
+        print("⚠️ Comments dataset is empty. Skipping s39.")
         return
 
     stage_cfg = config.get("stage_39_creator_uplift", {})
     early_window = int(stage_cfg.get("early_window_minutes", 120))
 
     print("  -> Estimating Average Treatment Effects (ATE) across engagement dimensions...")
-    df_summary, df_threads = compute_creator_causal_uplift(df, early_window_minutes=early_window)
+    df_summary, df_threads = compute_creator_causal_uplift(df_comments, early_window_minutes=early_window)
 
     out_summary_file = out_dir / "creator_causal_uplift.parquet"
     out_threads_file = out_dir / "creator_intervention_threads.parquet"

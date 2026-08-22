@@ -231,7 +231,8 @@ def plot_reaction_timeline(out_dir, reaction_file):
     ax.set_ylabel('Mean Sentiment' if 'vader_compound' in df.columns else 'Engagement')
     plt.tight_layout(rect=[0, 0.04, 1, 1])
     plt.figtext(0.5, 0.015, "Explanation: Maps emotional spikes to specific video playback moments (e.g. at 1m24s).", ha="center", fontsize=10, color="dimgray", wrap=True)
-    plt.savefig(out_dir / 'reaction_timeline.png')
+    plt.savefig(out_dir / 'reaction_timeline.png', dpi=150)
+    plt.savefig(out_dir / 'temporal_clustering.png', dpi=150)
     plt.close()
 
 def plot_anomaly_scatter(out_dir, integrity_file, comments_file):
@@ -252,7 +253,53 @@ def plot_anomaly_scatter(out_dir, integrity_file, comments_file):
     ax.legend()
     plt.tight_layout(rect=[0, 0.04, 1, 1])
     plt.figtext(0.5, 0.015, "Explanation: Red clusters indicate coordinated bot brigading or high volumes of duplicated spam templates.", ha="center", fontsize=10, color="dimgray", wrap=True)
-    plt.savefig(out_dir / 'integrity_scatter.png')
+    plt.savefig(out_dir / 'integrity_scatter.png', dpi=150)
+    plt.close()
+
+def plot_velocity_spikes(out_dir, timeline_file, viral_file):
+    print("📈 Generating Viral Velocity Spikes Chart...")
+    df_time = pd.read_parquet(timeline_file)
+    df_viral = pd.read_parquet(viral_file)
+    if df_time.empty or df_viral.empty:
+        return
+        
+    df_time['date'] = pd.to_datetime(df_time['date'])
+    df_time = df_time.sort_values('date')
+    df_viral['date'] = pd.to_datetime(df_viral['date'])
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    ax.plot(df_time['date'], df_time['comment_count'], color='#1f77b4', alpha=0.6, linewidth=1.2, label='Daily Comments')
+    rolling_avg = df_time['comment_count'].rolling(window=7, min_periods=1, center=True).mean()
+    ax.plot(df_time['date'], rolling_avg, color='#0d3b66', linewidth=2, label='7-Day Rolling Trend')
+
+    ax.scatter(df_viral['date'], df_viral['comment_count'], color='#e63946', s=df_viral['z_score'].clip(lower=20, upper=250), alpha=0.9, edgecolor='black', linewidth=0.8, zorder=5, label=f'Viral Velocity Spikes (Z > 3, n={len(df_viral)})')
+
+    top_events = df_viral.nlargest(5, 'comment_count')
+    for _, row in top_events.iterrows():
+        d_str = row['date'].strftime('%Y-%m-%d')
+        cnt = int(row['comment_count'])
+        z = float(row['z_score'])
+        ax.annotate(
+            f"{d_str}\n{cnt:,} comments (Z={z:.1f})",
+            xy=(row['date'], row['comment_count']),
+            xytext=(0, 20),
+            textcoords='offset points',
+            ha='center',
+            fontsize=8.5,
+            fontweight='bold',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='#ffeb3b', alpha=0.85, edgecolor='gray'),
+            arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0', color='black', lw=0.8)
+        )
+
+    ax.set_title('Viral Velocity Spikes & Volume Surge Anomalies Over Time', pad=15, fontsize=14)
+    ax.set_xlabel('Timeline (Date)', fontsize=11)
+    ax.set_ylabel('Daily Comment Count', fontsize=11)
+    ax.legend(loc='upper left', frameon=True)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    plt.figtext(0.5, 0.015, "Explanation: Identifies statistically significant daily comment volume surges (Z > 3.0) over baseline activity, highlighting viral breakouts, external algorithmic pushes, or breaking news events.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / 'velocity_spikes.png', dpi=150)
     plt.close()
 
 def plot_topic_streamgraph(out_dir, topic_file):
@@ -284,6 +331,42 @@ def plot_shelf_life(out_dir, shelf_life_file):
     plt.savefig(out_dir / 'shelf_life_likes.png')
     plt.close()
 
+def plot_video_half_life(out_dir, videos_file):
+    print("⏳ Generating Video Attention Half-Life Distribution...")
+    df = pd.read_parquet(videos_file)
+    if df.empty or 'attention_half_life_days' not in df.columns:
+        return
+        
+    valid_hl = df['attention_half_life_days'].dropna()
+    valid_hl = valid_hl[valid_hl > 0]
+    if valid_hl.empty:
+        return
+        
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Left: Distribution
+    sns.histplot(valid_hl, bins=30, kde=True, color='royalblue', ax=axes[0])
+    med_hl = valid_hl.median()
+    mean_hl = valid_hl.mean()
+    axes[0].axvline(med_hl, color='crimson', linestyle='--', linewidth=1.5, label=f'Median Half-Life: {med_hl:.2f} days')
+    axes[0].axvline(mean_hl, color='darkorange', linestyle=':', linewidth=1.5, label=f'Mean Half-Life: {mean_hl:.2f} days')
+    axes[0].set_title('Video Attention Half-Life Distribution', pad=15, fontsize=13)
+    axes[0].set_xlabel('Attention Half-Life (Days to 50% Inactivity)')
+    axes[0].set_ylabel('Video Upload Count')
+    axes[0].legend(loc='upper right')
+
+    # Right: Top 10 Longest Half-Life Videos (Evergreen assets)
+    top_evergreen = df.nlargest(10, 'attention_half_life_days')
+    sns.barplot(data=top_evergreen, x='attention_half_life_days', y='video_id', palette='Blues_r', hue='video_id', legend=False, ax=axes[1])
+    axes[1].set_title('Top 10 Evergreen Videos by Attention Lifespan', pad=15, fontsize=13)
+    axes[1].set_xlabel('Half-Life (Days)')
+    axes[1].set_ylabel('Video ID')
+
+    plt.tight_layout(rect=[0.02, 0.05, 0.98, 0.95])
+    plt.figtext(0.5, 0.015, 'Explanation: Exponential decay parameter modeling the duration (in days) before comment velocity drops by 50%. Separates fast-fading flash topics from evergreen catalog assets.', ha='center', fontsize=10, color='dimgray', wrap=True)
+    plt.savefig(out_dir / 'video_half_life.png', dpi=150)
+    plt.close()
+
 def plot_topic_video_matrix(out_dir, matrix_file):
     print("🧩 Generating Topic × Video Matrix Heatmap...")
     df = pd.read_parquet(matrix_file)
@@ -297,6 +380,7 @@ def plot_topic_video_matrix(out_dir, matrix_file):
                            linewidths=.5,
                            annot=False)
         g.fig.suptitle("Topic × Video Matrix (Normalized % of Comments)", y=0.98)
+        g.fig.subplots_adjust(top=0.93, bottom=0.06)
         plt.figtext(0.5, 0.015, "Explanation: Clustered heatmap showing which videos focus on which topics. Darker cells mean the topic dominates that video's discussion.", ha="center", fontsize=10, color="dimgray", wrap=True)
         g.savefig(out_dir / 'topic_video_matrix.png')
         plt.close(g.fig)

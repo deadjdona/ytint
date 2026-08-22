@@ -32,7 +32,7 @@ Co-occurrence networks of terms or hashtags
 Named entity / product / person mentions extraction
 Question vs statement vs command classification
 Intent taxonomy: praise, complaint, question, suggestion, off-topic, spam
-Visualisations: UMAP cluster scatter, streamgraph of topic share, treemap of topic hierarchy, alluvial diagram of topic→video, word co-occurrence graph, keyword-in-context concordances.
+Visualisations: UMAP cluster scatter, streamgraph of topic share, treemap of topic hierarchy, alluvial diagram of topic → video, word co-occurrence graph, keyword-in-context concordances.
 
 3. Sentiment & affect
 Valence distribution per video / per topic
