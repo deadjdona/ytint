@@ -68,16 +68,29 @@ def run_cross_video():
         except Exception:
             df['bpe_token_count'] = df['comment_length']
             
+    # Task: creator_positive_ratio — normalised counts for both case variants (Line 44)
+    def _positive_count(x):
+        return ((x == 'positive') | (x == 'POSITIVE')).sum()
+
+    def _negative_count(x):
+        return ((x == 'negative') | (x == 'NEGATIVE')).sum()
+
     video_stats = df.groupby('video_id').agg(
         volume=('comment_id', 'count'),
-        positive_comments=('sentiment_label', lambda x: (x == 'POSITIVE').sum()),
-        negative_comments=('sentiment_label', lambda x: (x == 'NEGATIVE').sum()),
+        positive_comments=('sentiment_label', _positive_count),
+        negative_comments=('sentiment_label', _negative_count),
         avg_length=('comment_length', 'mean'),
         avg_bpe_tokens=('bpe_token_count', 'mean')
     ).reset_index()
-    
+
     video_stats['positivity'] = video_stats['positive_comments'] / video_stats['volume']
     video_stats['negativity'] = video_stats['negative_comments'] / video_stats['volume']
+    # Task 4.2: creator-positive vs creator-negative ratio (description.txt Line 44)
+    video_stats['creator_positive_ratio'] = video_stats['positivity'].round(4)
+    video_stats['creator_negative_ratio'] = video_stats['negativity'].round(4)
+    video_stats['creator_pos_neg_ratio']  = (
+        video_stats['positivity'] / video_stats['negativity'].replace(0, np.nan)
+    ).round(4)
     
     replies = df[df['parent_id'].notna() & (df['parent_id'] != '')]
     branching = replies.groupby('video_id').size().reset_index(name='reply_count')

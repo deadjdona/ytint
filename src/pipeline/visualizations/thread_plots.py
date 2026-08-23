@@ -212,3 +212,81 @@ def plot_toxicity_contagion(out_dir, catalysts_file):
     plt.figtext(0.5, 0.015, "Explanation: Identifies flame-war instigators who post provocative comments that disproportionately spawn hostile replies.", ha="center", fontsize=10, color="dimgray", wrap=True)
     plt.savefig(out_dir / 'toxicity_contagion.png')
     plt.close()
+
+
+def plot_thread_sunburst(out_dir, comments_file):
+    """
+    Thread depth sunburst using Plotly — shows hierarchical comment tree structure.
+    Requires plotly.
+    """
+    print("☀️ Generating Thread Depth Sunburst...")
+    try:
+        import plotly.express as px
+    except ImportError:
+        print("  ⚠️ plotly not installed. Skipping thread sunburst.")
+        return
+    if not Path(comments_file).exists():
+        return
+    df = pd.read_parquet(comments_file, columns=[
+        c for c in pd.read_parquet(comments_file, columns=[]).columns
+        if c in ['video_id', 'comment_depth', 'comment_id', 'parent_id']
+    ])
+    if 'comment_depth' not in df.columns:
+        # Infer depth from parent_id presence
+        df['comment_depth'] = df['parent_id'].apply(
+            lambda x: 1 if (pd.notna(x) and x != '') else 0
+        )
+    depth_dist = df.groupby(['video_id', 'comment_depth']).size().reset_index(name='count')
+    # Take top 10 most active videos
+    top_vids = df['video_id'].value_counts().head(10).index
+    depth_dist = depth_dist[depth_dist['video_id'].isin(top_vids)]
+    depth_dist['depth_label'] = 'Depth ' + depth_dist['comment_depth'].astype(str)
+    if depth_dist.empty:
+        return
+    fig = px.sunburst(
+        depth_dist,
+        path=['video_id', 'depth_label'],
+        values='count',
+        title='Thread Depth Sunburst — Top 10 Videos',
+        color='comment_depth',
+        color_continuous_scale='RdBu',
+    )
+    fig.update_layout(margin=dict(t=60, l=0, r=0, b=0))
+    fig.write_html(str(out_dir / 'thread_sunburst.html'))
+    print("  -> Saved thread_sunburst.html")
+
+
+def plot_corpus_quality(out_dir, quality_file):
+    """
+    Log-log scatter of views vs comment count per video — corpus quality / scaling check.
+    """
+    print("📊 Generating Corpus Quality Log-Log Scatter...")
+    if not Path(quality_file).exists():
+        return
+    df = pd.read_parquet(quality_file)
+    if 'log_views' not in df.columns or 'log_comments' not in df.columns:
+        return
+    df = df.dropna(subset=['log_views', 'log_comments'])
+    df = df[(df['log_views'] > 0) & (df['log_comments'] > 0)]
+    if df.empty:
+        return
+    import matplotlib.pyplot as plt
+    from .theme import setup_theme
+    setup_theme()
+    fig, ax = plt.subplots(figsize=(10, 7))
+    ax.scatter(df['log_views'], df['log_comments'], alpha=0.6,
+               color='steelblue', edgecolors='white', linewidth=0.5, s=50)
+    # Fit a trend line
+    import numpy as np
+    z = np.polyfit(df['log_views'], df['log_comments'], 1)
+    p = np.poly1d(z)
+    x_line = np.linspace(df['log_views'].min(), df['log_views'].max(), 100)
+    ax.plot(x_line, p(x_line), 'r--', linewidth=1.5, label=f'Trend (slope={z[0]:.2f})')
+    ax.set_xlabel('log(1 + Views)', fontsize=12)
+    ax.set_ylabel('log(1 + Sampled Comments)', fontsize=12)
+    ax.set_title('Video Views vs Comment Volume (Log-Log Scale)', fontsize=14, pad=15)
+    ax.legend()
+    plt.tight_layout()
+    plt.figtext(0.5, 0.01, "Explanation: Each dot is a video. Videos above the trend line over-perform in comments relative to views; those below under-perform or have limited sampling.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / 'corpus_quality_scatter.png', dpi=150)
+    plt.close()

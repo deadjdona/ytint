@@ -149,12 +149,13 @@ def calculate_linguistic_features(text):
     fallback = {
         'char_count': len(text) if isinstance(text, str) else 0,
         'word_count': len(str(text).split()) if text else 0,
-        'emoji_count': 0, 
+        'emoji_count': 0, 'emoji_diversity': 0.0, 'emoji_list': [],
         'all_caps_ratio': 0.0, 'caps_ratio': 0.0, 'punctuation_intensity': 0.0, 'lexical_richness': 0.0,
         'mattr': 0.0, 'mtld': 0.0, 'yules_k': 0.0,
         'language': 'unknown', 'readability_flesch': 0.0,
         'hashtags': [], 'mentions': [], 'video_timestamps': [],
-        'extracted_entities': [], 'is_sarcasm_suspect': False
+        'extracted_entities': [], 'is_sarcasm_suspect': False,
+        'comment_type': 'statement', 'is_question': False
     }
 
     if not text or not isinstance(text, str):
@@ -167,8 +168,24 @@ def calculate_linguistic_features(text):
         
         try:
             emoji_count = emoji_lib.emoji_count(text)
+            emoji_list = list(set(c for c in text if c in emoji_lib.EMOJI_DATA))
+            emoji_diversity = len(emoji_list) / emoji_count if emoji_count > 0 else 0.0
         except Exception:
             emoji_count = 0
+            emoji_list = []
+            emoji_diversity = 0.0
+
+        # Task: Question / Statement / Command classification
+        text_stripped = text.strip()
+        is_question = text_stripped.endswith('?') or bool(re.match(
+            r'^(who|what|when|where|why|how|is|are|was|were|do|does|did|can|could|would|should|will|shall|кто|что|когда|где|почему|как|зачем)\b',
+            text_stripped, re.IGNORECASE
+        ))
+        is_command = bool(re.match(
+            r'^(check|watch|look|see|go|click|subscribe|like|share|tell|give|make|stop|please|try|listen|don\'t|смотри|подпишись|лайк|нажм)\b',
+            text_stripped, re.IGNORECASE
+        )) if not is_question else False
+        comment_type = 'question' if is_question else ('command' if is_command else 'statement')
         
         upper_chars = sum(1 for c in text if c.isupper())
         all_caps_ratio = upper_chars / char_count if char_count > 0 else 0.0
@@ -236,6 +253,8 @@ def calculate_linguistic_features(text):
             'char_count': char_count,
             'word_count': word_count,
             'emoji_count': emoji_count,
+            'emoji_diversity': round(emoji_diversity, 4),
+            'emoji_list': emoji_list,
             'all_caps_ratio': round(all_caps_ratio, 4),
             'caps_ratio': round(all_caps_ratio, 4),
             'punctuation_intensity': round(punctuation_intensity, 4),
@@ -249,7 +268,9 @@ def calculate_linguistic_features(text):
             'mentions': mentions,
             'video_timestamps': video_timestamps,
             'extracted_entities': extracted_entities,
-            'is_sarcasm_suspect': is_sarcasm_suspect
+            'is_sarcasm_suspect': is_sarcasm_suspect,
+            'comment_type': comment_type,
+            'is_question': is_question
         }
     except Exception:
         return fallback

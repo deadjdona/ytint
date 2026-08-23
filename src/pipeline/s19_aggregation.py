@@ -8,6 +8,7 @@ Code Review Task Alignment:
 - Gini coefficient: Lorenz inequality measure per video
 - Fan Loyalty tracking: is_single_video_fan vs multi-video author footprint
 - Display Name Reuse risk: is_display_name_reused impersonation / bot detection
+- Top-K concentration: top_1pct_like_share and top_10pct_like_share (Line 88)
 - UI Metric Synthesis: Integrated via s04_synthesis.py
 """
 
@@ -176,6 +177,15 @@ def aggregate_data():
         
         # Task: Gini coefficient per video
         gini_coeff = gini(group['like_count'].values)
+
+        # Task: Top-K like concentration (what % of likes go to top 1% / 10% of comments?)
+        likes_sorted = np.sort(group['like_count'].values)[::-1]
+        total_likes_video = likes_sorted.sum()
+        n = len(likes_sorted)
+        top_1pct_n = max(1, int(np.ceil(n * 0.01)))
+        top_10pct_n = max(1, int(np.ceil(n * 0.10)))
+        top_1pct_share = round(likes_sorted[:top_1pct_n].sum() / total_likes_video, 4) if total_likes_video > 0 else 0.0
+        top_10pct_share = round(likes_sorted[:top_10pct_n].sum() / total_likes_video, 4) if total_likes_video > 0 else 0.0
         
         # Task: Savitzky-Golay revival spikes (>3σ anomaly detection on smoothed daily volume)
         # Math: Savitzky-Golay fits a degree-2 polynomial over a 7-day window. Residuals r_t = y_t - y_hat_t 
@@ -196,6 +206,14 @@ def aggregate_data():
         # Task: Exponential decay half-life
         half_life = compute_half_life(group.copy())
         
+        # Task: Top-K Like Concentration (Line 88)
+        # What fraction of total likes is captured by the top 1% / 10% of comments?
+        likes_sorted = np.sort(group['like_count'].values)[::-1]  # descending
+        top_1pct_n  = max(1, int(np.ceil(total_comments * 0.01)))
+        top_10pct_n = max(1, int(np.ceil(total_comments * 0.10)))
+        top_1pct_share  = likes_sorted[:top_1pct_n].sum()  / total_likes if total_likes > 0 else 0.0
+        top_10pct_share = likes_sorted[:top_10pct_n].sum() / total_likes if total_likes > 0 else 0.0
+
         video_records.append({
             'video_id': vid,
             'total_comments': total_comments,
@@ -203,7 +221,9 @@ def aggregate_data():
             'avg_sentiment': avg_sentiment,
             'gini_coefficient': round(gini_coeff, 4),
             'revival_spikes': int(spikes),
-            'attention_half_life_days': round(half_life, 2)
+            'attention_half_life_days': round(half_life, 2),
+            'top_1pct_like_share':  round(float(top_1pct_share),  4),
+            'top_10pct_like_share': round(float(top_10pct_share), 4),
         })
         
     df_video = pd.DataFrame(video_records)

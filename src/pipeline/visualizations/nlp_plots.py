@@ -327,3 +327,129 @@ def plot_stance_drift(out_dir, stance_file, drift_file):
     plt.figtext(0.5, 0.015, "Explanation: Target-specific stance extraction mapping consensus vs opposition balance, and demonstrating polarization drift across deep debate replies.", ha="center", fontsize=10, color="dimgray", wrap=True)
     plt.savefig(out_dir / 'stance_polarization_drift.png')
     plt.close()
+
+
+def plot_emoji_treemap(out_dir, emoji_file):
+    """
+    Emoji frequency treemap — top emoji across the corpus.
+    Requires squarify: pip install squarify
+    """
+    print("😊 Generating Emoji Frequency Treemap...")
+    try:
+        import squarify
+    except ImportError:
+        print("  ⚠️ squarify not installed. Skipping emoji treemap.")
+        return
+    if not Path(emoji_file).exists():
+        return
+    df = pd.read_parquet(emoji_file)
+    corpus = df[df['group_type'] == 'sentiment'].groupby('emoji')['count'].sum().reset_index()
+    corpus = corpus.nlargest(40, 'count')
+    if corpus.empty:
+        return
+    setup_theme()
+    fig, ax = plt.subplots(figsize=(14, 8))
+    colors = plt.cm.tab20.colors
+    squarify.plot(sizes=corpus['count'], label=corpus['emoji'],
+                  color=colors[:len(corpus)], alpha=0.85, ax=ax,
+                  text_kwargs={'fontsize': 14})
+    ax.set_title('Emoji Frequency Treemap — Corpus-Wide', fontsize=16, pad=15)
+    ax.axis('off')
+    plt.tight_layout()
+    plt.savefig(out_dir / 'emoji_treemap.png', dpi=150)
+    plt.close()
+
+
+def plot_length_vs_likes_hexbin(df_comments, out_dir):
+    """
+    Comment length vs like_count hexbin scatter — reveals engagement sweet spots.
+    """
+    print("📐 Generating Length vs Likes Hexbin...")
+    if 'char_count' not in df_comments.columns or 'like_count' not in df_comments.columns:
+        return
+    df = df_comments[['char_count', 'like_count']].copy()
+    df['like_count'] = pd.to_numeric(df['like_count'], errors='coerce').fillna(0)
+    df['char_count'] = pd.to_numeric(df['char_count'], errors='coerce').fillna(0)
+    df = df[(df['char_count'] > 0) & (df['char_count'] < 2000)]
+    if df.empty:
+        return
+    setup_theme()
+    fig, ax = plt.subplots(figsize=(12, 7))
+    hb = ax.hexbin(df['char_count'], df['like_count'],
+                   gridsize=50, cmap='YlOrRd', mincnt=1,
+                   bins='log')
+    plt.colorbar(hb, ax=ax, label='Log(Comment Count)')
+    ax.set_xlabel('Comment Length (characters)', fontsize=12)
+    ax.set_ylabel('Like Count', fontsize=12)
+    ax.set_title('Comment Length vs Engagement (Hexbin Density)', fontsize=15, pad=15)
+    ax.set_xlim(0, df['char_count'].quantile(0.99))
+    ax.set_ylim(0, df['like_count'].quantile(0.99))
+    plt.tight_layout()
+    plt.figtext(0.5, 0.01, "Explanation: Density map showing where comment length and like-count co-occur most frequently. Warm zones indicate optimal comment length for engagement.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / 'length_vs_likes_hexbin.png', dpi=150)
+    plt.close()
+
+
+def plot_language_distribution(df_comments, out_dir, top_n=10):
+    """
+    Stacked/grouped bar of language distribution across the corpus and per top video.
+    """
+    print("🌍 Generating Language Distribution...")
+    if 'language' not in df_comments.columns:
+        return
+    setup_theme()
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    # Corpus-wide
+    lang_counts = df_comments['language'].fillna('unknown').value_counts().head(top_n)
+    axes[0].barh(lang_counts.index[::-1], lang_counts.values[::-1],
+                 color=plt.cm.Set2.colors[:len(lang_counts)])
+    axes[0].set_title('Corpus-Wide Language Distribution', fontsize=13)
+    axes[0].set_xlabel('Number of Comments')
+
+    # Top videos language mix
+    if 'video_id' in df_comments.columns:
+        top_vids = df_comments['video_id'].value_counts().head(8).index
+        df_top = df_comments[df_comments['video_id'].isin(top_vids)]
+        top_langs = df_comments['language'].fillna('unknown').value_counts().head(5).index
+        df_top = df_top.copy()
+        df_top['language'] = df_top['language'].where(df_top['language'].isin(top_langs), 'other')
+        pivot = df_top.groupby(['video_id', 'language']).size().unstack(fill_value=0)
+        pivot.plot(kind='bar', stacked=True, ax=axes[1],
+                   colormap='Set2', width=0.8)
+        axes[1].set_title('Language Mix per Top Video', fontsize=13)
+        axes[1].set_xlabel('')
+        axes[1].tick_params(axis='x', rotation=30)
+        axes[1].legend(title='Language', bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=9)
+
+    plt.tight_layout()
+    plt.savefig(out_dir / 'language_distribution.png', dpi=150)
+    plt.close()
+
+
+def plot_valence_per_topic(df_comments, out_dir, top_n=15):
+    """
+    Diverging bar chart of mean sentiment score per topic.
+    """
+    print("↔️ Generating Valence per Topic Diverging Chart...")
+    topic_col = next((c for c in ['topic_name', 'topic_id'] if c in df_comments.columns), None)
+    sent_col = next((c for c in ['vader_compound', 'sentiment_compound', 'sentiment_score'] if c in df_comments.columns), None)
+    if topic_col is None or sent_col is None:
+        return
+    df = df_comments[[topic_col, sent_col]].dropna()
+    df[sent_col] = pd.to_numeric(df[sent_col], errors='coerce').fillna(0)
+    topic_sentiment = df.groupby(topic_col)[sent_col].mean().sort_values()
+    topic_sentiment = pd.concat([topic_sentiment.head(top_n // 2),
+                                 topic_sentiment.tail(top_n // 2)])
+    setup_theme()
+    fig, ax = plt.subplots(figsize=(12, max(6, len(topic_sentiment) * 0.4)))
+    colors = ['#e74c3c' if v < 0 else '#2ecc71' for v in topic_sentiment.values]
+    ax.barh(topic_sentiment.index, topic_sentiment.values, color=colors, edgecolor='white')
+    ax.axvline(0, color='grey', linewidth=0.8, linestyle='--')
+    ax.set_title('Mean Sentiment per Topic (Diverging)', fontsize=14, pad=15)
+    ax.set_xlabel('Mean VADER Compound Score')
+    ax.set_ylabel('Topic')
+    plt.tight_layout()
+    plt.figtext(0.5, 0.01, "Explanation: Topics to the right are discussed positively on average; topics to the left attract negative commentary.", ha="center", fontsize=10, color="dimgray", wrap=True)
+    plt.savefig(out_dir / 'valence_per_topic.png', dpi=150)
+    plt.close()

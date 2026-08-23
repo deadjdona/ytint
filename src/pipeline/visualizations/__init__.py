@@ -19,7 +19,11 @@ from .nlp_plots import (
     plot_tag_network,
     plot_code_switching,
     plot_audience_intent,
-    plot_stance_drift
+    plot_stance_drift,
+    plot_emoji_treemap,
+    plot_length_vs_likes_hexbin,
+    plot_language_distribution,
+    plot_valence_per_topic
 )
 from .thread_plots import (
     plot_reply_depth_distribution,
@@ -30,7 +34,9 @@ from .thread_plots import (
     plot_thread_width,
     plot_resolution_patterns,
     plot_initiator_patterns,
-    plot_toxicity_contagion
+    plot_toxicity_contagion,
+    plot_thread_sunburst,
+    plot_corpus_quality
 )
 from .author_plots import (
     plot_author_pareto,
@@ -137,6 +143,8 @@ def run_visualizations():
     stance_summary_file = out_dir / "stance_summary.parquet"
     stance_drift_file = out_dir / "stance_depth_drift.parquet"
     bursts_file = out_dir / "poisson_bursts.parquet"
+    emoji_file = out_dir / "emoji_signatures.parquet"
+    quality_file = out_dir / "corpus_quality.parquet"
     
     print(f"🎨 Initializing Visualization Engine (Outputting to {plots_dir})...")
     
@@ -292,8 +300,23 @@ def run_visualizations():
     if stance_summary_file.exists() and stance_drift_file.exists():
         plot_stance_drift(plots_dir, stance_summary_file, stance_drift_file)
 
-        
-    print("✅ Stage 99 Visualizations Complete! 🎆")
+    # === NEW Phase 6 Charts ===
+    # Emoji treemap
+    if emoji_file.exists():
+        plot_emoji_treemap(plots_dir, emoji_file)
+    # Length vs likes hexbin
+    if df_comments is not None:
+        plot_length_vs_likes_hexbin(df_comments, plots_dir)
+        plot_language_distribution(df_comments, plots_dir)
+        plot_valence_per_topic(df_comments, plots_dir)
+    # Thread sunburst
+    if comments_file.exists():
+        plot_thread_sunburst(plots_dir, comments_file)
+    # Corpus quality log-log
+    if quality_file.exists():
+        plot_corpus_quality(plots_dir, quality_file)
+
+    print("\u2705 Stage 99 Visualizations Complete! \U0001f386")
 
 __all__ = [
     "run_visualizations",
@@ -350,5 +373,11 @@ __all__ = [
     "plot_kaplan_meier",
     "plot_shap_summary",
     "plot_creator_uplift",
-    "plot_poisson_bursts"
+    "plot_poisson_bursts",
+    "plot_emoji_treemap",
+    "plot_length_vs_likes_hexbin",
+    "plot_language_distribution",
+    "plot_valence_per_topic",
+    "plot_thread_sunburst",
+    "plot_corpus_quality"
 ]

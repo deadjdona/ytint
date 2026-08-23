@@ -11,6 +11,9 @@ Code Review Task Alignment:
 - Poisson Burst Brigading: detect_poisson_bursts() arrival rate spike detection (P < 0.001)
 - Engagement Volume Forecast: forecast_engagement() Prophet / Exponential Smoothing 30-day forecast
 - Kruskal-Wallis Test: category_benchmarking() across video engagement distributions
+- Toxicity Prediction: predict_toxicity() thread-context toxicity likelihood classifier
+- Return Propensity: predict_return_propensity() commenter return probability model
+- Early-Burst Viral: predict_viral_comments() early-burst comment virality classifier
 """
 
 import sys
@@ -459,6 +462,164 @@ def forecast_engagement(df_comments, periods=30):
         print(f"⚠️ Forecasting failed ({e}). Proceeding...")
         return pd.DataFrame()
 
+def predict_toxicity(df_comments):
+    """
+    Task: Toxicity likelihood prediction from thread context.
+    Trains a binary XGBoost classifier: given a root comment's features,
+    predict whether the subsequent thread will escalate toxicity (>= 0.5 score).
+    """
+    print("☣️ Training Toxicity Prediction Model...")
+    required = {'toxicity_score', 'char_count', 'sentiment_compound', 'like_count',
+                'parent_id', 'comment_id'}
+    available = set(df_comments.columns)
+    if not required.issubset(available):
+        # Try with vader_compound as fallback for sentiment
+        if 'vader_compound' in available:
+            df_comments = df_comments.rename(columns={'vader_compound': 'sentiment_compound'})
+        else:
+            print("  ⚠️ Missing required columns for toxicity prediction. Skipping.")
+            return None
+
+    df = df_comments.copy()
+    df['toxicity_score'] = pd.to_numeric(df['toxicity_score'], errors='coerce').fillna(0)
+    df['is_reply'] = df['parent_id'].notna() & (df['parent_id'] != '') & (df['parent_id'] != df['comment_id'])
+
+    # For each root comment, aggregate reply toxicity
+    roots = df[~df['is_reply']].copy()
+    replies = df[df['is_reply']].copy()
+    if roots.empty or replies.empty:
+        print("  ⚠️ Insufficient thread data for toxicity prediction. Skipping.")
+        return None
+
+    reply_tox = replies.groupby('parent_id')['toxicity_score'].agg(
+        max_reply_toxicity='max', mean_reply_toxicity='mean'
+    ).reset_index().rename(columns={'parent_id': 'comment_id'})
+
+    merged = roots.merge(reply_tox, on='comment_id', how='inner')
+    if len(merged) < 50:
+        print("  ⚠️ Too few threaded comments for toxicity model. Skipping.")
+        return None
+
+    merged['escalated'] = (merged['max_reply_toxicity'] >= 0.5).astype(int)
+
+    feat_cols = [c for c in ['char_count', 'word_count', 'sentiment_compound',
+                              'toxicity_score', 'like_count', 'emoji_count',
+                              'all_caps_ratio', 'punctuation_intensity'] if c in merged.columns]
+    X = merged[feat_cols].fillna(0).astype(float)
+    y = merged['escalated']
+
+    if y.sum() < 5 or (1 - y).sum() < 5:
+        print("  ⚠️ Insufficient positive/negative examples for toxicity model. Skipping.")
+        return None
+
+    split = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split], X.iloc[split:]
+    y_train, y_test = y.iloc[:split], y.iloc[split:]
+
+    model = xgb.XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.1,
+                               use_label_encoder=False, eval_metric='logloss',
+                               random_state=42)
+    model.fit(X_train, y_train)
+    acc = model.score(X_test, y_test) if len(X_test) > 0 else float('nan')
+    print(f"  -> Toxicity classifier accuracy: {acc:.3f} (test n={len(X_test)})")
+    return model
+
+
+def predict_return_propensity(df_authors):
+    """
+    Task: Binary classification — will this author comment on a future video?
+    Features: recency, frequency, unique_videos, avg_sentiment, RFM score.
+    """
+    print("🔄 Training Return Propensity Model...")
+    required_cols = {'recency_days', 'total_comments', 'unique_videos_commented'}
+    if not required_cols.issubset(set(df_authors.columns)):
+        print("  ⚠️ Missing author feature columns for propensity model. Skipping.")
+        return None
+
+    df = df_authors.copy()
+    df['recency_days'] = pd.to_numeric(df['recency_days'], errors='coerce').fillna(999)
+    df['total_comments'] = pd.to_numeric(df['total_comments'], errors='coerce').fillna(0)
+    df['unique_videos_commented'] = pd.to_numeric(df['unique_videos_commented'], errors='coerce').fillna(0)
+
+    # Label: authors who commented on > 1 video are 'returners'
+    df['is_returner'] = (df['unique_videos_commented'] > 1).astype(int)
+
+    feat_cols = [c for c in ['recency_days', 'total_comments', 'unique_videos_commented',
+                              'avg_sentiment', 'gini_coefficient', 'rfm_score',
+                              'avg_like_count'] if c in df.columns]
+    X = df[feat_cols].fillna(0).astype(float)
+    y = df['is_returner']
+
+    if len(X) < 50 or y.sum() < 5:
+        print("  ⚠️ Insufficient data for return propensity model. Skipping.")
+        return None
+
+    split = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split], X.iloc[split:]
+    y_train, y_test = y.iloc[:split], y.iloc[split:]
+
+    model = xgb.XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.1,
+                               use_label_encoder=False, eval_metric='logloss',
+                               random_state=42)
+    model.fit(X_train, y_train)
+    acc = model.score(X_test, y_test) if len(X_test) > 0 else float('nan')
+    print(f"  -> Return propensity accuracy: {acc:.3f} (test n={len(X_test)})")
+    return model
+
+
+def predict_viral_comments(df_comments):
+    """
+    Task: Early-burst viral comment detection.
+    Trains a binary classifier: predict whether a comment posted in the first 2 hours
+    after video publication will end up in the top 10% of likes.
+    """
+    print("🚀 Training Early-Burst Viral Comment Classifier...")
+    required = {'published_at', 'like_count', 'minutes_since_upload'}
+    if not required.issubset(set(df_comments.columns)):
+        print("  ⚠️ Missing required columns for viral comment model. Skipping.")
+        return None
+
+    df = df_comments.copy()
+    df['like_count'] = pd.to_numeric(df['like_count'], errors='coerce').fillna(0)
+    df['minutes_since_upload'] = pd.to_numeric(df['minutes_since_upload'], errors='coerce').fillna(9999)
+
+    # Only early comments (first 2 hours = 120 minutes)
+    early = df[df['minutes_since_upload'] <= 120].copy()
+    if len(early) < 50:
+        print("  ⚠️ Fewer than 50 early comments found. Skipping viral model.")
+        return None
+
+    top10_threshold = early['like_count'].quantile(0.90)
+    early['went_viral'] = (early['like_count'] >= top10_threshold).astype(int)
+
+    feat_cols = [c for c in ['char_count', 'word_count', 'emoji_count', 'all_caps_ratio',
+                              'punctuation_intensity', 'lexical_richness', 'toxicity_score',
+                              'sentiment_compound', 'minutes_since_upload', 'is_question'] if c in early.columns]
+    # Convert boolean columns
+    for col in feat_cols:
+        if early[col].dtype == bool:
+            early[col] = early[col].astype(int)
+
+    X = early[feat_cols].fillna(0).astype(float)
+    y = early['went_viral']
+
+    if y.sum() < 5:
+        print("  ⚠️ Too few viral examples. Skipping.")
+        return None
+
+    split = int(len(X) * 0.8)
+    X_train, X_test = X.iloc[:split], X.iloc[split:]
+    y_train, y_test = y.iloc[:split], y.iloc[split:]
+
+    model = xgb.XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.1,
+                               use_label_encoder=False, eval_metric='logloss',
+                               random_state=42)
+    model.fit(X_train, y_train)
+    acc = model.score(X_test, y_test) if len(X_test) > 0 else float('nan')
+    print(f"  -> Viral comment classifier accuracy: {acc:.3f} (test n={len(X_test)})")
+    return model
+
+
 def run_modeling():
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
@@ -534,6 +695,23 @@ def run_modeling():
     if dunn_df is not None and not dunn_df.empty:
         dunn_df.to_parquet(out_dir / "dunn_posthoc_matrix.parquet")
         
+    # Task: Toxicity prediction model
+    toxicity_model = predict_toxicity(df_c)
+    if toxicity_model is not None:
+        joblib.dump(toxicity_model, out_dir / "toxicity_predictor.pkl")
+
+    # Task: Return propensity model
+    if authors_file.exists():
+        df_a_prop = pd.read_parquet(authors_file)
+        propensity_model = predict_return_propensity(df_a_prop)
+        if propensity_model is not None:
+            joblib.dump(propensity_model, out_dir / "return_propensity.pkl")
+
+    # Task: Early-burst viral comment classifier
+    viral_model = predict_viral_comments(df_c)
+    if viral_model is not None:
+        joblib.dump(viral_model, out_dir / "viral_comment_predictor.pkl")
+
     print("✅ Stage 38 Advanced Statistical & Predictive Modeling Complete!")
 
 if __name__ == "__main__":

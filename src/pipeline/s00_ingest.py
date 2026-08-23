@@ -87,7 +87,8 @@ def migrate_from_commentsuite():
             total_likes AS video_likes,
             total_dislikes,
             video_desc,
-            thumb_url
+            thumb_url,
+            http_code
         FROM videos;
         """
         try:
@@ -124,6 +125,17 @@ def migrate_from_commentsuite():
         if 'grab_date' in df_videos.columns:
             df_videos['grab_at'] = parse_comment_dates(df_videos['grab_date'])
         df_videos['title'] = df_videos['title'].fillna("Video Asset // ID: " + df_videos['video_id'].astype(str))
+
+        # Derive corpus quality metrics
+        if 'total_views' in df_videos.columns and 'total_comments' in df_videos.columns:
+            views = pd.to_numeric(df_videos['total_views'], errors='coerce').fillna(0)
+            comments = pd.to_numeric(df_videos['total_comments'], errors='coerce').fillna(0)
+            df_videos['comment_rate'] = (comments / (views / 1000)).replace([float('inf'), float('-inf')], 0).fillna(0).round(4)
+        if 'http_code' in df_videos.columns:
+            df_videos['is_comment_disabled'] = (
+                (df_videos['http_code'].fillna(200).astype(int) != 200) |
+                (pd.to_numeric(df_videos.get('total_comments', 0), errors='coerce').fillna(0) == 0)
+            )
     else:
         print("📹 Synthesizing video metadata timeline structures...")
         df_videos = df_comments.groupby('video_id')['published_at'].min().reset_index()

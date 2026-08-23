@@ -51,6 +51,7 @@ class PipelineRunner:
         # Phase 3: Author Profiling & Forensics (s16 - s27)
         # Phase 4: Video Dynamics, Cohorts & Longitudinal Topology (s28 - s37)
         # Phase 5: Predictive, Causal Modeling & Synthesis (s38 - s40)
+        # Phase 5b: Extended Analysis Stages (s41 - s46)
         # Phase 6: Visualizations & Reporting (s99 - ALWAYS LAST)
         self.registry = {
             # === Phase 1: Ingestion & Foundational NLP/Semantics ===
@@ -350,6 +351,51 @@ class PipelineRunner:
                 "outputs": []  # Modifies topic_metadata.parquet in-place
             },
 
+            # === Phase 5b: Supplementary Analysis Stages ===
+            "s41": {
+                "desc": "TF-IDF Keyword Extraction per Video",
+                "module": "pipeline.s41_tfidf_keywords",
+                "entry_func": "run_tfidf_keywords",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "tfidf_keywords.parquet"]
+            },
+            "s42": {
+                "desc": "Polarity vs Engagement Analysis",
+                "module": "pipeline.s42_polarity_engagement",
+                "entry_func": "run_polarity_engagement",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "polarity_engagement.parquet"]
+            },
+            "s43": {
+                "desc": "Per-Topic Emoji Signatures & Sentiment Mapping",
+                "module": "pipeline.s43_emoji_signatures",
+                "entry_func": "run_emoji_signatures",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "emoji_signatures.parquet"]
+            },
+            "s44": {
+                "desc": "Sentiment Anomaly Detection (Negativity Spikes)",
+                "module": "pipeline.s44_sentiment_anomalies",
+                "entry_func": "run_sentiment_anomalies",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "sentiment_anomalies.parquet"]
+            },
+            "s45": {
+                "desc": "Meta & Corpus Quality Analysis",
+                "module": "pipeline.s45_corpus_quality",
+                "entry_func": "run_corpus_quality",
+                "inputs": [self.interim / "comments_clean.parquet", self.interim / "videos_clean.parquet"],
+                "outputs": [self.output / "corpus_quality.parquet", self.output / "language_coverage.parquet"]
+            },
+            "s46": {
+                "desc": "Within-Thread Topic Drift Detection",
+                "module": "pipeline.s46_thread_topic_drift",
+                "entry_func": "run_thread_topic_drift",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "thread_topic_drift.parquet"]
+            },
+
+
             # === Phase 6: Final Visualizations & Reporting (ALWAYS LAST) ===
             "s99": {
                 "desc": "Comprehensive Visualizations & Publication Plots",
@@ -363,7 +409,7 @@ class PipelineRunner:
         # Ordered stage execution sequence
         self.ordered_stages = [
             f"s{i:02d}" for i in range(41)
-        ] + ["s99"]
+        ] + ["s41", "s42", "s43", "s44", "s45", "s46", "s99"]
 
         # Named convenience aliases
         self.aliases = {
@@ -381,6 +427,12 @@ class PipelineRunner:
             "modeling": "s38",
             "uplift": "s39",
             "synthesis": "s40",
+            "tfidf": "s41",
+            "polarity": "s42",
+            "emoji": "s43",
+            "anomalies": "s44",
+            "quality": "s45",
+            "drift": "s46",
             "s_visualize": "s99",
             "visualize": "s99",
             "plots": "s99"
