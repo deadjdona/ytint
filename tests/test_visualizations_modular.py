@@ -117,3 +117,97 @@ def test_thread_plots_isolated_rendering(tmp_path):
     df_width.to_parquet(width_file)
     plot_thread_width(out_dir, width_file)
     assert (out_dir / "thread_width_dist.png").exists()
+
+
+def test_new_extended_plots_rendering(tmp_path):
+    """Verify rendering of newly added extended visualization functions."""
+    import pipeline.visualizations as pv
+    out_dir = tmp_path / "extended_plots"
+    out_dir.mkdir()
+
+    # Slang & TF-IDF
+    df_slang = pd.DataFrame({
+        "slang_term": ["tbh", "lol", "cringe"],
+        "total_occurrences": [15, 10, 5],
+        "avg_sentiment": [0.2, 0.5, -0.4]
+    })
+    pv.plot_slang_lexicon(df_slang, out_dir)
+    assert (out_dir / "slang_lexicon_distribution.png").exists()
+
+    df_tfidf = pd.DataFrame({
+        "video_id": ["v1", "v1", "v2"],
+        "keyword": ["python", "code", "gaming"],
+        "tfidf_score": [0.8, 0.6, 0.9]
+    })
+    pv.plot_tfidf_keywords(df_tfidf, out_dir)
+    assert (out_dir / "tfidf_keywords_salience.png").exists()
+
+    # Bow-Tie & Concentration
+    df_bt = pd.DataFrame({
+        "component": ["SCC", "IN", "OUT", "TENDRILS"],
+        "author_count": [10, 20, 15, 5],
+        "author_share": [0.2, 0.4, 0.3, 0.1]
+    })
+    pv.plot_bowtie_structure(df_bt, out_dir)
+    assert (out_dir / "network_bowtie_structure.png").exists()
+
+    df_conc = pd.DataFrame({
+        "scope": ["corpus"],
+        "top_1pct_likes_share": [0.4],
+        "top_5pct_likes_share": [0.6],
+        "top_10pct_likes_share": [0.75],
+        "top_20pct_likes_share": [0.85],
+        "top_1pct_replies_share": [0.3],
+        "top_5pct_replies_share": [0.5],
+        "top_10pct_replies_share": [0.65],
+        "top_20pct_replies_share": [0.75],
+        "gini_likes": [0.7],
+        "gini_replies": [0.6]
+    })
+    pv.plot_top_k_concentration(df_conc, out_dir)
+    assert (out_dir / "top_k_attention_concentration.png").exists()
+
+    # Topic Injection & Arrival Curve
+    df_inj = pd.DataFrame({
+        "video_id": ["v1", "v2"],
+        "window_start": [pd.Timestamp("2026-01-01 10:00:00"), pd.Timestamp("2026-01-02 10:00:00")],
+        "js_divergence": [0.45, 0.52],
+        "dominant_topic": ["Topic 1", "Topic 2"]
+    })
+    pv.plot_topic_injection_anomalies(df_inj, out_dir)
+    assert (out_dir / "topic_injection_anomalies.png").exists()
+
+    df_curve = pd.DataFrame({
+        "minute_bin": list(range(10)),
+        "cumulative_comments": [i * 2 for i in range(10)],
+        "velocity_per_min": [2.0] * 10
+    })
+    pv.plot_minute_arrival_curve(df_curve, out_dir)
+    assert (out_dir / "minute_arrival_speed_curve.png").exists()
+
+    # Series, Creator Polarity, Scene Reactions
+    df_ser = pd.DataFrame({
+        "category": ["Series / Episodic", "Standalone"],
+        "avg_comments_per_video": [50.0, 30.0],
+        "avg_likes_per_comment": [5.0, 3.5],
+        "avg_sentiment": [0.3, 0.1]
+    })
+    pv.plot_series_vs_standalone(df_ser, out_dir)
+    assert (out_dir / "series_vs_standalone_benchmark.png").exists()
+
+    df_creat = pd.DataFrame({
+        "scope": ["corpus"],
+        "creator_positive_count": [40],
+        "creator_negative_count": [8],
+        "creator_neutral_count": [12],
+        "creator_pos_neg_ratio": [5.0]
+    })
+    pv.plot_creator_sentiment_polarity(df_creat, out_dir)
+    assert (out_dir / "creator_sentiment_polarity.png").exists()
+
+    df_rxn = pd.DataFrame({
+        "reaction_type": ["Humor / Laughter", "Emotional / Sentiment", "Plot / Lore Critique"],
+        "n_comments": [30, 20, 10]
+    })
+    pv.plot_cross_modal_scene_reactions(df_rxn, out_dir)
+    assert (out_dir / "cross_modal_scene_reactions.png").exists()

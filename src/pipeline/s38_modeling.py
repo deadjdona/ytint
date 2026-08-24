@@ -469,18 +469,18 @@ def predict_toxicity(df_comments):
     predict whether the subsequent thread will escalate toxicity (>= 0.5 score).
     """
     print("☣️ Training Toxicity Prediction Model...")
+    df = df_comments.copy()
+    if 'toxicity_score' not in df.columns and 'toxicity' in df.columns:
+        df['toxicity_score'] = df['toxicity']
+    if 'sentiment_compound' not in df.columns and 'vader_compound' in df.columns:
+        df['sentiment_compound'] = df['vader_compound']
+
     required = {'toxicity_score', 'char_count', 'sentiment_compound', 'like_count',
                 'parent_id', 'comment_id'}
-    available = set(df_comments.columns)
-    if not required.issubset(available):
-        # Try with vader_compound as fallback for sentiment
-        if 'vader_compound' in available:
-            df_comments = df_comments.rename(columns={'vader_compound': 'sentiment_compound'})
-        else:
-            print("  ⚠️ Missing required columns for toxicity prediction. Skipping.")
-            return None
+    if not required.issubset(set(df.columns)):
+        print("  ⚠️ Missing required columns for toxicity prediction. Skipping.")
+        return None
 
-    df = df_comments.copy()
     df['toxicity_score'] = pd.to_numeric(df['toxicity_score'], errors='coerce').fillna(0)
     df['is_reply'] = df['parent_id'].notna() & (df['parent_id'] != '') & (df['parent_id'] != df['comment_id'])
 
@@ -580,6 +580,11 @@ def predict_viral_comments(df_comments):
         return None
 
     df = df_comments.copy()
+    if 'toxicity_score' not in df.columns and 'toxicity' in df.columns:
+        df['toxicity_score'] = df['toxicity']
+    if 'sentiment_compound' not in df.columns and 'vader_compound' in df.columns:
+        df['sentiment_compound'] = df['vader_compound']
+
     df['like_count'] = pd.to_numeric(df['like_count'], errors='coerce').fillna(0)
     df['minutes_since_upload'] = pd.to_numeric(df['minutes_since_upload'], errors='coerce').fillna(9999)
 

@@ -23,7 +23,9 @@ from .nlp_plots import (
     plot_emoji_treemap,
     plot_length_vs_likes_hexbin,
     plot_language_distribution,
-    plot_valence_per_topic
+    plot_valence_per_topic,
+    plot_slang_lexicon,
+    plot_tfidf_keywords
 )
 from .thread_plots import (
     plot_reply_depth_distribution,
@@ -51,7 +53,9 @@ from .author_plots import (
     plot_like_inflation,
     plot_author_fingerprints,
     plot_impersonation,
-    plot_cib_rings
+    plot_cib_rings,
+    plot_bowtie_structure,
+    plot_top_k_concentration
 )
 from .temporal_plots import (
     plot_diurnal_heatmap,
@@ -71,13 +75,18 @@ from .temporal_plots import (
     plot_video_overlap,
     plot_new_vs_returning,
     plot_topic_cohorts,
-    plot_cross_video
+    plot_cross_video,
+    plot_topic_injection_anomalies,
+    plot_minute_arrival_curve
 )
 from .model_plots import (
     plot_kaplan_meier,
     plot_shap_summary,
     plot_creator_uplift,
-    plot_poisson_bursts
+    plot_poisson_bursts,
+    plot_series_vs_standalone,
+    plot_creator_sentiment_polarity,
+    plot_cross_modal_scene_reactions
 )
 
 def run_visualizations():
@@ -145,6 +154,15 @@ def run_visualizations():
     bursts_file = out_dir / "poisson_bursts.parquet"
     emoji_file = out_dir / "emoji_signatures.parquet"
     quality_file = out_dir / "corpus_quality.parquet"
+    slang_file = out_dir / "slang_lexicon_frequency.parquet"
+    tfidf_file = out_dir / "tfidf_keywords.parquet"
+    bowtie_file = out_dir / "network_bowtie_structure.parquet"
+    concentration_file = out_dir / "top_k_concentration.parquet"
+    series_file = out_dir / "series_vs_standalone.parquet"
+    creator_pol_file = out_dir / "creator_sentiment_polarity.parquet"
+    reactions_file = out_dir / "cross_modal_scene_reactions.parquet"
+    injection_file = out_dir / "topic_injection_anomalies.parquet"
+    minute_curve_file = out_dir / "minute_arrival_curve.parquet"
     
     print(f"🎨 Initializing Visualization Engine (Outputting to {plots_dir})...")
     
@@ -315,6 +333,37 @@ def run_visualizations():
     # Corpus quality log-log
     if quality_file.exists():
         plot_corpus_quality(plots_dir, quality_file)
+    # Slang & TF-IDF
+    if slang_file.exists():
+        df_slang = pd.read_parquet(slang_file)
+        plot_slang_lexicon(df_slang, plots_dir)
+    if tfidf_file.exists():
+        df_tfidf = pd.read_parquet(tfidf_file)
+        plot_tfidf_keywords(df_tfidf, plots_dir)
+    # Bow-Tie & Concentration
+    if bowtie_file.exists():
+        df_bt = pd.read_parquet(bowtie_file)
+        plot_bowtie_structure(df_bt, plots_dir)
+    if concentration_file.exists():
+        df_conc = pd.read_parquet(concentration_file)
+        plot_top_k_concentration(df_conc, plots_dir)
+    # Topic Injection & Arrival Velocity
+    if injection_file.exists():
+        df_inj = pd.read_parquet(injection_file)
+        plot_topic_injection_anomalies(df_inj, plots_dir)
+    if minute_curve_file.exists():
+        df_curv = pd.read_parquet(minute_curve_file)
+        plot_minute_arrival_curve(df_curv, plots_dir)
+    # Series, Creator Sentiment, Scene Reactions
+    if series_file.exists():
+        df_ser = pd.read_parquet(series_file)
+        plot_series_vs_standalone(df_ser, plots_dir)
+    if creator_pol_file.exists():
+        df_creat = pd.read_parquet(creator_pol_file)
+        plot_creator_sentiment_polarity(df_creat, plots_dir)
+    if reactions_file.exists():
+        df_rxn = pd.read_parquet(reactions_file)
+        plot_cross_modal_scene_reactions(df_rxn, plots_dir)
 
     print("\u2705 Stage 99 Visualizations Complete! \U0001f386")
 
@@ -379,5 +428,14 @@ __all__ = [
     "plot_language_distribution",
     "plot_valence_per_topic",
     "plot_thread_sunburst",
-    "plot_corpus_quality"
+    "plot_corpus_quality",
+    "plot_slang_lexicon",
+    "plot_tfidf_keywords",
+    "plot_bowtie_structure",
+    "plot_top_k_concentration",
+    "plot_topic_injection_anomalies",
+    "plot_minute_arrival_curve",
+    "plot_series_vs_standalone",
+    "plot_creator_sentiment_polarity",
+    "plot_cross_modal_scene_reactions"
 ]

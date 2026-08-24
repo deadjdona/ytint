@@ -30,13 +30,23 @@ def run_emoji_signatures():
         print(f"⚠️ Missing {comments_file.name}. Skipping s43.")
         return
 
-    available = pd.read_parquet(comments_file, columns=[]).columns.tolist()
-    cols = [c for c in ["video_id", "emoji_list", "emoji_count", "sentiment_label", "topic_id", "topic_name"] if c in available]
+    import pyarrow.parquet as pq
+    available = pq.read_schema(comments_file).names
+    cols = [c for c in ["video_id", "emoji_list", "emoji_count", "sentiment_label", "topic_id", "topic_name", "text"] if c in available]
     df = pd.read_parquet(comments_file, columns=cols)
 
-    if df.empty or "emoji_list" not in df.columns:
-        print("⚠️ No emoji_list column found (run s01 first after enrichment update). Skipping s43.")
+    if df.empty:
+        print("⚠️ Comments dataset is empty. Skipping s43.")
         return
+
+    if "emoji_list" not in df.columns:
+        if "text" in df.columns:
+            import emoji
+            df["emoji_list"] = df["text"].fillna("").astype(str).apply(lambda t: [m["emoji"] for m in emoji.emoji_list(t)])
+            df["emoji_count"] = df["emoji_list"].apply(len)
+        else:
+            print("⚠️ No emoji_list or text column found. Skipping s43.")
+            return
 
     # Normalise: emoji_list may be stored as string repr or list
     def parse_emoji_list(val):

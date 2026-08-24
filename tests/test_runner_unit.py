@@ -11,6 +11,11 @@ def test_pipeline_runner_init():
     assert runner.config is not None
     assert runner.registry is not None
     assert "s00" in runner.registry
+    assert "s47" in runner.registry
+    assert "s48" in runner.registry
+    assert "s49" in runner.registry
+    assert "s50" in runner.registry
+    assert "s51" in runner.registry
     assert "s99" in runner.registry
     assert runner.ordered_stages[-1] == "s99"  # Visualizations must be strictly last
 
@@ -21,6 +26,11 @@ def test_stage_resolution_and_aliases():
     assert runner.resolve_stage_id("s00") == "s00"
     assert runner.resolve_stage_id("s06") == "s06"  # Audience Intent
     assert runner.resolve_stage_id("s16") == "s16"  # Network
+    assert runner.resolve_stage_id("s47") == "s47"  # Slang Lexicon
+    assert runner.resolve_stage_id("s48") == "s48"  # Bow-Tie Concentration
+    assert runner.resolve_stage_id("s49") == "s49"  # Series & Creator Polarity
+    assert runner.resolve_stage_id("s50") == "s50"  # Cross-Modal Reactions
+    assert runner.resolve_stage_id("s51") == "s51"  # Topic Injection Anomaly
     assert runner.resolve_stage_id("s99") == "s99"  # Visualizations
     assert runner.resolve_stage_id("visualize") == "s99"
     assert runner.resolve_stage_id("s_visualize") == "s99"
@@ -28,6 +38,11 @@ def test_stage_resolution_and_aliases():
     assert runner.resolve_stage_id("network") == "s16"
     assert runner.resolve_stage_id("cib") == "s25"
     assert runner.resolve_stage_id("uplift") == "s39"
+    assert runner.resolve_stage_id("slang") == "s47"
+    assert runner.resolve_stage_id("bowtie") == "s48"
+    assert runner.resolve_stage_id("series_creator") == "s49"
+    assert runner.resolve_stage_id("cross_modal") == "s50"
+    assert runner.resolve_stage_id("topic_injection") == "s51"
 
 
 def test_stage_requires_execution_missing_file(tmp_path, monkeypatch):

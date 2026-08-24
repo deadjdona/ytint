@@ -554,3 +554,58 @@ def plot_cross_video(out_dir, radar_file, controversy_file):
             plt.figtext(0.5, 0.015, "Explanation: Auto-detects the most negative video and compares channel-wide sentiment 14 days before vs 14 days after its release.", ha="center", fontsize=11, color="dimgray", wrap=True)
             plt.savefig(out_dir / 'controversy_impact.png')
             plt.close()
+
+
+def plot_topic_injection_anomalies(df_inj, out_dir):
+    """
+    Scatter/timeline plot of detected topic injection anomalies by JS divergence score.
+    """
+    print("💉 Generating Topic Injection Anomalies Plot...")
+    if df_inj is None or df_inj.empty or 'js_divergence' not in df_inj.columns:
+        return
+    setup_theme()
+    fig, ax = plt.subplots(figsize=(12, 6))
+    df = df_inj.copy()
+    df['window_start'] = pd.to_datetime(df['window_start'])
+
+    size = (df['dominant_topic_share'] * 200) if 'dominant_topic_share' in df.columns else 100
+    scatter = ax.scatter(df['window_start'], df['js_divergence'],
+                         s=size,
+                         c=df['js_divergence'], cmap='Reds', alpha=0.8, edgecolors='black')
+    ax.axhline(0.40, color='red', linestyle='--', label='Anomaly Threshold (0.40)')
+    ax.set_title('Topic Injection & Thematic Shift Anomalies (Jensen-Shannon Divergence)', fontsize=14, pad=15)
+    ax.set_ylabel('JS Divergence vs Corpus Baseline')
+    ax.set_xlabel('Anomaly Window Start Time')
+    plt.colorbar(scatter, ax=ax, label='Divergence Severity')
+    ax.legend(loc='upper right')
+    plt.tight_layout()
+    plt.savefig(out_dir / 'topic_injection_anomalies.png', dpi=150)
+    plt.close()
+
+
+def plot_minute_arrival_curve(df_curve, out_dir):
+    """
+    Line plot of minute-level comment accumulation velocity in the first 120 minutes post-upload.
+    """
+    print("⏱️ Generating Minute-Level Arrival Velocity Curve...")
+    if df_curve is None or df_curve.empty or 'minute_bin' not in df_curve.columns:
+        return
+    setup_theme()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+    ax1.plot(df_curve['minute_bin'], df_curve['cumulative_comments'], color='#3498db', linewidth=2.5)
+    ax1.set_title('Cumulative Comments (First 120 Minutes)', fontsize=13)
+    ax1.set_xlabel('Minutes Since Video Upload')
+    ax1.set_ylabel('Cumulative Comment Count')
+    ax1.grid(True, linestyle='--', alpha=0.5)
+
+    ax2.plot(df_curve['minute_bin'], df_curve['velocity_per_min'], color='#e67e22', linewidth=2)
+    ax2.set_title('Comment Velocity (Comments / Minute)', fontsize=13)
+    ax2.set_xlabel('Minutes Since Video Upload')
+    ax2.set_ylabel('Arrival Velocity (5-min rolling mean)')
+    ax2.grid(True, linestyle='--', alpha=0.5)
+
+    plt.tight_layout()
+    plt.savefig(out_dir / 'minute_arrival_speed_curve.png', dpi=150)
+    plt.close()
+

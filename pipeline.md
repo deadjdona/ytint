@@ -77,7 +77,12 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 |                                  | `s44`    | [s44_sentiment_anomalies.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s44_sentiment_anomalies.py)         | Sentiment Anomaly Detection          | `sentiment_anomalies.parquet`                           |
 |                                  | `s45`    | [s45_corpus_quality.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s45_corpus_quality.py)                   | Meta & Corpus Quality Analysis       | `corpus_quality.parquet`, `language_coverage.parquet`   |
 |                                  | `s46`    | [s46_thread_topic_drift.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s46_thread_topic_drift.py)           | Within-Thread Topic Drift            | `thread_topic_drift.parquet`, `video_topic_drift_summary.parquet` |
-| **Phase 6: Visualizations**      | `s99`    | [s99_visualize.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s99_visualize.py)                             | Publication Visualizations Gallery   | Renders all 61+ plots in `data/output/plots/`           |
+|                                  | `s47`    | [s47_slang_lexicon.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s47_slang_lexicon.py)                     | Slang & Internet-Register Lexicon    | `slang_lexicon_frequency.parquet`                       |
+|                                  | `s48`    | [s48_bowtie_concentration.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s48_bowtie_concentration.py)       | Bow-Tie & Top-K Concentration        | `network_bowtie_structure.parquet`, `top_k_concentration.parquet` |
+|                                  | `s49`    | [s49_series_creator_sentiment.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s49_series_creator_sentiment.py) | Series vs Standalone & Creator Net Polarity | `series_vs_standalone.parquet`, `creator_sentiment_polarity.parquet` |
+|                                  | `s50`    | [s50_cross_modal_reactions.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s50_cross_modal_reactions.py)     | Scene Reaction Taxonomy & Spoilers   | `cross_modal_scene_reactions.parquet`, `spoiler_detections.parquet` |
+|                                  | `s51`    | [s51_topic_injection.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s51_topic_injection.py)                 | Topic Injection Anomaly Scanner      | `topic_injection_anomalies.parquet`                     |
+| **Phase 6: Visualizations**      | `s99`    | [s99_visualize.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s99_visualize.py)                             | Publication Visualizations Gallery   | Renders all 65+ plots in `data/output/plots/`           |
 
 ---
 

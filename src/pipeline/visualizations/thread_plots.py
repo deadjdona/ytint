@@ -227,9 +227,11 @@ def plot_thread_sunburst(out_dir, comments_file):
         return
     if not Path(comments_file).exists():
         return
+    import pyarrow.parquet as pq
+    available = pq.read_schema(comments_file).names
     df = pd.read_parquet(comments_file, columns=[
-        c for c in pd.read_parquet(comments_file, columns=[]).columns
-        if c in ['video_id', 'comment_depth', 'comment_id', 'parent_id']
+        c for c in ['video_id', 'comment_depth', 'comment_id', 'parent_id']
+        if c in available
     ])
     if 'comment_depth' not in df.columns:
         # Infer depth from parent_id presence

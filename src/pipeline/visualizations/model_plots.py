@@ -137,3 +137,70 @@ def plot_poisson_bursts(out_dir, bursts_file):
     plt.savefig(out_dir / "poisson_bursts.png")
     plt.close()
 
+
+def plot_series_vs_standalone(df_series, out_dir):
+    """
+    Comparison bar chart of Series vs Standalone video engagement.
+    """
+    print("🎬 Generating Series vs Standalone Comparison Plot...")
+    if df_series is None or df_series.empty or 'category' not in df_series.columns:
+        return
+    setup_theme()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    ax1.bar(df_series['category'], df_series['avg_comments_per_video'], color=['#3498db', '#2ecc71'], edgecolor='white')
+    ax1.set_title('Avg Comments per Video', fontsize=13)
+    ax1.set_ylabel('Comment Count')
+
+    ax2.bar(df_series['category'], df_series['avg_sentiment'], color=['#9b59b6', '#e67e22'], edgecolor='white')
+    ax2.set_title('Mean Sentiment Score', fontsize=13)
+    ax2.set_ylabel('Sentiment Compound')
+
+    plt.tight_layout()
+    plt.savefig(out_dir / 'series_vs_standalone_benchmark.png', dpi=150)
+    plt.close()
+
+
+def plot_creator_sentiment_polarity(df_creator, out_dir):
+    """
+    Diverging / breakdown plot of creator-directed positive vs negative praise.
+    """
+    print("👑 Generating Creator Sentiment Polarity Plot...")
+    if df_creator is None or df_creator.empty:
+        return
+    corpus_row = df_creator[df_creator['scope'] == 'corpus']
+    if corpus_row.empty:
+        return
+    c = corpus_row.iloc[0]
+    setup_theme()
+    fig, ax = plt.subplots(figsize=(8, 5))
+    labels = ['Positive Praise', 'Neutral / Question', 'Negative Criticism']
+    counts = [c.get('creator_positive_count', 0), c.get('creator_neutral_count', 0), c.get('creator_negative_count', 0)]
+    colors = ['#2ecc71', '#95a5a6', '#e74c3c']
+
+    ax.pie(counts, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors, wedgeprops=dict(edgecolor='white'))
+    ax.set_title(f"Creator Praise vs Criticism Ratio ({c.get('creator_pos_neg_ratio', 0):.1f}:1 Pos/Neg)", fontsize=14, pad=15)
+    plt.tight_layout()
+    plt.savefig(out_dir / 'creator_sentiment_polarity.png', dpi=150)
+    plt.close()
+
+
+def plot_cross_modal_scene_reactions(df_reactions, out_dir):
+    """
+    Stacked/grouped bar chart of moment-level scene reaction types across videos.
+    """
+    print("🎭 Generating Scene Reaction Taxonomy Plot...")
+    if df_reactions is None or df_reactions.empty or 'reaction_type' not in df_reactions.columns:
+        return
+    setup_theme()
+    reaction_counts = df_reactions.groupby('reaction_type')['n_comments'].sum().sort_values(ascending=False)
+    fig, ax = plt.subplots(figsize=(10, 5))
+    colors = plt.cm.Set2.colors[:len(reaction_counts)]
+    ax.barh(reaction_counts.index[::-1], reaction_counts.values[::-1], color=colors, edgecolor='white')
+    ax.set_title('Moment-Level Scene Reaction Taxonomy Distribution', fontsize=14, pad=15)
+    ax.set_xlabel('Total Timestamped Reaction Comments')
+    plt.tight_layout()
+    plt.savefig(out_dir / 'cross_modal_scene_reactions.png', dpi=150)
+    plt.close()
+
+

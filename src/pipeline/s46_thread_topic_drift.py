@@ -31,8 +31,9 @@ def run_thread_topic_drift():
         print(f"⚠️ Missing {comments_file.name}. Skipping s46.")
         return
 
-    available = pd.read_parquet(comments_file, columns=[]).columns.tolist()
-    topic_col = next((c for c in ["topic_id", "topic_name"] if c in available), None)
+    import pyarrow.parquet as pq
+    available = pq.read_schema(comments_file).names
+    topic_col = next((c for c in ["topic_id", "topic", "topic_name"] if c in available), None)
     required = {"comment_id", "parent_id", "video_id"}
     if not required.issubset(set(available)) or topic_col is None:
         print(f"⚠️ Missing required columns (comment_id, parent_id, video_id, topic). Skipping s46.")

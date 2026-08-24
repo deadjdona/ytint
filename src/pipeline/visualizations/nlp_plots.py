@@ -453,3 +453,47 @@ def plot_valence_per_topic(df_comments, out_dir, top_n=15):
     plt.figtext(0.5, 0.01, "Explanation: Topics to the right are discussed positively on average; topics to the left attract negative commentary.", ha="center", fontsize=10, color="dimgray", wrap=True)
     plt.savefig(out_dir / 'valence_per_topic.png', dpi=150)
     plt.close()
+
+
+def plot_slang_lexicon(df_slang, out_dir, top_n=15):
+    """
+    Bar chart of top internet slang / informal register occurrences and their average sentiment.
+    """
+    print("💬 Generating Slang & Internet-Register Lexicon Plot...")
+    if df_slang is None or df_slang.empty or 'slang_term' not in df_slang.columns:
+        return
+    setup_theme()
+    top_df = df_slang.sort_values('total_occurrences', ascending=False).head(top_n)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    ax1.barh(top_df['slang_term'][::-1], top_df['total_occurrences'][::-1], color='#3498db', edgecolor='white')
+    ax1.set_title('Top Slang & Internet-Register Terms (Occurrences)', fontsize=13)
+    ax1.set_xlabel('Total Occurrences')
+
+    colors = ['#e74c3c' if s < 0 else '#2ecc71' for s in top_df['avg_sentiment'][::-1]]
+    ax2.barh(top_df['slang_term'][::-1], top_df['avg_sentiment'][::-1], color=colors, edgecolor='white')
+    ax2.axvline(0, color='grey', linewidth=0.8, linestyle='--')
+    ax2.set_title('Average Sentiment Association', fontsize=13)
+    ax2.set_xlabel('Mean Sentiment Compound')
+
+    plt.tight_layout()
+    plt.savefig(out_dir / 'slang_lexicon_distribution.png', dpi=150)
+    plt.close()
+
+
+def plot_tfidf_keywords(df_tfidf, out_dir, top_n=20):
+    """
+    Horizontal bar chart of top TF-IDF keywords extracted per video.
+    """
+    print("🔑 Generating Top TF-IDF Keywords Plot...")
+    if df_tfidf is None or df_tfidf.empty or 'keyword' not in df_tfidf.columns:
+        return
+    setup_theme()
+    top_kw = df_tfidf.groupby('keyword')['tfidf_score'].mean().sort_values(ascending=False).head(top_n)
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.barh(top_kw.index[::-1], top_kw.values[::-1], color='#9b59b6', edgecolor='white')
+    ax.set_title('Top Corpus-Wide TF-IDF Salient Keywords', fontsize=14, pad=15)
+    ax.set_xlabel('Mean TF-IDF Salience Score')
+    plt.tight_layout()
+    plt.savefig(out_dir / 'tfidf_keywords_salience.png', dpi=150)
+    plt.close()

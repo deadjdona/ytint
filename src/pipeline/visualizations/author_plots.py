@@ -439,3 +439,72 @@ def plot_cib_rings(out_dir, cib_rings_file):
     plt.figtext(0.5, 0.015, "Explanation: Identifies multi-account astroturfing rings that repeatedly comment in tightly synchronized time windows across videos.", ha="center", fontsize=10, color="dimgray", wrap=True)
     plt.savefig(out_dir / 'cib_rings_graph.png')
     plt.close()
+
+
+def plot_bowtie_structure(df_bowtie, out_dir):
+    """
+    Pie and bar breakdown of directed author-reply network Bow-Tie components.
+    """
+    print("🎀 Generating Bow-Tie Network Structure Plot...")
+    if df_bowtie is None or df_bowtie.empty or 'component' not in df_bowtie.columns:
+        return
+    setup_theme()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+    colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#95a5a6']
+    comp_colors = colors[:len(df_bowtie)]
+
+    pct_col = 'percentage' if 'percentage' in df_bowtie.columns else ('author_share' if 'author_share' in df_bowtie.columns else 'node_count')
+    cnt_col = 'node_count' if 'node_count' in df_bowtie.columns else ('author_count' if 'author_count' in df_bowtie.columns else df_bowtie.columns[1])
+
+    ax1.pie(df_bowtie[pct_col], labels=df_bowtie['component'], autopct='%1.1f%%',
+            startangle=140, colors=comp_colors, wedgeprops=dict(edgecolor='white'))
+    ax1.set_title('Bow-Tie Topology Component Share (%)', fontsize=13)
+
+    ax2.barh(df_bowtie['component'][::-1], df_bowtie[cnt_col][::-1], color=comp_colors[::-1], edgecolor='white')
+    ax2.set_title('Author Node Count per Component', fontsize=13)
+    ax2.set_xlabel('Number of Authors')
+
+    plt.tight_layout()
+    plt.savefig(out_dir / 'network_bowtie_structure.png', dpi=150)
+    plt.close()
+
+
+def plot_top_k_concentration(df_conc, out_dir):
+    """
+    Grouped bar chart showing Top 1%, 5%, 10%, 20% engagement concentration.
+    """
+    print("📊 Generating Top-K Concentration Plot...")
+    if df_conc is None or df_conc.empty:
+        return
+    corpus_row = df_conc[df_conc['scope'] == 'corpus']
+    if corpus_row.empty:
+        return
+    c = corpus_row.iloc[0]
+    setup_theme()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    tiers = ['Top 1%', 'Top 5%', 'Top 10%', 'Top 20%']
+    like_shares = [c.get('top_1pct_likes_share', 0) * 100,
+                   c.get('top_5pct_likes_share', 0) * 100,
+                   c.get('top_10pct_likes_share', 0) * 100,
+                   c.get('top_20pct_likes_share', 0) * 100]
+    reply_shares = [c.get('top_1pct_replies_share', 0) * 100,
+                    c.get('top_5pct_replies_share', 0) * 100,
+                    c.get('top_10pct_replies_share', 0) * 100,
+                    c.get('top_20pct_replies_share', 0) * 100]
+
+    x = np.arange(len(tiers))
+    width = 0.35
+    ax.bar(x - width/2, like_shares, width, label='Likes Captured (%)', color='#e74c3c', edgecolor='white')
+    ax.bar(x + width/2, reply_shares, width, label='Replies Captured (%)', color='#3498db', edgecolor='white')
+
+    ax.set_ylabel('Percentage of Total Engagement (%)')
+    ax.set_title('Pareto Attention Concentration (Top-K Comments)', fontsize=14, pad=15)
+    ax.set_xticks(x)
+    ax.set_xticklabels(tiers)
+    ax.set_ylim(0, 105)
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(out_dir / 'top_k_attention_concentration.png', dpi=150)
+    plt.close()
+

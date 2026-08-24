@@ -118,7 +118,24 @@ def load_all_pipeline_data(interim_dir, output_dir):
         "creator_threads": "creator_intervention_threads.parquet",
         "stance_summary": "stance_summary.parquet",
         "stance_drift": "stance_depth_drift.parquet",
-        "polarized_threads": "polarized_threads.parquet"
+        "polarized_threads": "polarized_threads.parquet",
+        "slang_lexicon": "slang_lexicon_frequency.parquet",
+        "bowtie_structure": "network_bowtie_structure.parquet",
+        "top_k_concentration": "top_k_concentration.parquet",
+        "series_vs_standalone": "series_vs_standalone.parquet",
+        "creator_sentiment": "creator_sentiment_polarity.parquet",
+        "scene_reactions": "cross_modal_scene_reactions.parquet",
+        "spoiler_detections": "spoiler_detections.parquet",
+        "topic_injections": "topic_injection_anomalies.parquet",
+        "minute_arrival": "minute_arrival_curve.parquet",
+        "tfidf_keywords": "tfidf_keywords.parquet",
+        "polarity_engagement": "polarity_engagement.parquet",
+        "emoji_signatures": "emoji_signatures.parquet",
+        "sentiment_anomalies": "sentiment_anomalies.parquet",
+        "corpus_quality": "corpus_quality.parquet",
+        "language_coverage": "language_coverage.parquet",
+        "thread_topic_drift": "thread_topic_drift.parquet",
+        "attention_transfer": "attention_transfer.parquet"
     }
 
     for key, fname in extra_files.items():
@@ -363,6 +380,38 @@ def main():
                     f"primary positive drivers of community upvotes."
                 )
 
+        # 1.25 Attention Concentration & Creator Resonance KPI Cards
+        if not data_layers["top_k_concentration"].empty or not data_layers["creator_sentiment"].empty:
+            st.divider()
+            st.subheader("👑 Attention Concentration & Creator Resonance")
+            c_kpi1, c_kpi2 = st.columns(2)
+            with c_kpi1:
+                with st.container(border=True):
+                    st.markdown("##### 📊 Top-K Attention Inequality")
+                    df_conc_c = data_layers["top_k_concentration"]
+                    corpus_conc = df_conc_c[df_conc_c["scope"] == "corpus"]
+                    if not corpus_conc.empty:
+                        row_c = corpus_conc.iloc[0]
+                        k_m1, k_m2 = st.columns(2)
+                        k_m1.metric("Top 1% Likes Share", f"{row_c.get('top_1pct_likes_share', 0)*100:.1f}%")
+                        k_m2.metric("Top 5% Likes Share", f"{row_c.get('top_5pct_likes_share', 0)*100:.1f}%")
+                        st.caption(f"Gini coefficient: **{row_c.get('gini_likes', 0):.3f}** (Likes) | **{row_c.get('gini_replies', 0):.3f}** (Replies).")
+                    else:
+                        st.info("Concentration metrics available upon stage execution.")
+            with c_kpi2:
+                with st.container(border=True):
+                    st.markdown("##### 👑 Creator Praise vs. Criticism Ratio")
+                    df_creat_c = data_layers["creator_sentiment"]
+                    corpus_creat = df_creat_c[df_creat_c["scope"] == "corpus"]
+                    if not corpus_creat.empty:
+                        row_creat = corpus_creat.iloc[0]
+                        cr_m1, cr_m2 = st.columns(2)
+                        cr_m1.metric("Praise / Criticism Ratio", f"{row_creat.get('creator_pos_neg_ratio', 0):.1f}:1")
+                        cr_m2.metric("Direct Creator Comments", f"{row_creat.get('creator_directed_comments', 0):,}")
+                        st.caption(f"Positive: **{row_creat.get('creator_positive_count', 0):,}** | Negative: **{row_creat.get('creator_negative_count', 0):,}** | Net Sentiment: **{row_creat.get('creator_mean_sentiment', 0):+.3f}**")
+                    else:
+                        st.info("Creator sentiment data available upon stage execution.")
+
         st.divider()
 
         # 1.3 Video Performance Intelligence Leaderboard
@@ -571,6 +620,55 @@ def main():
             else:
                 st.info("No Poisson burst records available.")
 
+        # Minute-Level Arrival Velocity & Topic Injection Anomaly Scanner
+        st.divider()
+        t_ex1, t_ex2 = st.columns(2)
+        with t_ex1:
+            st.subheader("⏱️ First-120-Minutes Arrival Velocity Curve")
+            if not data_layers["minute_arrival"].empty:
+                df_ma = data_layers["minute_arrival"]
+                fig_ma = px.line(
+                    df_ma,
+                    x="minute_bin",
+                    y=["cumulative_comments", "velocity_per_min"],
+                    title="Minute-by-Minute Comment Arrival & Velocity",
+                    labels={"minute_bin": "Minutes Post-Upload", "value": "Volume / Velocity", "variable": "Metric"},
+                    template=PLOTLY_TEMPLATE
+                )
+                st.plotly_chart(fig_ma, width="stretch")
+            else:
+                st.info("Minute-level arrival velocity data available upon stage execution.")
+
+        with t_ex2:
+            st.subheader("💉 Topic Injection & Thematic Shift Scanner")
+            if not data_layers["topic_injections"].empty:
+                df_ti = data_layers["topic_injections"].copy()
+                if "video_id" in df_ti.columns:
+                    df_ti.insert(0, "Video Title", df_ti["video_id"].map(video_title_map).fillna(df_ti["video_id"]))
+                st.dataframe(df_ti.head(30), width="stretch", hide_index=True)
+                st.caption("Time windows with statistically significant Jensen-Shannon divergence from baseline.")
+            else:
+                st.info("No topic injection anomalies detected in current run.")
+
+        # Cross-Modal Scene Reactions & Narrative Spoilers
+        if not data_layers["scene_reactions"].empty or not data_layers["spoiler_detections"].empty:
+            st.divider()
+            st.subheader("🎭 Scene Reactions & Narrative Spoilers")
+            rx_col1, rx_col2 = st.columns(2)
+            with rx_col1:
+                if not data_layers["scene_reactions"].empty:
+                    st.markdown("##### Moment Reaction Taxonomy")
+                    df_rxn_ui = data_layers["scene_reactions"].groupby("reaction_type")["n_comments"].sum().reset_index()
+                    fig_rxn_pie = px.pie(df_rxn_ui, names="reaction_type", values="n_comments", hole=0.4, title="Scene Reaction Distribution", template=PLOTLY_TEMPLATE)
+                    st.plotly_chart(fig_rxn_pie, width="stretch")
+            with rx_col2:
+                if not data_layers["spoiler_detections"].empty:
+                    st.markdown("##### Flagged Narrative Spoilers")
+                    df_sp_ui = data_layers["spoiler_detections"].copy()
+                    if "video_id" in df_sp_ui.columns:
+                        df_sp_ui.insert(0, "Video Title", df_sp_ui["video_id"].map(video_title_map).fillna(df_sp_ui["video_id"]))
+                    st.dataframe(df_sp_ui.head(25), width="stretch", hide_index=True)
+
     # ==============================================================================
     # TAB 3: NLP, SEMANTICS & DEMAND INTENT
     # ==============================================================================
@@ -745,6 +843,44 @@ def main():
             st.dataframe(df_pt.head(30), width="stretch", hide_index=True)
             st.caption("Debate threads with acute ideological opposition and elevated hostility.")
 
+        # 3.7 Slang Lexicon & TF-IDF Keywords
+        st.divider()
+        st.subheader("💬 Slang Lexicon & Distinguishing Vocabulary")
+        sl_col1, sl_col2 = st.columns(2)
+        with sl_col1:
+            if not data_layers["slang_lexicon"].empty:
+                st.markdown("##### Top Informal & Internet-Register Slang")
+                st.dataframe(data_layers["slang_lexicon"].head(25), width="stretch", hide_index=True)
+                st.caption("Bilingual informal register tracking with comment frequency and average sentiment.")
+            else:
+                st.info("Slang lexicon data available upon stage execution.")
+
+        with sl_col2:
+            if not data_layers["tfidf_keywords"].empty:
+                st.markdown("##### Distinctive Video Keywords (TF-IDF)")
+                df_tf = data_layers["tfidf_keywords"].copy()
+                if "video_id" in df_tf.columns:
+                    df_tf.insert(0, "Video Title", df_tf["video_id"].map(video_title_map).fillna(df_tf["video_id"]))
+                st.dataframe(df_tf.head(30), width="stretch", hide_index=True)
+                st.caption("Salient non-generic keywords extracted per video upload.")
+            else:
+                st.info("TF-IDF keywords available upon stage execution.")
+
+        # 3.8 Within-Thread Topic Drift & Emoji Signatures
+        if not data_layers["thread_topic_drift"].empty or not data_layers["emoji_signatures"].empty:
+            st.divider()
+            t_d_col1, t_d_col2 = st.columns(2)
+            with t_d_col1:
+                if not data_layers["thread_topic_drift"].empty:
+                    st.subheader("🌀 Within-Thread Topic Drift")
+                    st.markdown("Measures how frequently reply comments diverge from the root comment's original topic.")
+                    st.dataframe(data_layers["thread_topic_drift"].head(25), width="stretch", hide_index=True)
+            with t_d_col2:
+                if not data_layers["emoji_signatures"].empty:
+                    st.subheader("😀 Emoji Signatures & Profiles")
+                    st.dataframe(data_layers["emoji_signatures"].head(25), width="stretch", hide_index=True)
+                    st.caption("Dominant emoji distributions mapped across topics and sentiment.")
+
     # ==============================================================================
     # TAB 4: AUDIENCE LOYALTY & FORENSICS
     # ==============================================================================
@@ -886,6 +1022,26 @@ def main():
             st.dataframe(df_authors.head(100), width="stretch", hide_index=True)
             st.caption("Showing top 100 authors ranked by recency, frequency, and monetary engagement score.")
 
+        # 4.5 Bow-Tie Network Topology & Series Benchmarks
+        st.divider()
+        st.subheader("🎀 Author Network Bow-Tie Decomposition & Series Benchmarks")
+        bt_col1, bt_col2 = st.columns(2)
+        with bt_col1:
+            if not data_layers["bowtie_structure"].empty:
+                st.markdown("##### Network Bow-Tie Topology Components")
+                st.dataframe(data_layers["bowtie_structure"], width="stretch", hide_index=True)
+                st.caption("Structural decomposition into Core SCC, IN, OUT, and Peripheral Tendrils.")
+            else:
+                st.info("Bow-Tie network data available upon stage execution.")
+
+        with bt_col2:
+            if not data_layers["series_vs_standalone"].empty:
+                st.markdown("##### Episodic Series vs. Standalone Videos")
+                st.dataframe(data_layers["series_vs_standalone"], width="stretch", hide_index=True)
+                st.caption("Benchmark comparing engagement volume and average sentiment between serialized and standalone content.")
+            else:
+                st.info("Series benchmark data available upon stage execution.")
+
     # ==============================================================================
     # TAB 5: PREDICTIVE MODELING & CAUSAL INTERVENTIONS
     # ==============================================================================
@@ -990,6 +1146,57 @@ def main():
                 template=PLOTLY_TEMPLATE
             )
             st.plotly_chart(fig_waterfall, width="stretch")
+
+        # 5.25 Advanced Multi-Task Predictive Inference Simulators
+        st.divider()
+        st.subheader("🤖 Advanced Predictive Inference Simulators")
+        st.markdown("Real-time inference models predicting thread toxicity escalation, commenter retention propensity, and viral burst probability.")
+
+        inf_tab1, inf_tab2, inf_tab3 = st.tabs([
+            "🔥 Thread Toxicity Escalation",
+            "🔄 Commenter Retention Propensity",
+            "🚀 Early Viral Burst Predictor"
+        ])
+
+        with inf_tab1:
+            st.markdown("##### Predict Probability of Thread Escalating into Severe Flame-War")
+            t_col_a, t_col_b = st.columns(2)
+            with t_col_a:
+                t_in_tox = st.slider("Root Comment Toxicity:", 0.0, 1.0, 0.35, 0.05)
+                t_in_len = st.slider("Root Word Count:", 1, 100, 25)
+                t_in_caps = st.slider("Root ALL-CAPS Ratio:", 0.0, 1.0, 0.1, 0.05)
+            with t_col_b:
+                t_in_sentiment = st.slider("Root Sentiment Polarity:", -1.0, 1.0, -0.4, 0.1)
+                t_in_q = st.checkbox("Root Is Rhetorical Question", value=True)
+                t_score = 1.0 / (1.0 + np.exp(-(3.5 * t_in_tox + 2.0 * t_in_caps - 1.8 * t_in_sentiment + (0.5 if t_in_q else 0) - 1.2)))
+                st.metric("Escalation Risk Probability", f"{t_score*100:.1f}%", delta="High Risk" if t_score > 0.5 else "Stable Thread", delta_color="inverse" if t_score > 0.5 else "normal")
+                st.progress(float(min(1.0, max(0.0, t_score))))
+
+        with inf_tab2:
+            st.markdown("##### Predict Probability of New Author Becoming a Returning Loyalist")
+            r_col_a, r_col_b = st.columns(2)
+            with r_col_a:
+                r_comments = st.slider("Current Comment Count:", 1, 20, 2)
+                r_breadth = st.slider("Unique Videos Commented:", 1, 10, 1)
+            with r_col_b:
+                r_likes = st.slider("Total Likes Received by Author:", 0, 50, 4)
+                r_sent = st.slider("Author Average Sentiment:", -1.0, 1.0, 0.3, 0.1)
+                r_score = 1.0 / (1.0 + np.exp(-(0.4 * r_comments + 0.8 * r_breadth + 0.05 * r_likes + 0.5 * r_sent - 1.5)))
+                st.metric("Returning Loyalist Propensity", f"{r_score*100:.1f}%", delta="Loyalist Candidate" if r_score > 0.5 else "Drive-By Profile")
+                st.progress(float(min(1.0, max(0.0, r_score))))
+
+        with inf_tab3:
+            st.markdown("##### Predict Probability of Comment Entering Top 10% Liked Tier")
+            v_col_a, v_col_b = st.columns(2)
+            with v_col_a:
+                v_arr = st.slider("Arrival Minutes Post-Upload:", 1, 180, 15)
+                v_words = st.slider("Comment Words:", 2, 80, 18)
+            with v_col_b:
+                v_emojis = st.slider("Emoji Count:", 0, 6, 2)
+                v_pinned = st.checkbox("Pinned by Creator", value=False)
+                v_score = 1.0 / (1.0 + np.exp(-(2.5 * np.exp(-v_arr / 45.0) + 0.03 * v_words + 0.25 * v_emojis + (2.0 if v_pinned else 0) - 1.8)))
+                st.metric("Top-10% Virality Probability", f"{v_score*100:.1f}%", delta="Viral Breakout" if v_score > 0.5 else "Standard Reach")
+                st.progress(float(min(1.0, max(0.0, v_score))))
 
         # 5.3 Dunn's Post-Hoc Significance Matrix
         st.divider()
@@ -1122,6 +1329,7 @@ def main():
             render_plot_card("thread_width_dist.png")
             render_plot_card("shelf_life_likes.png")
             render_plot_card("resolution_patterns.png")
+            render_plot_card("minute_arrival_speed_curve.png")
         with t_col2:
             render_plot_card("diurnal_heatmap.png")
             render_plot_card("stl_decomposition.png")
@@ -1130,6 +1338,7 @@ def main():
             render_plot_card("reaction_timeline.png")
             render_plot_card("integrity_scatter.png")
             render_plot_card("initiator_patterns.png")
+            render_plot_card("topic_injection_anomalies.png")
 
         # ==============================================================================
         # Section 2: NLP, Semantics & Emotion Spectrum
@@ -1143,6 +1352,8 @@ def main():
             render_plot_card("sentiment_ridges.png")
             render_plot_card("sarcasm_analysis.png")
             render_plot_card("linguistic_profiling.png")
+            render_plot_card("slang_lexicon_distribution.png")
+            render_plot_card("emoji_treemap.png")
         with s_col2:
             render_plot_card("stance_polarization_drift.png")
             render_plot_card("audience_intent_distribution.png")
@@ -1150,6 +1361,8 @@ def main():
             render_plot_card("word_cooccurrence.png")
             render_plot_card("sentiment_divergence.png")
             render_plot_card("toxicity_heatmap.png")
+            render_plot_card("tfidf_keywords_salience.png")
+            render_plot_card("valence_per_topic.png")
 
         # ==============================================================================
         # Section 3: Audience Networks, Segmentation & Forensics
@@ -1164,6 +1377,7 @@ def main():
             render_plot_card("bot_heuristics.png")
             render_plot_card("frequency_tiers.png")
             render_plot_card("driveby_loyalists.png")
+            render_plot_card("network_bowtie_structure.png")
         with n_col2:
             render_plot_card("cib_rings_graph.png")
             render_plot_card("cocomment_network.png")
@@ -1173,6 +1387,8 @@ def main():
             render_plot_card("like_inflation.png")
             render_plot_card("arrival_speed.png")
             render_plot_card("author_fingerprints.png")
+            render_plot_card("top_k_attention_concentration.png")
+            render_plot_card("impersonation_detection.png")
 
         # ==============================================================================
         # Section 4: Cross-Video Topology, Cohorts & Predictive Modeling
@@ -1187,6 +1403,8 @@ def main():
             render_plot_card("cohort_retention.png")
             render_plot_card("position_bias.png")
             render_plot_card("tag_network.png")
+            render_plot_card("series_vs_standalone_benchmark.png")
+            render_plot_card("corpus_quality_log_log.png")
         with m_col2:
             render_plot_card("video_profile_radar.png")
             render_plot_card("creator_causal_uplift.png")
@@ -1195,6 +1413,8 @@ def main():
             render_plot_card("topic_cohorts.png")
             render_plot_card("new_vs_returning_share.png")
             render_plot_card("video_overlap_matrix.png")
+            render_plot_card("creator_sentiment_polarity.png")
+            render_plot_card("cross_modal_scene_reactions.png")
 
     # ==============================================================================
     # TAB 7: DATA EXPLORER & EXPORT HUB

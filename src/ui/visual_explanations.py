@@ -410,5 +410,68 @@ VISUAL_METADATA = {
         "methodology": "Pairwise Jaccard similarity index $J(A, B) = \\frac{|A \\cap B|}{|A \\cup B|}$ computed across commenter sets for all video pairs.",
         "how_to_read": "High similarity cells (bright) indicate video pairs that attracted the exact same core audience members.",
         "takeaway": "Identifies which video series or thematic sequels successfully retain their original audience from episode to episode."
+    },
+    "slang_lexicon_distribution.png": {
+        "title": "Slang & Internet-Register Lexicon Distribution",
+        "summary": "Tracks high-frequency bilingual internet register terms, slang vocabulary, and their sentiment valence associations.",
+        "methodology": "Regex token extraction matching 40+ canonical bilingual informal register expressions with mean like-count and VADER compound correlations.",
+        "how_to_read": "Left panel shows total slang occurrences; right panel shows the average sentiment polarity of comments utilizing each slang term.",
+        "takeaway": "Uncovers audience cultural register and subcultural alignment. Positive slang denotes enthusiastic resonance; cynical slang signals community skepticism."
+    },
+    "tfidf_keywords_salience.png": {
+        "title": "Corpus-Wide TF-IDF Key Term Salience",
+        "summary": "Extracts the most distinctive, non-generic vocabulary defining discussions across video uploads.",
+        "methodology": "Sublinear Term Frequency - Inverse Document Frequency (TF-IDF) scoring aggregating per-video document corpora.",
+        "how_to_read": "Ranked horizontal bar chart of top salient terms; longer bars indicate higher specificity and distinguishing power.",
+        "takeaway": "Pinpoints the exact technical terms, character names, or narrative concepts driving discourse across the channel."
+    },
+    "network_bowtie_structure.png": {
+        "title": "Directed Author-Reply Network Bow-Tie Topology",
+        "summary": "Decomposes community interaction networks into core strongly connected components, input/output pipelines, and peripheral tendrils.",
+        "methodology": "Canonical Bow-Tie graph decomposition isolating SCC (reciprocal dialogue core), IN (incoming reply initiators), OUT (influential thread roots), and Tendrils/Tubes.",
+        "how_to_read": "Left pie chart displays macro component shares; right bar chart shows author node counts per structural component.",
+        "takeaway": "Quantifies conversational reciprocity: larger SCC cores signify thriving peer-to-peer community dialogues, whereas large OUT shares indicate one-way influencer broadcast dynamics."
+    },
+    "top_k_attention_concentration.png": {
+        "title": "Pareto & Top-K Engagement Attention Concentration",
+        "summary": "Measures the extreme inequality of upvote and reply distribution captured by top-performing comments.",
+        "methodology": "Top-K quantile concentration analysis calculating the cumulative engagement share of Top 1%, Top 5%, Top 10%, and Top 20% comments.",
+        "how_to_read": "Grouped bars compare like share (red) vs reply share (blue) across top quantile tiers.",
+        "takeaway": "Reveals the power-law concentration of community attention: in typical YouTube communities, the top 1% of comments capture over 40–60% of all upvotes."
+    },
+    "topic_injection_anomalies.png": {
+        "title": "Topic Injection & Astroturfed Thematic Shift Scanner",
+        "summary": "Detects sudden unnatural shifts or coordinated topic hijacking across rolling time windows.",
+        "methodology": "Jensen-Shannon (JS) and Kullback-Leibler (KL) divergence computed against global corpus topic baseline.",
+        "how_to_read": "Scatter plot of time windows; points above the red dashed line (0.40) represent statistically anomalous topic surges.",
+        "takeaway": "Flags organized topic brigading, raid events, or sudden breaking news hijacking organic video commentary."
+    },
+    "minute_arrival_speed_curve.png": {
+        "title": "First-120-Minutes Arrival Velocity & Accumulation Curve",
+        "summary": "Granular minute-by-minute comment accumulation and velocity during the critical first 2 hours post-upload.",
+        "methodology": "Minute-binned time-since-upload aggregation with 5-minute rolling velocity smoothing.",
+        "how_to_read": "Left chart shows cumulative comment volume; right chart shows arrival velocity in comments per minute.",
+        "takeaway": "Illustrates the explosive early algorithmic surge. Peak velocity typically occurs within the first 15–30 minutes."
+    },
+    "series_vs_standalone_benchmark.png": {
+        "title": "Series vs. Standalone Upload Performance Benchmark",
+        "summary": "Compares multi-part episodic video uploads against standalone videos in engagement, sentiment, and retention.",
+        "methodology": "Pattern-based title clustering distinguishing episodic multi-part series from standalone content.",
+        "how_to_read": "Grouped comparison bars for average comment volume and mean sentiment.",
+        "takeaway": "Informs programming strategy: series build compounding community loyalty, whereas standalone videos often attract broader drive-by reach."
+    },
+    "creator_sentiment_polarity.png": {
+        "title": "Creator-Directed Praise vs. Criticism Polarity Ratio",
+        "summary": "Isolates comments directly addressing the channel creator and calculates the net approval ratio.",
+        "methodology": "Entity and second-person pronoun filtering paired with VADER valence classification.",
+        "how_to_read": "Pie chart illustrating positive praise, neutral questions, and critical feedback proportions.",
+        "takeaway": "Provides an unfiltered creator health check: high praise-to-criticism ratios (>5:1) indicate strong audience trust and host affinity."
+    },
+    "cross_modal_scene_reactions.png": {
+        "title": "Moment-Level Scene Reaction Taxonomy Distribution",
+        "summary": "Classifies timestamp-mentioned reactions into functional categories: Humor, Surprise, Emotional, Critique, and Navigation.",
+        "methodology": "Multi-category rule-based regex and emoji classifier mapped across video timestamp mentions.",
+        "how_to_read": "Horizontal bars show the distribution of emotional reaction types across all video timestamps.",
+        "takeaway": "Maps what kind of emotion each video moment produces — identifying funny gags, shocking reveals, or confusing plot points."
     }
 }

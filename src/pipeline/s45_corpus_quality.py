@@ -34,8 +34,9 @@ def run_corpus_quality():
         print("⚠️ Missing comments_clean or videos_clean. Skipping s45.")
         return
 
+    import pyarrow.parquet as pq
     _want_cols = {"video_id", "language", "published_at"}
-    _all_cols = set(pd.read_parquet(comments_file, columns=[]).columns)
+    _all_cols = set(pq.read_schema(comments_file).names)
     df_comments = pd.read_parquet(comments_file, columns=list(_want_cols & _all_cols))
     df_videos = pd.read_parquet(videos_file)
 

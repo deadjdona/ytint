@@ -29,14 +29,23 @@ def run_polarity_engagement():
         print(f"⚠️ Missing {comments_file.name}. Skipping s42.")
         return
 
-    cols = ["video_id", "like_count", "reply_count", "sentiment_label", "sentiment_compound"]
-    available_cols = pd.read_parquet(comments_file, columns=[]).columns.tolist()
+    cols = ["video_id", "like_count", "reply_count", "sentiment_label", "sentiment_compound", "vader_compound"]
+    import pyarrow.parquet as pq
+    available_cols = pq.read_schema(comments_file).names
     cols = [c for c in cols if c in available_cols]
     df = pd.read_parquet(comments_file, columns=cols)
 
-    if df.empty or "sentiment_label" not in df.columns:
-        print("⚠️ No sentiment data available. Skipping s42.")
+    if df.empty:
+        print("⚠️ Comments dataset is empty. Skipping s42.")
         return
+
+    if "sentiment_label" not in df.columns:
+        s_col = "sentiment_compound" if "sentiment_compound" in df.columns else ("vader_compound" if "vader_compound" in df.columns else None)
+        if s_col:
+            df["sentiment_label"] = np.where(df[s_col] >= 0.05, "POSITIVE", np.where(df[s_col] <= -0.05, "NEGATIVE", "NEUTRAL"))
+        else:
+            print("⚠️ No sentiment data available. Skipping s42.")
+            return
 
     df["like_count"] = pd.to_numeric(df["like_count"], errors="coerce").fillna(0)
     if "reply_count" in df.columns:

@@ -32,17 +32,12 @@ def run_sentiment_anomalies():
         print(f"⚠️ Missing {comments_file.name}. Skipping s44.")
         return
 
-    available = pd.read_parquet(comments_file, columns=[]).columns.tolist()
-    required = {"published_at", "video_id", "sentiment_compound"}
-    if not required.issubset(set(available)):
-        # Try vader_compound as fallback
-        if "vader_compound" in available:
-            sentiment_col = "vader_compound"
-        else:
-            print(f"⚠️ Missing required columns ({required}). Skipping s44.")
-            return
-    else:
-        sentiment_col = "sentiment_compound"
+    import pyarrow.parquet as pq
+    available = pq.read_schema(comments_file).names
+    sentiment_col = "sentiment_compound" if "sentiment_compound" in available else ("vader_compound" if "vader_compound" in available else None)
+    if not sentiment_col or "published_at" not in available or "video_id" not in available:
+        print(f"⚠️ Missing required columns (published_at, video_id, sentiment). Skipping s44.")
+        return
 
     cols = ["video_id", "published_at", sentiment_col]
     df = pd.read_parquet(comments_file, columns=cols)
@@ -66,7 +61,7 @@ def run_sentiment_anomalies():
 
         grp = grp.set_index("published_at")
         # Resample to hourly mean sentiment
-        hourly = grp["sentiment_score"].resample("1H").mean().dropna()
+        hourly = grp["sentiment_score"].resample("1h").mean().dropna()
         if len(hourly) < 5:
             continue
 

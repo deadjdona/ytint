@@ -394,7 +394,41 @@ class PipelineRunner:
                 "inputs": [self.interim / "comments_clean.parquet"],
                 "outputs": [self.output / "thread_topic_drift.parquet"]
             },
-
+            "s47": {
+                "desc": "Slang & Internet-Register Lexicon Analysis",
+                "module": "pipeline.s47_slang_lexicon",
+                "entry_func": "run_slang_lexicon",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "slang_lexicon_frequency.parquet"]
+            },
+            "s48": {
+                "desc": "Network Bow-Tie Structure & Top-K Concentration",
+                "module": "pipeline.s48_bowtie_concentration",
+                "entry_func": "run_bowtie_concentration",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "network_bowtie_structure.parquet", self.output / "top_k_concentration.parquet"]
+            },
+            "s49": {
+                "desc": "Series vs Standalone & Creator Sentiment Polarity",
+                "module": "pipeline.s49_series_creator_sentiment",
+                "entry_func": "run_series_creator_sentiment",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "series_vs_standalone.parquet", self.output / "creator_sentiment_polarity.parquet"]
+            },
+            "s50": {
+                "desc": "Cross-Modal Scene Reactions & Spoiler Detection",
+                "module": "pipeline.s50_cross_modal_reactions",
+                "entry_func": "run_cross_modal_reactions",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "cross_modal_scene_reactions.parquet", self.output / "spoiler_detections.parquet"]
+            },
+            "s51": {
+                "desc": "Topic Injection & Thematic Hijack Anomaly Scanner",
+                "module": "pipeline.s51_topic_injection",
+                "entry_func": "run_topic_injection",
+                "inputs": [self.interim / "comments_clean.parquet"],
+                "outputs": [self.output / "topic_injection_anomalies.parquet"]
+            },
 
             # === Phase 6: Final Visualizations & Reporting (ALWAYS LAST) ===
             "s99": {
@@ -409,7 +443,7 @@ class PipelineRunner:
         # Ordered stage execution sequence
         self.ordered_stages = [
             f"s{i:02d}" for i in range(41)
-        ] + ["s41", "s42", "s43", "s44", "s45", "s46", "s99"]
+        ] + [f"s{i}" for i in range(41, 52)] + ["s99"]
 
         # Named convenience aliases
         self.aliases = {
@@ -433,6 +467,16 @@ class PipelineRunner:
             "anomalies": "s44",
             "quality": "s45",
             "drift": "s46",
+            "slang": "s47",
+            "bowtie": "s48",
+            "series": "s49",
+            "creator": "s49",
+            "series_creator": "s49",
+            "reactions": "s50",
+            "spoilers": "s50",
+            "cross_modal": "s50",
+            "injection": "s51",
+            "topic_injection": "s51",
             "s_visualize": "s99",
             "visualize": "s99",
             "plots": "s99"

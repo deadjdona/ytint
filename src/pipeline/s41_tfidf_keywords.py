@@ -44,11 +44,13 @@ def run_tfidf_keywords(top_k=20):
         return
 
     print(f"  -> Computing TF-IDF across {len(video_docs)} video documents...")
+    min_df = 1 if len(video_docs) <= 5 else 2
+    max_df = 1.0 if len(video_docs) <= 5 else 0.95
     vectorizer = TfidfVectorizer(
         max_features=5000,
         stop_words="english",
-        min_df=2,
-        max_df=0.95,
+        min_df=min_df,
+        max_df=max_df,
         ngram_range=(1, 2),
         sublinear_tf=True
     )
