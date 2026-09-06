@@ -66,8 +66,10 @@ class ReplayFrame:
     cumulative_comments: int
     arrival_velocity: float  # comments / hour
     velocity_accel: float  # change in arrival_velocity from previous frame
-    rolling_sentiment: float  # -1.0 to +1.0
-    rolling_toxicity: float  # 0.0 to 1.0
+    frame_sentiment: float  # instantaneous sentiment in this frame
+    frame_toxicity: float  # instantaneous toxicity in this frame
+    rolling_sentiment: float  # -1.0 to +1.0 (smoothed EWMA)
+    rolling_toxicity: float  # 0.0 to 1.0 (smoothed EWMA)
     active_authors_count: int
     reply_ratio: float  # proportion of comments that are replies
     flame_war_risk_score: float  # 0.0 to 100.0
@@ -106,6 +108,8 @@ class ReplayChronicle:
                 "cumulative_comments": f.cumulative_comments,
                 "arrival_velocity": f.arrival_velocity,
                 "velocity_accel": f.velocity_accel,
+                "frame_sentiment": f.frame_sentiment,
+                "frame_toxicity": f.frame_toxicity,
                 "rolling_sentiment": f.rolling_sentiment,
                 "rolling_toxicity": f.rolling_toxicity,
                 "active_authors_count": f.active_authors_count,
@@ -292,8 +296,8 @@ class EventReplayEngine:
                 authors_count = int(sub["author_display_name"].nunique()) if "author_display_name" in sub.columns else frame_new
                 reply_ratio = float((sub["is_reply"] == 1).mean()) if "is_reply" in sub.columns else 0.0
 
-                # EWMA smoothing with alpha=0.35
-                alpha = 0.35
+                # Adaptive volume-weighted EWMA smoothing
+                alpha = max(0.35, min(0.85, frame_new / max(1.0, (frame_new + 20.0))))
                 if step_idx == 0:
                     rolling_sentiment_ewma = frame_sentiment
                     rolling_toxicity_ewma = frame_toxicity
@@ -301,13 +305,17 @@ class EventReplayEngine:
                     rolling_sentiment_ewma = alpha * frame_sentiment + (1 - alpha) * rolling_sentiment_ewma
                     rolling_toxicity_ewma = alpha * frame_toxicity + (1 - alpha) * rolling_toxicity_ewma
             else:
+                frame_sentiment = rolling_sentiment_ewma
+                frame_toxicity = rolling_toxicity_ewma
                 authors_count = 0
                 reply_ratio = 0.0
 
             # Composite Flame-War Risk Score (0 - 100%)
             # Higher when toxicity is high, sentiment is negative, reply ratio is high, and velocity is surging
-            tox_factor = min(1.0, rolling_toxicity_ewma / 0.35) * 40.0
-            neg_sent_factor = max(0.0, -rolling_sentiment_ewma) * 25.0
+            effective_tox = max(rolling_toxicity_ewma, frame_toxicity if frame_new >= 3 else 0.0)
+            effective_sent = min(rolling_sentiment_ewma, frame_sentiment if frame_new >= 3 else 0.0)
+            tox_factor = min(1.0, effective_tox / 0.35) * 40.0
+            neg_sent_factor = max(0.0, -effective_sent) * 25.0
             reply_factor = reply_ratio * 20.0
             accel_factor = min(15.0, max(0.0, velocity_accel / 5.0))
             flame_war_risk = round(float(np.clip(tox_factor + neg_sent_factor + reply_factor + accel_factor, 0.0, 100.0)), 1)
@@ -333,30 +341,32 @@ class EventReplayEngine:
                 all_flashpoints.append(alert)
 
             # 2. Toxicity Outbreak
-            if rolling_toxicity_ewma >= 0.22 and frame_new >= 3:
+            trigger_tox = max(rolling_toxicity_ewma, frame_toxicity)
+            if trigger_tox >= 0.22 and frame_new >= 3:
                 alert = FlashpointAlert(
                     timestamp=frame_ts_str,
                     minute_offset=window_end,
                     alert_type="TOXICITY_OUTBREAK",
-                    severity="CRITICAL" if rolling_toxicity_ewma >= 0.35 else "WARNING",
+                    severity="CRITICAL" if trigger_tox >= 0.35 else "WARNING",
                     title="Hostility & Toxicity Outbreak",
-                    description=f"Rolling toxicity reached {rolling_toxicity_ewma:.3f} across {frame_new} comments in window.",
-                    trigger_value=round(rolling_toxicity_ewma, 3),
+                    description=f"Toxicity reached {trigger_tox:.3f} across {frame_new} comments in window.",
+                    trigger_value=round(trigger_tox, 3),
                     threshold=0.22,
                 )
                 frame_flashpoints.append(alert)
                 all_flashpoints.append(alert)
 
             # 3. Sentiment Crash
-            if rolling_sentiment_ewma <= -0.30 and frame_new >= 3:
+            trigger_sent = min(rolling_sentiment_ewma, frame_sentiment)
+            if trigger_sent <= -0.30 and frame_new >= 3:
                 alert = FlashpointAlert(
                     timestamp=frame_ts_str,
                     minute_offset=window_end,
                     alert_type="SENTIMENT_CRASH",
                     severity="WARNING",
                     title="Severe Negative Sentiment Dive",
-                    description=f"Community sentiment dropped sharply to {rolling_sentiment_ewma:.2f}.",
-                    trigger_value=round(rolling_sentiment_ewma, 2),
+                    description=f"Community sentiment dropped sharply to {trigger_sent:.2f}.",
+                    trigger_value=round(trigger_sent, 2),
                     threshold=-0.30,
                 )
                 frame_flashpoints.append(alert)
@@ -401,6 +411,8 @@ class EventReplayEngine:
                 cumulative_comments=cumulative_comments,
                 arrival_velocity=round(velocity, 2),
                 velocity_accel=round(velocity_accel, 2),
+                frame_sentiment=round(frame_sentiment, 3),
+                frame_toxicity=round(frame_toxicity, 3),
                 rolling_sentiment=round(rolling_sentiment_ewma, 3),
                 rolling_toxicity=round(rolling_toxicity_ewma, 3),
                 active_authors_count=authors_count,
@@ -551,6 +563,8 @@ class EventReplayEngine:
                 cumulative_comments=cum_comments,
                 arrival_velocity=round(vel, 2),
                 velocity_accel=round(accel, 2),
+                frame_sentiment=round(sent, 3),
+                frame_toxicity=round(tox, 3),
                 rolling_sentiment=round(rolling_sent, 3),
                 rolling_toxicity=round(rolling_tox, 3),
                 active_authors_count=int(base_arrival * 0.85),

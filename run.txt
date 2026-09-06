@@ -173,5 +173,23 @@ Perform sub-50ms natural language vector search and thematic feedback clustering
 .\.venv\Scripts\ytint-search.exe "constructive criticism" --top-k 5 --json
 ```
 
+## Chronological Event Replay & Crisis Simulation
 
+Replay historical comment arrival streams, tracking instantaneous velocity, rolling sentiment, toxicity flares, and crisis flashpoint triggers:
 
+```powershell
+# Run chronological replay on a target video with 30-minute buckets:
+.\.venv\Scripts\python.exe -m engine.event_replay --video-id WpbN3D5oQBo --step-mins 30
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-replay.exe --video-id WpbN3D5oQBo --step-mins 30
+
+# Replay the first 48 hours post-upload:
+.\.venv\Scripts\ytint-replay.exe --video-id WpbN3D5oQBo --step-mins 60 --max-hours 48
+
+# Fast mock simulation mode for testing or demonstrations:
+.\.venv\Scripts\ytint-replay.exe --mock --step-mins 30 --max-hours 24
+
+# Export the chronological event sequence to JSON or CSV:
+.\.venv\Scripts\ytint-replay.exe --video-id WpbN3D5oQBo --export scratch/chronicle.json
+.\.venv\Scripts\ytint-replay.exe --mock --export scratch/mock_chronicle.csv
+```

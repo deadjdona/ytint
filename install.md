@@ -34,6 +34,7 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-graph`**: Direct CLI entrypoint for `engine.network_exporter:main` (Network Graph & Gephi Exporter)
 - **`ytint-alert`**: Direct CLI entrypoint for `engine.alerting:main` (Automated Webhook Threat Alerting Daemon)
 - **`ytint-search`**: Direct CLI entrypoint for `engine.semantic_search:main` (Neural Semantic Vector Search & Feedback Clustering)
+- **`ytint-replay`**: Direct CLI entrypoint for `engine.event_replay:main` (Real-Time Chronological Event Replay & Crisis Simulation Engine)
 
 Validate the active environment:
 

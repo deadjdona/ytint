@@ -61,6 +61,14 @@ graph LR
   - Multiselect widget enabling comparison of 2 to 5 videos simultaneously.
   - Switchable trajectory metric (VADER Sentiment vs. Detoxify Toxicity Level).
 - **Spike & Poisson Burst Ledgers**: Side-by-side data tables for detected sudden anomaly spikes and high-frequency Poisson bursts.
+- **⏱️ Real-Time Chronological Event Replay & Crisis Simulator (Section 2.5 / src/engine/event_replay.py)**:
+  - **Video Selector & Configuration**: Choose any uploaded video with total comment counts, configure temporal resolution (15m, 30m, 60m, 120m buckets), and set the simulation horizon (up to 168 hours post-upload).
+  - **Live Scorecard KPIs**: Total Replayed Comments, Peak Arrival Velocity (with timestamp and surge multiplier), Min Rolling Sentiment, and Crisis Flashpoint triggers count.
+  - **Dual-Axis Interactive Plotly Timeline**: Dual-axis visualization combining Arrival Velocity bar chart, smoothed Rolling Sentiment curve, Rolling Toxicity curve, and Flame-War Risk index with vertical dashed alert lines for automated crisis triggers.
+  - **Interactive Time Scrubber & Frame Inspector**: Granular slider scrubbing through discrete simulation timeframes. Displays current frame metrics (arrival volume, velocity acceleration, sentiment, toxicity, reply ratio, and flame-war risk score badge).
+  - **Real-Time Active Window Feed**: Shows the top exemplar comments arriving at the selected scrubber timestamp, with author badges, upvote counts, sentiment scores, and toxicity levels.
+  - **Detected Crisis Flashpoint Ledger**: Expandable table listing all detected crisis events (`VELOCITY_SURGE`, `TOXICITY_OUTBREAK`, `SENTIMENT_CRASH`, `FLAME_WAR_OUTBREAK`, `VIRAL_CASCADE`) with exact timestamps, descriptions, and trigger values.
+  - **1-Click Export Hub**: Download complete chronicle records directly as structured JSON or CSV.
 
 ---
 

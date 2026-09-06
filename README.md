@@ -165,12 +165,25 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 .\.venv\Scripts\ytint-search.exe --query "feature request roadmap" --export-format json --output search_results.json
 ```
 
+### 10. Real-Time Chronological Event Replay & Crisis Simulation
+
+```powershell
+# Replay video comment arrivals in 30-minute frames and track crisis triggers:
+.\.venv\Scripts\ytint-replay.exe --video-id WpbN3D5oQBo --step-mins 30
+
+# Replay first 48 hours post-upload:
+.\.venv\Scripts\ytint-replay.exe --video-id WpbN3D5oQBo --step-mins 60 --max-hours 48
+
+# Fast mock simulation mode (testing & demonstrations):
+.\.venv\Scripts\ytint-replay.exe --mock --step-mins 30 --max-hours 24 --export scratch/timeline.json
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
 
 1. **Executive Briefing**: High-level KPI scorecards, AI Executive Strategy Briefing generator, one-click Executive Dossier generator & PDF export, community loyalty summaries, and interactive video performance quadrant matrix. ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
-2. **Temporal Dynamics & Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, and multi-video playback comparisons.
+2. **Temporal Dynamics & Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, multi-video playback comparisons, and **Real-Time Chronological Event Replay & Crisis Simulator** (interactive frame scrubber, dual-axis velocity/sentiment/toxicity timeline, flame-war risk gauges, active crisis trigger alerts, and JSON/CSV export).
 3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, AI Flame-War & Debate Tree Summarizer, target stance drift across debate depth, and multilingual code-switching lift.
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, and **Interactive Community Network & Gephi Topology Explorer** (2D force-directed layout, top-$K$ node filtering, Louvain community coloring, and 1-click GEXF/GraphML exports).
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, and audience overlap heatmap.

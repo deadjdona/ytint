@@ -733,6 +733,230 @@ def main():
                         df_sp_ui.insert(0, "Video Title", df_sp_ui["video_id"].map(video_title_map).fillna(df_sp_ui["video_id"]))
                     st.dataframe(df_sp_ui.head(25), width="stretch", hide_index=True)
 
+        # 2.5 Real-Time Chronological Event Replay & Crisis Simulator
+        st.divider()
+        st.subheader("⏱️ Real-Time Chronological Event Replay & Crisis Simulator")
+        st.markdown(
+            "Reconstruct the chronological unfolding of comment cascades following a video release. "
+            "Scrub through post-upload timelines to inspect instantaneous arrival velocity, rolling sentiment, "
+            "toxicity outbreaks, flame-war formation, and automated crisis flashpoint alerts."
+        )
+
+        from engine.event_replay import EventReplayEngine
+
+        engine_replay = EventReplayEngine()
+        available_vids = engine_replay.get_available_videos(limit=30)
+        vid_choices = [v["video_id"] for v in available_vids]
+        vid_labels = {v["video_id"]: f"{v.get('title', v['video_id'])} ({v.get('total_comments', 0):,} comments)" for v in available_vids}
+
+        rep_c1, rep_c2, rep_c3 = st.columns([2, 1, 1])
+        with rep_c1:
+            selected_vid_replay = st.selectbox(
+                "Select Video for Event Replay",
+                options=vid_choices if vid_choices else ["MOCK_VID_001"],
+                format_func=lambda x: vid_labels.get(x, x),
+                key="replay_video_select",
+            )
+        with rep_c2:
+            step_mins_replay = st.select_slider(
+                "Time Bucket Resolution",
+                options=[15, 30, 60, 120],
+                value=30,
+                format_func=lambda x: f"{x} mins",
+                key="replay_step_slider",
+            )
+        with rep_c3:
+            max_hours_replay = st.slider(
+                "Max Horizon (Hours)",
+                min_value=12,
+                max_value=168,
+                value=72,
+                step=12,
+                key="replay_max_hours_slider",
+            )
+
+        with st.spinner("Compiling chronological event sequence..."):
+            chronicle = engine_replay.load_video_timeline(
+                video_id=selected_vid_replay,
+                step_minutes=step_mins_replay,
+                max_hours=float(max_hours_replay),
+            )
+
+        df_rep = chronicle.to_dataframe()
+        if not df_rep.empty:
+            # Scorecard KPIs
+            peak_vel_row = df_rep.loc[df_rep["arrival_velocity"].idxmax()]
+            min_sent_row = df_rep.loc[df_rep["rolling_sentiment"].idxmin()]
+            max_tox_row = df_rep.loc[df_rep["rolling_toxicity"].idxmax()]
+            num_alerts = len(chronicle.flashpoints_summary)
+
+            k1, k2, k3, k4 = st.columns(4)
+            with k1:
+                with st.container(border=True):
+                    st.metric("Total Replayed Comments", f"{chronicle.total_comments_replayed:,}")
+                    st.caption(f"{chronicle.total_frames} frames @ {chronicle.step_minutes}m resolution")
+            with k2:
+                with st.container(border=True):
+                    st.metric("Peak Arrival Velocity", f"{peak_vel_row['arrival_velocity']:.1f} /hr", delta=peak_vel_row["timestamp"])
+                    st.caption(f"Spike at T+{peak_vel_row['hours_elapsed']:.1f}h post-upload")
+            with k3:
+                with st.container(border=True):
+                    st.metric("Min Rolling Sentiment", f"{min_sent_row['rolling_sentiment']:+.2f}", delta=min_sent_row["timestamp"], delta_color="inverse")
+                    st.caption(f"Peak Toxicity: {max_tox_row['rolling_toxicity']:.3f} ({max_tox_row['timestamp']})")
+            with k4:
+                with st.container(border=True):
+                    alert_color = "🔴" if num_alerts >= 2 else ("🟡" if num_alerts == 1 else "🟢")
+                    st.metric("Crisis Flashpoints", f"{alert_color} {num_alerts} Triggers")
+                    st.caption("Surges, toxicity spikes & flame-wars")
+
+            # Dual-Axis Plotly Timeline
+            from plotly.subplots import make_subplots
+            fig_replay = make_subplots(specs=[[{"secondary_y": True}]])
+
+            fig_replay.add_trace(
+                go.Bar(
+                    x=df_rep["hours_elapsed"],
+                    y=df_rep["arrival_velocity"],
+                    name="Arrival Velocity (comments/hr)",
+                    marker_color="#0066fe",
+                    opacity=0.6,
+                ),
+                secondary_y=False,
+            )
+            fig_replay.add_trace(
+                go.Scatter(
+                    x=df_rep["hours_elapsed"],
+                    y=df_rep["rolling_sentiment"],
+                    name="Rolling Sentiment",
+                    line=dict(color="#00e599", width=2.5),
+                    mode="lines",
+                ),
+                secondary_y=True,
+            )
+            fig_replay.add_trace(
+                go.Scatter(
+                    x=df_rep["hours_elapsed"],
+                    y=df_rep["rolling_toxicity"],
+                    name="Rolling Toxicity",
+                    line=dict(color="#ff3366", width=2, dash="dot"),
+                    mode="lines",
+                ),
+                secondary_y=True,
+            )
+            fig_replay.add_trace(
+                go.Scatter(
+                    x=df_rep["hours_elapsed"],
+                    y=df_rep["flame_war_risk_score"] / 100.0,
+                    name="Flame-War Risk (0-1)",
+                    line=dict(color="#a855f7", width=1.5, dash="dash"),
+                    mode="lines",
+                ),
+                secondary_y=True,
+            )
+
+            # Add vertical marker lines for flashpoints
+            for fp in chronicle.flashpoints_summary:
+                color_line = "#ff3366" if fp.severity == "CRITICAL" else "#ffaa00"
+                fp_hrs = fp.minute_offset / 60.0
+                fig_replay.add_vline(
+                    x=fp_hrs,
+                    line_width=1.5,
+                    line_dash="dash",
+                    line_color=color_line,
+                    annotation_text=f"🚨 {fp.title}",
+                    annotation_position="top left",
+                    annotation_font_size=10,
+                )
+
+            fig_replay.update_layout(
+                title=f"Chronological Event Cascade: '{chronicle.video_title}'",
+                xaxis_title="Hours Post-Upload (Elapsed)",
+                template=PLOTLY_TEMPLATE,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                height=450,
+                margin=dict(l=40, r=40, t=50, b=40),
+            )
+            fig_replay.update_yaxes(title_text="Velocity (comments/hr)", secondary_y=False)
+            fig_replay.update_yaxes(title_text="Index ([-1, 1])", secondary_y=True, range=[-1.0, 1.0])
+
+            st.plotly_chart(fig_replay, width="stretch")
+
+            # Interactive Time Scrubber Slider
+            st.markdown("#### 🎛️ Interactive Time Scrubber & Frame Inspector")
+            scrub_idx = st.slider(
+                "Select Simulation Timeframe",
+                min_value=0,
+                max_value=len(df_rep) - 1,
+                value=int(peak_vel_row.name) if isinstance(peak_vel_row.name, (int, np.integer)) else 0,
+                format_func=lambda i: f"{df_rep.iloc[i]['timestamp']} (T+{df_rep.iloc[i]['hours_elapsed']:.1f}h) — {df_rep.iloc[i]['frame_new_comments']} comments",
+                key="replay_scrubber_slider",
+            )
+
+            current_frame = chronicle.frames[scrub_idx]
+
+            # Frame Detail Card
+            with st.container(border=True):
+                sf_c1, sf_c2, sf_c3, sf_c4, sf_c5 = st.columns(5)
+                with sf_c1:
+                    st.metric("Frame Timestamp", current_frame.timestamp, delta=f"+{current_frame.frame_new_comments} comments")
+                with sf_c2:
+                    st.metric("Arrival Velocity", f"{current_frame.arrival_velocity:.1f} /hr", delta=f"{current_frame.velocity_accel:+.1f} accel")
+                with sf_c3:
+                    sent_color = "normal" if current_frame.rolling_sentiment >= 0 else "inverse"
+                    st.metric("Sentiment / Toxicity", f"{current_frame.rolling_sentiment:+.2f}", delta=f"{current_frame.rolling_toxicity:.3f} tox", delta_color=sent_color)
+                with sf_c4:
+                    st.metric("Reply Ratio", f"{current_frame.reply_ratio:.0%}", delta=f"{current_frame.active_authors_count} authors")
+                with sf_c5:
+                    risk_val = current_frame.flame_war_risk_score
+                    risk_badge = "🔥 CRITICAL" if risk_val >= 65 else ("⚠️ ELEVATED" if risk_val >= 40 else "🟢 LOW")
+                    st.metric("Flame-War Risk", f"{risk_val:.0f}%", delta=risk_badge)
+
+                # Active Flashpoint Alerts
+                if current_frame.active_flashpoints:
+                    for af in current_frame.active_flashpoints:
+                        if af.severity == "CRITICAL":
+                            st.error(f"🚨 **{af.title}** ({af.alert_type}): {af.description} [Trigger: {af.trigger_value} vs Threshold {af.threshold}]")
+                        else:
+                            st.warning(f"⚠️ **{af.title}** ({af.alert_type}): {af.description} [Trigger: {af.trigger_value} vs Threshold {af.threshold}]")
+
+                # Exemplar Comments in Window
+                if current_frame.top_comments:
+                    st.markdown("##### 💬 Comments Arriving in This Window")
+                    for tc in current_frame.top_comments:
+                        st.markdown(
+                            f"- **{tc['author']}** (`{tc['likes']} likes`, Sentiment: `{tc['sentiment']:+.2f}`, Toxicity: `{tc['toxicity']:.3f}`): "
+                            f"_{tc['text']}_"
+                        )
+                elif current_frame.frame_new_comments == 0:
+                    st.caption("No new comments arrived in this exact time window.")
+
+            # Crisis Flashpoint Ledger (Expander)
+            with st.expander(f"📋 Detected Crisis Flashpoint Ledger ({len(chronicle.flashpoints_summary)} Events)", expanded=False):
+                if chronicle.flashpoints_summary:
+                    df_fp_summary = pd.DataFrame([fp.to_dict() for fp in chronicle.flashpoints_summary])
+                    st.dataframe(df_fp_summary, width="stretch", hide_index=True)
+                else:
+                    st.info("No anomalous spikes or toxicity crises detected across the evaluated horizon.")
+
+            # Export Hub
+            exp_c1, exp_c2, exp_c3 = st.columns([1, 1, 2])
+            with exp_c1:
+                st.download_button(
+                    label="💾 Export Chronicle JSON",
+                    data=json.dumps(chronicle.to_dict(), indent=2, ensure_ascii=False),
+                    file_name=f"chronicle_{selected_vid_replay}.json",
+                    mime="application/json",
+                    key="dl_chronicle_json",
+                )
+            with exp_c2:
+                st.download_button(
+                    label="📊 Export Chronicle CSV",
+                    data=df_rep.to_csv(index=False),
+                    file_name=f"chronicle_{selected_vid_replay}.csv",
+                    mime="text/csv",
+                    key="dl_chronicle_csv",
+                )
+
     # ==============================================================================
     # TAB 3: NLP, SEMANTICS & DEMAND INTENT
     # ==============================================================================

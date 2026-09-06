@@ -41,6 +41,8 @@ def test_dataclasses_serialization() -> None:
         cumulative_comments=15,
         arrival_velocity=30.0,
         velocity_accel=30.0,
+        frame_sentiment=0.45,
+        frame_toxicity=0.03,
         rolling_sentiment=0.45,
         rolling_toxicity=0.03,
         active_authors_count=12,
@@ -191,8 +193,8 @@ def test_metrics_calculation_and_flashpoint_triggers(tmp_path: Path) -> None:
     frame_1 = chronicle.frames[1]
     assert frame_1.frame_new_comments == 150
     assert frame_1.arrival_velocity == 150.0
-    assert frame_1.rolling_sentiment < 0.0
-    assert frame_1.rolling_toxicity > 0.20
+    assert frame_1.frame_sentiment < 0.0
+    assert frame_1.frame_toxicity > 0.30
     assert frame_1.flame_war_risk_score > 50.0
 
     # Verify at least one crisis flashpoint was detected
