@@ -613,11 +613,24 @@ class PipelineRunner:
         
         logger.info("🎉 Complete Pipeline Processing Sweep Executed Successfully.")
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="ytint Analytical Engine Runner Workflow Grid")
     parser.add_argument("--stage", type=str, default=None, help="Force execute a single standalone module stage slot")
     parser.add_argument("--from-stage", type=str, default=None, help="Force sequential cascade execution from this stage index forward")
+    parser.add_argument("--report", action="store_true", help="Generate Executive Intelligence Dossier HTML report upon completion")
     args = parser.parse_args()
 
     orchestrator = PipelineRunner()
     orchestrator.run(force_stage=args.stage, run_from=args.from_stage)
+
+    if args.report:
+        try:
+            from engine.reporter import generate_executive_report
+            logger.info("📄 Compiling Executive Intelligence Dossier...")
+            report_path = generate_executive_report()
+            logger.info(f"🎉 Executive Dossier successfully written to: {report_path}")
+        except Exception as e:
+            logger.error(f"❌ Failed to generate executive dossier: {e}")
+
+if __name__ == "__main__":
+    main()

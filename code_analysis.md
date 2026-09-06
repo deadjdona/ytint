@@ -105,6 +105,10 @@ graph TD
 - **Status**: Completed. Added Plotly bubble quadrant matrix, dynamic sensitivity scanners, 3D RFM spaces, what-if virality simulators, DiD causal impact charts, and interactive query visualizer. Replaced raw video IDs with human-readable titles across all UI layers.
 - **Outcome**: Highly engaging, interactive intelligence experience for end users.
 
+### ✅ 6. Automated Executive Intelligence Dossier & Report Exporter — RESOLVED
+- **Status**: Completed. Built `src/engine/reporter.py` providing one-click compilation of a self-contained, offline-portable HTML executive briefing dossier (with base64 embedded publication plots and `@media print` rules for clean PDF export). Exposed via CLI (`ytint-report`, `ytint-runner --report`) and interactive download buttons in Tab 1 and Tab 7.
+- **Outcome**: Seamless executive reporting and offline briefing dossiers for creators, data teams, and decision makers.
+
 ---
 
 ## 4. Architectural Quality Scorecard

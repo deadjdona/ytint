@@ -59,6 +59,7 @@ dependencies = [
 [project.scripts]
 ytint-runner = "pipeline.runner:main"
 ytint-app = "ui.app:main"
+ytint-report = "engine.reporter:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -28,6 +28,7 @@ uv pip install -e .
 Installing in editable mode (`uv pip install -e .`) registers the package console scripts:
 - **`ytint-runner`**: Direct CLI entrypoint for `pipeline.runner:main`
 - **`ytint-app`**: Direct CLI entrypoint for `ui.app:main`
+- **`ytint-report`**: Direct CLI entrypoint for `engine.reporter:main` (Executive Dossier generator)
 
 Validate the active environment:
 

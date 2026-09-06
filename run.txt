@@ -46,3 +46,19 @@ To rebuild from a specific stage onward:
 .\.venv\Scripts\python.exe -m streamlit run src/app.py
 ```
 
+## Generate Executive Intelligence Dossier
+
+Compile a standalone, offline-ready HTML dossier (and print-ready PDF) synthesizing all 53 analytical stages:
+
+```powershell
+# Direct CLI generator:
+.\.venv\Scripts\python.exe -m engine.reporter
+
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-report.exe
+
+# Or automatically during pipeline execution:
+.\.venv\Scripts\ytint-runner.exe --report
+```
+
+

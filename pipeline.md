@@ -400,3 +400,14 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 - **Inputs**: All `.parquet` datasets produced across Phases 1 through 5.
 - **Outputs**: All PNG/HTML plot figures saved to `data/output/plots/`
 - **Execution Principle**: **Runs strictly last (`s99`)**, guaranteeing all upstream analytical tables are fully materialized.
+
+#### Executive Intelligence Dossier Exporter ([reporter.py](file:///c:/Users/deadj/Sources/ytint/src/engine/reporter.py))
+
+- **Purpose**: Compiles a comprehensive, self-contained, offline-portable Executive Intelligence Dossier synthesizing forensic threat matrices, community health scorecards, video performance radars, and embedded high-resolution publication plots.
+- **Inputs**: All `.parquet` outputs and `data/output/plots/*.png`
+- **Outputs**: `data/output/reports/executive_briefing.html` (standalone HTML with `@media print` rules for clean PDF export).
+- **Execution Modes**:
+  - Direct CLI: `ytint-report` or `python -m engine.reporter`
+  - Pipeline Flag: `ytint-runner --report` or `python -m pipeline.runner --report`
+  - Streamlit UI: Download button in Tab 1 (Executive Briefing) & Tab 7 (Export Hub) with live preview.
+

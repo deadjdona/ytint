@@ -18,6 +18,9 @@ _src_dir = str(pathlib.Path(__file__).resolve().parent.parent)
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
+from datetime import datetime
+import streamlit.components.v1 as components
+
 from engine.config_loader import load_config as _load_config
 from ui.visual_explanations import VISUAL_METADATA
 
@@ -304,11 +307,44 @@ def main():
                     delta=f"-{suspicious_like_rate:.1f}% Like-Inflated",
                     delta_color="inverse"
                 )
-                st.caption("MinHash near-duplicate & high-like/zero-reply astroturfing signals.")
+        st.divider()
+
+        # 1.2 Executive Intelligence Dossier Generator
+        with st.container(border=True):
+            dossier_col1, dossier_col2 = st.columns([3, 1])
+            with dossier_col1:
+                st.subheader("📄 Executive Intelligence Briefing Dossier")
+                st.markdown(
+                    "Compile and export a standalone, self-contained executive briefing dossier. "
+                    "Integrates forensic threat matrices, community health scorecards, video performance radars, "
+                    "and embedded high-resolution publication plots. Ready for offline archiving and instant **Print / PDF export**."
+                )
+            with dossier_col2:
+                include_plots_tab1 = st.checkbox("Include Visual Plots", value=True, key="dossier_plots_tab1")
+                if st.button("⚡ Generate Dossier", key="btn_gen_dossier_tab1"):
+                    with st.spinner("Compiling executive intelligence layers and plots..."):
+                        from engine.reporter import ExecutiveReportGenerator
+                        reporter = ExecutiveReportGenerator(interim_path, output_path)
+                        html_dossier = reporter.generate_html(include_plots=include_plots_tab1)
+                        st.session_state["executive_dossier_html"] = html_dossier
+                        st.success("Executive Dossier compiled successfully!")
+
+            if "executive_dossier_html" in st.session_state:
+                dl_col1, dl_col2 = st.columns([1, 2])
+                with dl_col1:
+                    st.download_button(
+                        label="⬇️ Download Executive Dossier (.html)",
+                        data=st.session_state["executive_dossier_html"],
+                        file_name=f"ytint_executive_brief_{datetime.now().strftime('%Y%m%d')}.html",
+                        mime="text/html"
+                    )
+                with dl_col2:
+                    with st.expander("👁️ Live In-Dashboard Dossier Preview", expanded=False):
+                        components.html(st.session_state["executive_dossier_html"], height=700, scrolling=True)
 
         st.divider()
 
-        # 1.2 Executive Intelligence Synthesis Cards
+        # 1.3 Executive Intelligence Synthesis Cards
         st.subheader("Key Strategic Findings & Channel Diagnostics")
 
         syn_col1, syn_col2 = st.columns(2)
@@ -1526,5 +1562,40 @@ def main():
                 mime="text/csv"
             )
 
+        st.divider()
+        st.subheader("📑 Executive Dossier & Intelligence Briefing Exporter")
+        st.markdown(
+            "Compile the complete 53-stage analytical synthesis into an offline-portable, publication-ready "
+            "Executive Dossier document (HTML & print-ready PDF) with embedded visual evidence."
+        )
+
+        with st.container(border=True):
+            exp_d_col1, exp_d_col2 = st.columns([3, 1])
+            with exp_d_col1:
+                st.markdown(
+                    "- **Forensic Threat Matrix**: Bot heuristics, CIB rings, like inflation, impersonation.\n"
+                    "- **Audience & Attention**: Loyalists vs drive-bys, half-life, power-law Pareto fit.\n"
+                    "- **Content & Semantics**: BERTopic clusters, audience intent taxonomy, emotion wheel.\n"
+                    "- **Video Radar & Causal Lift**: Top uploads benchmark, DiD lift, and Tree SHAP virality drivers.\n"
+                    "- **Publication Plots**: Base64 embedded high-resolution visual evidence."
+                )
+            with exp_d_col2:
+                include_plots_tab7 = st.checkbox("Include Visual Plots", value=True, key="dossier_plots_tab7")
+                if st.button("⚡ Compile Executive Dossier", key="btn_gen_dossier_tab7"):
+                    with st.spinner("Compiling executive dossier..."):
+                        from engine.reporter import ExecutiveReportGenerator
+                        reporter = ExecutiveReportGenerator(interim_path, output_path)
+                        st.session_state["executive_dossier_html"] = reporter.generate_html(include_plots=include_plots_tab7)
+                        st.success("Executive Dossier compiled!")
+
+            if "executive_dossier_html" in st.session_state:
+                st.download_button(
+                    label="⬇️ Download Executive Dossier (.html)",
+                    data=st.session_state["executive_dossier_html"],
+                    file_name=f"ytint_executive_brief_{datetime.now().strftime('%Y%m%d')}.html",
+                    mime="text/html"
+                )
+
 if __name__ == "__main__":
     main()
+

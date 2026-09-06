@@ -84,11 +84,22 @@ uv pip install -e .
 
 Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 
+### 4. Generate Executive Intelligence Dossier
+
+```powershell
+# Generate standalone, offline-portable HTML briefing dossier (with print-to-PDF support):
+.\.venv\Scripts\ytint-report.exe
+# Or directly:
+.\.venv\Scripts\python.exe -m engine.reporter
+# Or automatically upon pipeline sweep:
+.\.venv\Scripts\ytint-runner.exe --report
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
 
-1. **Executive Briefing & Macro Intelligence**: High-level KPIs, top video performance leaderboard, and an interactive Plotly bubble quadrant matrix ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
+1. **Executive Briefing**: High-level KPI scorecards, one-click Executive Dossier generator & PDF export, community loyalty summaries, and interactive video performance quadrant matrix. ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
 2. **Temporal Dynamics & Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, and multi-video playback comparisons.
 3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, target stance drift across debate depth, and multilingual code-switching lift.
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), and troll catalyst rankings.

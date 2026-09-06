@@ -29,6 +29,11 @@ graph LR
 ### Tab 1: Executive Briefing & Macro Intelligence
 
 - **Platform KPI Cards**: Immediate metrics for Total Comments Captured, Unique Commenting Authors, Videos Analyzed, and Average Community Sentiment.
+- **📄 Executive Intelligence Dossier Generator**:
+  - One-click compilation of a self-contained, offline-ready HTML dossier synthesizing all 53 analytical stages.
+  - Generates comprehensive forensic threat matrices, audience Pareto structures, topic demand intent taxonomies, video controversy radars, and embedded high-resolution publication plots.
+  - Interactive in-dashboard live preview expander (`components.html`) and direct download button (`ytint_executive_brief_<date>.html`).
+  - Print-optimized CSS (`@media print`) enabling 1-click **Save as PDF** from any browser.
 - **Strategic Key Findings Banner**: Automated highlights summarizing multilingual engagement lift, creator intervention multipliers, and top predictive drivers.
 - **Video Performance Intelligence Leaderboard**: Interactive table sorting videos by volume, total likes, sentiment, Gini inequality, attention half-life, and revival spikes. Official `Video Title` is displayed as the primary column.
 - **🎯 Dynamic Video Performance Quadrant Matrix**:
@@ -131,6 +136,8 @@ graph LR
   - Dropdown selectors for $X$-Axis Field, $Y$-Axis Field (Numeric), and Color Grouping Field.
 - **📥 Export Intelligence Datasets**:
   - One-click CSV and Parquet downloads for all 53 generated pipeline artifacts.
+- **📑 Executive Dossier & Intelligence Briefing Exporter**:
+  - Direct UI export for the complete multi-layer executive briefing dossier with optional plot embedding toggle.
 
 ---
 
