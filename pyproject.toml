@@ -66,6 +66,7 @@ ytint-graph = "engine.network_exporter:main"
 ytint-alert = "engine.alerting:main"
 ytint-search = "engine.semantic_search:main"
 ytint-replay = "engine.event_replay:main"
+ytint-assist = "engine.assistant:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

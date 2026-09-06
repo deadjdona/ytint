@@ -184,6 +184,15 @@ graph LR
   - Multi-dimensional filters: Author Loyalty Tier (`Champions`, `Loyalists`, `Regular`, `Casual`, `Drive-by`), Minimum Upvotes, and Video ID.
   - Thematic Feedback Clustering: Groups retrieved comments into distinct thematic clusters with c-TF-IDF keyword tags, average sentiment, comment counts, and representative exemplar quotes.
   - Direct 1-click downloads for search results in `.csv` and `.json`.
+- **🎯 Creator Actionability & Engagement Optimization Workbench (Section 7.7 / src/engine/assistant.py)**:
+  - Automated triage engine scanning comments to prioritize high-leverage creator actions:
+    - **📌 Pin Candidates**: High-signal, constructive commentary that sets an exemplary discussion tone.
+    - **❤️ Heart Candidates**: Rapid positive reinforcement for VIP Champions and Loyalists to cement retention.
+    - **💬 Reply / Question Triage**: High-priority unanswered questions, bug reports, and content requests.
+    - **🛡️ De-escalation Sparks**: Tense or polarized debate threads where early creator intervention yields maximal causal toxicity suppression.
+  - **Empirical Causal Uplift Estimates**: Integrates Stage 39 DiD causal inference parameters (`+320% thread expansion`, `+0.28 sentiment lift`, `-45% toxicity suppression`, `+3.8x like amplification`).
+  - **AI Context-Aware Reply Drafter**: 1-click generation of suggested responses tailored to commenter loyalty cohort in four distinct creator voices (`Warm & Grateful`, `Clarifying & Factual`, `Empathetic & De-escalating`, `Playful`).
+  - **Direct Triage Export**: 1-click downloads for the complete prioritized action queue in `.csv` and `.json`.
 
 ---
 

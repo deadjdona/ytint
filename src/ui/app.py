@@ -2357,6 +2357,159 @@ def main():
                             key="dl_search_json"
                         )
 
+        # 7.7 Creator Actionability & Engagement Optimization Workbench
+        st.divider()
+        st.subheader("🎯 Creator Actionability & Engagement Optimization Workbench")
+        st.markdown(
+            "Triages viewer comments into high-leverage creator actions: **Pin Candidates** (tone anchors), "
+            "**Heart Candidates** (VIP loyalist reinforcement), **Priority Questions** (high-intent audience inquiries), "
+            "and **De-escalation Sparks** (diffusing tense debate). Evaluates expected causal engagement lift using Stage 39 DiD parameters."
+        )
+
+        from engine.assistant import CreatorAssistantEngine
+
+        engine_assist = CreatorAssistantEngine()
+        available_vids_assist = engine_assist.get_available_videos(limit=30)
+        vid_choices_a = [v["video_id"] for v in available_vids_assist]
+        vid_labels_a = {v["video_id"]: f"{v.get('title', v['video_id'])} ({v.get('total_comments', 0):,} comments)" for v in available_vids_assist}
+
+        as_c1, as_c2, as_c3, as_c4 = st.columns([2, 1, 1, 1])
+        with as_c1:
+            selected_vid_assist = st.selectbox(
+                "Select Video for Creator Triage",
+                options=vid_choices_a if vid_choices_a else ["MOCK_VID_001"],
+                format_func=lambda x: vid_labels_a.get(x, x),
+                key="assist_video_select",
+            )
+        with as_c2:
+            action_filter_ui = st.selectbox(
+                "Filter Action",
+                options=["ALL", "PIN", "HEART", "REPLY", "DEESCALATE"],
+                index=0,
+                key="assist_action_filter",
+            )
+        with as_c3:
+            cohort_filter_ui = st.selectbox(
+                "Viewer Cohort",
+                options=["ALL", "Champions", "Loyal", "At Risk", "Casual"],
+                index=0,
+                key="assist_cohort_filter",
+            )
+        with as_c4:
+            limit_assist_ui = st.slider(
+                "Max Items",
+                min_value=5,
+                max_value=50,
+                value=15,
+                step=5,
+                key="assist_limit_slider",
+            )
+
+        with st.spinner("Triaging comments and estimating causal uplift..."):
+            triage_report = engine_assist.triage_comments(
+                video_id=selected_vid_assist,
+                action_filter=action_filter_ui,
+                cohort_filter=cohort_filter_ui,
+                limit=limit_assist_ui,
+            )
+
+        # Summary Metrics
+        m1, m2, m3, m4, m5 = st.columns(5)
+        with m1:
+            with st.container(border=True):
+                st.metric("Total Analyzed", f"{triage_report.total_analyzed:,}")
+                st.caption(f"{triage_report.total_actionable} actionable matches")
+        with m2:
+            with st.container(border=True):
+                st.metric("📌 Pin Candidates", f"{triage_report.summary_counts.get('PIN', 0)}")
+                st.caption("Community tone anchors")
+        with m3:
+            with st.container(border=True):
+                st.metric("❤️ Heart Reinforce", f"{triage_report.summary_counts.get('HEART', 0)}")
+                st.caption("Loyalists & praise")
+        with m4:
+            with st.container(border=True):
+                st.metric("💬 Questions / Bug Triage", f"{triage_report.summary_counts.get('REPLY_QUESTION', 0)}")
+                st.caption("Unanswered inquiries")
+        with m5:
+            with st.container(border=True):
+                st.metric("🛡️ De-escalation Sparks", f"{triage_report.summary_counts.get('DEESCALATE', 0)}")
+                st.caption("Controversy / hostility")
+
+        # Render Recommendations
+        if triage_report.recommendations:
+            st.markdown(f"#### 📋 Prioritized Action Queue ({len(triage_report.recommendations)} comments shown)")
+
+            for idx, rec in enumerate(triage_report.recommendations, 1):
+                badge_color = {
+                    "PIN": "📌 PIN CANDIDATE",
+                    "HEART": "❤️ HEART REINFORCE",
+                    "REPLY_QUESTION": "💬 REPLY TO QUESTION",
+                    "DEESCALATE": "🛡️ DE-ESCALATE CRISIS",
+                }.get(rec.action_type, rec.action_type)
+
+                cohort_badge = {
+                    "Champions": "👑 Champions",
+                    "Loyal": "⭐ Loyal",
+                    "At Risk": "⚠️ At Risk",
+                }.get(rec.author_cohort, f"👤 {rec.author_cohort}")
+
+                with st.container(border=True):
+                    h_col1, h_col2, h_col3 = st.columns([2, 1, 1])
+                    with h_col1:
+                        st.markdown(f"**{idx}. {badge_color}** — Priority: **`{rec.priority_score:.1f}` / 100**")
+                    with h_col2:
+                        st.markdown(f"Author: **{rec.author_name}** ({cohort_badge})")
+                    with h_col3:
+                        st.caption(f"👍 {rec.like_count} likes | 💬 {rec.reply_count} replies | T+{rec.minutes_since_upload:.0f}m")
+
+                    st.markdown(f"> *\"{rec.text}\"*")
+                    st.caption(f"💡 **Action Rationale:** {rec.action_rationale}")
+
+                    # Causal uplift badges
+                    if rec.expected_uplift:
+                        uplift_pills = " &nbsp;|&nbsp; ".join([f"**{k}:** `{v}`" for k, v in rec.expected_uplift.items()])
+                        st.markdown(f"📈 **Projected Causal Uplift (Stage 39 DiD):** {uplift_pills}")
+
+                    # AI Reply Drafter Expander
+                    with st.expander("✍️ Draft AI Response", expanded=False):
+                        dr_col1, dr_col2 = st.columns([1, 2])
+                        with dr_col1:
+                            tone_sel = st.selectbox(
+                                "Voice Tone",
+                                options=["Warm & Grateful", "Clarifying & Factual", "Empathetic & De-escalating", "Playful"],
+                                key=f"tone_{rec.comment_id}_{idx}",
+                            )
+                            btn_draft = st.button("Generate Draft", key=f"btn_draft_{rec.comment_id}_{idx}")
+
+                        with dr_col2:
+                            draft_key = f"draft_val_{rec.comment_id}_{idx}"
+                            if btn_draft or draft_key not in st.session_state:
+                                st.session_state[draft_key] = engine_assist.draft_reply(rec, tone=tone_sel)
+                            st.text_area("Suggested Response", value=st.session_state[draft_key], height=80, key=f"txt_{rec.comment_id}_{idx}")
+                            st.caption("Copy and paste directly into YouTube Studio.")
+
+            # Export Buttons
+            ea_col1, ea_col2 = st.columns(2)
+            with ea_col1:
+                st.download_button(
+                    label="⬇️ Export Triage Ledger (.csv)",
+                    data=triage_report.to_dataframe().to_csv(index=False).encode("utf-8"),
+                    file_name=f"creator_triage_{selected_vid_assist}.csv",
+                    mime="text/csv",
+                    key="dl_triage_csv",
+                )
+            with ea_col2:
+                st.download_button(
+                    label="⬇️ Export Triage Ledger (.json)",
+                    data=json.dumps(triage_report.to_dict(), indent=2, ensure_ascii=False),
+                    file_name=f"creator_triage_{selected_vid_assist}.json",
+                    mime="application/json",
+                    key="dl_triage_json",
+                )
+        else:
+            st.info("No actionable comments found matching the active filters for this video.")
+
 if __name__ == "__main__":
     main()
 

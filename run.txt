@@ -193,3 +193,27 @@ Replay historical comment arrival streams, tracking instantaneous velocity, roll
 .\.venv\Scripts\ytint-replay.exe --video-id WpbN3D5oQBo --export scratch/chronicle.json
 .\.venv\Scripts\ytint-replay.exe --mock --export scratch/mock_chronicle.csv
 ```
+
+## Creator Actionability & Engagement Optimization Assistant
+
+Triage viewer comments into high-leverage creator actions (Pin, Heart, Reply Question, De-escalate Crisis), project empirical causal uplift, and draft tone-tailored AI replies:
+
+```powershell
+# Triage comments for a video with causal uplift projections:
+.\.venv\Scripts\python.exe -m engine.assistant --video-id WpbN3D5oQBo
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-assist.exe --video-id WpbN3D5oQBo
+
+# Filter for priority unanswered questions and auto-draft replies:
+.\.venv\Scripts\ytint-assist.exe --video-id WpbN3D5oQBo --action REPLY --draft-replies --tone clarifying
+
+# Filter by viewer loyalty cohort (e.g. Champions or Loyal):
+.\.venv\Scripts\ytint-assist.exe --video-id WpbN3D5oQBo --cohort Loyal --limit 10
+
+# Fast mock demonstration mode:
+.\.venv\Scripts\ytint-assist.exe --mock --draft-replies --tone warm
+
+# Export prioritized triage queue to JSON or CSV:
+.\.venv\Scripts\ytint-assist.exe --video-id WpbN3D5oQBo --export scratch/triage.json
+.\.venv\Scripts\ytint-assist.exe --mock --export scratch/triage.csv
+```
