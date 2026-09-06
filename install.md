@@ -42,6 +42,7 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-compare`**: Direct CLI entrypoint for `engine.comparator:main` (Multi-Channel & Playlist Competitive Intelligence Engine)
 - **`ytint-cohort`**: Direct CLI entrypoint for `engine.cohort_survival:main` (Audience Churn & Longitudinal Cohort Survival Engine)
 - **`ytint-watch`**: Direct CLI entrypoint for `engine.watcher:main` (Continuous Live Streaming Watcher & Auto-Poller Daemon)
+- **`ytint-moderate`**: Direct CLI entrypoint for `engine.moderator:main` (Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub)
 
 Validate the active environment:
 

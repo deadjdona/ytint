@@ -3817,6 +3817,158 @@ def main():
             key="dl_watcher_state_json"
         )
 
+        # ---------------------------------------------------------------------
+        # 7.10 Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub
+        # ---------------------------------------------------------------------
+        st.divider()
+        st.subheader("🛡️ Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub")
+        st.markdown(
+            "Enforces rules-based creator moderation actions across detected forensic violations: "
+            "**Hold for Review**, **Reject Comment**, **Mark as Spam**, **Ban Abusive Author**, and **Dispatch AI Replies**. "
+            "Includes strict dry-run simulation guardrails and immutable audit trail persistence."
+        )
+
+        from engine.moderator import YouTubeModerationEngine
+
+        mod_engine = YouTubeModerationEngine()
+        mod_stats = mod_engine.get_summary_stats()
+
+        # Telemetry KPI Strip
+        m_kpi1, m_kpi2, m_kpi3, m_kpi4, m_kpi5 = st.columns(5)
+        with m_kpi1:
+            st.metric("Total Enqueued", mod_stats["total_actions"])
+        with m_kpi2:
+            st.metric("Pending Approval", mod_stats["pending"], delta=f"{mod_stats['pending']} unreviewed" if mod_stats['pending'] > 0 else "All reviewed")
+        with m_kpi3:
+            st.metric("Approved for Dispatch", mod_stats["approved"])
+        with m_kpi4:
+            st.metric("Dispatched Actions", mod_stats["dispatched"])
+        with m_kpi5:
+            st.metric("Audited Operations", mod_stats["total_audited"], help=f"Simulated: {mod_stats['audit_simulated']} | Live: {mod_stats['audit_live']}")
+
+        # Policy Rule Evaluation Bar
+        with st.container(border=True):
+            st.markdown("##### ⚡ Automated Forensic Policy Rule Scanner")
+            st.caption("Scan analytical Parquet layers to automatically enqueue high-confidence violations into the moderation queue:")
+            r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns(5)
+
+            with r_col1:
+                if st.button("🔥 Scan Toxicity", key="btn_mod_scan_tox", width="stretch"):
+                    enq = mod_engine.scan_and_apply_rules(["toxicity"])
+                    st.success(f"Enqueued {len(enq)} toxicity catalyst actions!")
+                    st.rerun()
+            with r_col2:
+                if st.button("🕸️ Scan CIB Rings", key="btn_mod_scan_cib", width="stretch"):
+                    enq = mod_engine.scan_and_apply_rules(["cib"])
+                    st.success(f"Enqueued {len(enq)} CIB ring actions!")
+                    st.rerun()
+            with r_col3:
+                if st.button("🤖 Scan Bot Spam", key="btn_mod_scan_bot", width="stretch"):
+                    enq = mod_engine.scan_and_apply_rules(["bot"])
+                    st.success(f"Enqueued {len(enq)} spam bot actions!")
+                    st.rerun()
+            with r_col4:
+                if st.button("🎭 Scan Impersonators", key="btn_mod_scan_imp", width="stretch"):
+                    enq = mod_engine.scan_and_apply_rules(["impersonation"])
+                    st.success(f"Enqueued {len(enq)} impersonator actions!")
+                    st.rerun()
+            with r_col5:
+                if st.button("🧪 Seed Demo Mock", key="btn_mod_seed_mock", width="stretch"):
+                    enq_count = mod_engine.generate_mock_queue()
+                    st.success(f"Seeded {enq_count} mock actions into queue!")
+                    st.rerun()
+
+        # Moderation Queue Table & Actions
+        st.markdown("##### 📋 Active Moderation Action Queue")
+        df_queue = mod_engine.to_dataframe()
+
+        if not df_queue.empty:
+            q_cols = ["action_id", "comment_id", "author_name", "action_type", "ban_author", "trigger_source", "reason", "status"]
+            disp_df = df_queue[[c for c in q_cols if c in df_queue.columns]].copy()
+            st.dataframe(disp_df, width="stretch", hide_index=True)
+
+            q_act1, q_act2, q_act3 = st.columns([1, 1, 2])
+            with q_act1:
+                if st.button("✅ Approve All Pending", key="btn_mod_approve_all"):
+                    num = mod_engine.approve_all()
+                    st.success(f"Approved {num} pending actions for dispatch!")
+                    st.rerun()
+            with q_act2:
+                if st.button("🗑️ Clear Queue", key="btn_mod_clear_queue"):
+                    cleared = mod_engine.clear_queue()
+                    st.info(f"Cleared {cleared} actions from queue.")
+                    st.rerun()
+        else:
+            st.info("The moderation queue is currently empty. Use the Rule Scanner buttons above to detect violations or seed mock actions.")
+
+        # Dispatcher Control Panel
+        with st.container(border=True):
+            st.markdown("##### 🚀 Moderation Dispatcher Control Panel")
+            d_c1, d_c2 = st.columns([2, 1])
+            with d_c1:
+                dispatch_mode = st.radio(
+                    "Execution Mode",
+                    options=["🛡️ Safe Dry-Run Simulation (No live API calls)", "🔴 Live Remote Execution (YouTube Data API v3)"],
+                    index=0,
+                    key="mod_dispatch_mode_radio"
+                )
+                is_dry_run = "Dry-Run" in dispatch_mode
+
+            with d_c2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("🚀 Dispatch Approved Actions", key="btn_mod_dispatch_now", type="primary", width="stretch"):
+                    succ, fail, results = mod_engine.dispatch_batch(dry_run=is_dry_run)
+                    if succ > 0:
+                        st.success(f"Successfully processed {succ} moderation action(s) in {'Dry-Run' if is_dry_run else 'Live'} mode!")
+                    if fail > 0:
+                        st.error(f"Failed {fail} action(s). Check audit log below for details.")
+                    st.rerun()
+
+        # Audit Log & Export Hub
+        st.markdown("##### 📜 Moderation Audit Trail & Export Hub")
+        audit_records = mod_engine.load_audit_log(limit=15)
+        if audit_records:
+            with st.expander("👁️ View Recent Moderation Audit Log (Last 15 Records)", expanded=False):
+                audit_rows = []
+                for r in reversed(audit_records):
+                    audit_rows.append({
+                        "Timestamp": r.timestamp,
+                        "Status": r.status,
+                        "Execution Mode": "DRY-RUN" if r.is_dry_run else "LIVE",
+                        "Action": r.action_type,
+                        "Comment ID": r.comment_id,
+                        "Author": r.author_name,
+                        "Ban Author": "Yes" if r.ban_author else "No",
+                        "Detail": r.detail
+                    })
+                st.dataframe(pd.DataFrame(audit_rows), width="stretch", hide_index=True)
+
+        exp_c1, exp_c2, exp_c3 = st.columns(3)
+        with exp_c1:
+            st.download_button(
+                label="💾 Download Queue JSON",
+                data=json.dumps(mod_engine.state.to_dict(), indent=2, ensure_ascii=False),
+                file_name="moderation_queue.json",
+                mime="application/json",
+                key="dl_mod_queue_json"
+            )
+        with exp_c2:
+            st.download_button(
+                label="💾 Download Queue CSV",
+                data=df_queue.to_csv(index=False).encode("utf-8") if not df_queue.empty else b"",
+                file_name="moderation_queue.csv",
+                mime="text/csv",
+                key="dl_mod_queue_csv"
+            )
+        with exp_c3:
+            st.download_button(
+                label="💾 Download Audit Log JSON",
+                data=json.dumps([r.to_dict() for r in mod_engine.load_audit_log(limit=1000)], indent=2, ensure_ascii=False),
+                file_name="moderation_audit_log.json",
+                mime="application/json",
+                key="dl_mod_audit_json"
+            )
+
 
 if __name__ == "__main__":
     main()

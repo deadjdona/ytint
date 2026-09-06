@@ -296,6 +296,30 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 .\.venv\Scripts\ytint-watch.exe --mock --iterations 3
 ```
 
+### 18. Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub
+
+```powershell
+# Inspect current moderation queue status and recent audit log:
+.\.venv\Scripts\ytint-moderate.exe --status
+
+# Scan pipeline forensics and stage recommended moderation actions:
+.\.venv\Scripts\ytint-moderate.exe --scan-rules
+
+# Dispatch queued actions in dry-run simulation mode (safe default, zero API mutations):
+.\.venv\Scripts\ytint-moderate.exe --dispatch
+
+# Dispatch queued actions in live execution mode:
+.\.venv\Scripts\ytint-moderate.exe --dispatch --live --token "YA29.YOUR_OAUTH_TOKEN"
+
+# Clear approved actions or clear entire queue:
+.\.venv\Scripts\ytint-moderate.exe --clear-approved
+.\.venv\Scripts\ytint-moderate.exe --clear-queue
+
+# Export moderation queue or audit history to JSON or CSV:
+.\.venv\Scripts\ytint-moderate.exe --export scratch/moderation_queue.json
+.\.venv\Scripts\ytint-moderate.exe --export-audit scratch/audit_log.json
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
@@ -306,7 +330,7 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, **Interactive Community Network & Gephi Topology Explorer** (2D force-directed layout, top-$K$ node filtering, Louvain community coloring, and 1-click GEXF/GraphML exports), and **Forensic Author Persona & Sockpuppet Fingerprinting** (stylometric feature radar bar charts, 24-hour diurnal posting clocks, pairwise scatter matrix, clustered ring ledger, and suspect pair matches).
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, audience overlap heatmap, **Multi-Channel & Playlist Competitive Intelligence Engine** (cross-channel and temporal release cohort selector, 6-dimension Plotly polar radar chart, normalized benchmark scorecard, audience overlap Venn/bubble map, shared commenter migration ledger), and **Audience Churn & Longitudinal Cohort Survival Engine** (monthly/quarterly cohort retention triangle heatmap, continuous-time Kaplan-Meier survival curves with right-censoring, community state dynamics & Quick Ratio trajectory, and empirical social validation uplift).
 6. **Publication-Ready Visual Analytics Gallery**: Comprehensive catalog of 68+ high-resolution statistical plots with analytical guides and strategic takeaways.
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer, Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, Automated Anomaly & Threat Alerting Console, Neural Semantic Vector Search & Feedback Clustering Console, Creator Actionability & Engagement Optimization Workbench, **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and **Continuous Live Streaming Watcher & Auto-Poller Console** (real-time telemetry status, active target velocity ledger, on-demand poll triggers, incremental sweep orchestration, and JSON state exports).
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer, Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, Automated Anomaly & Threat Alerting Console, Neural Semantic Vector Search & Feedback Clustering Console, Creator Actionability & Engagement Optimization Workbench, **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), **Continuous Live Streaming Watcher & Auto-Poller Console** (real-time telemetry status, active target velocity ledger, on-demand poll triggers, incremental sweep orchestration, and JSON state exports), and **Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub** (audit telemetry KPIs, automated policy rule scanner, interactive action staging queue, dry-run vs live dispatch execution with OAuth integration, and JSON/CSV export).
 
 
 ---

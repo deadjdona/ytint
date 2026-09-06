@@ -241,6 +241,20 @@ graph LR
   - **⚡ On-Demand Manual Poll Execution**: 1-click trigger button executing an immediate polling cycle across all registered targets with offline `--mock` testing toggle.
   - **📜 Real-Time Daemon Event Stream**: Formatted reverse-chronological log stream capturing polling triggers, velocity recalibrations, incremental pipeline sweeps, and webhook alert dispatches.
   - **💾 1-Click State JSON Export**: Direct browser download button for the active daemon state ledger (`data/output/watcher_state.json`).
+- **🛡️ Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub (Section 7.10 / src/engine/moderator.py)**:
+  - **📊 Moderation Telemetry KPIs**: Immediate scorecards displaying Pending Review actions, Approved for Dispatch, Total Dispatched Actions, and Total Execution Errors.
+  - **🔍 Automated Policy Rule Scanner**: 1-click intelligent scanner translating upstream pipeline forensics into staged moderation actions:
+    - `troll_catalysts.parquet` (score $\ge 10$) $\rightarrow$ `heldForReview` (and `ban_author=True` if score $\ge 25$)
+    - `cib_coordinated_comments.parquet` $\rightarrow$ `heldForReview` + `ban_author=True`
+    - `bot_classifications.parquet` (high risk) $\rightarrow$ `markAsSpam`
+    - `impersonation_detection.parquet` $\rightarrow$ `rejected` + `ban_author=True`
+  - **📋 Interactive Staged Action Queue Ledger**: Review comments queued for moderation with action type badge, target status, author, reason, priority level, and ban flags.
+  - **⚡ Dry-Run Safety & Live Action Dispatcher**:
+    - Default **Dry-Run Simulation** generating realistic HTTP API call specifications and audit records with zero risk of accidental live modifications.
+    - Optional **Live Execution** mode requiring OAuth 2.0 Bearer token (`YA29...`) to call official YouTube Data API v3 moderation endpoints (`comments/setModerationStatus`, `comments/markAsSpam`, `comments/delete`).
+    - Built-in rate limiting (50ms interval between dispatches) to respect YouTube API quota limits.
+  - **📜 Full Audit Trail Ledger**: Persistent logging to `data/output/moderation_audit_log.json` recording every execution with timestamp, HTTP status, endpoint, and response details.
+  - **💾 1-Click Exports**: Direct download buttons for the current moderation queue and complete audit history in CSV and JSON formats.
 
 ---
 

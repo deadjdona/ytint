@@ -416,7 +416,7 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 
 ## 📦 Native Intelligence Engines & CLI Extensions
 
-Beyond the 53 core analytical pipeline stages, `ytint` includes **16 standalone, high-performance CLI engines** registered in `pyproject.toml` and installed as direct executable console commands:
+Beyond the 53 core analytical pipeline stages, `ytint` includes **17 standalone, high-performance CLI engines** registered in `pyproject.toml` and installed as direct executable console commands:
 
 | Command | Module Entrypoint | Core Intelligence Functionality |
 | :--- | :--- | :--- |
@@ -436,4 +436,6 @@ Beyond the 53 core analytical pipeline stages, `ytint` includes **16 standalone,
 | **`ytint-compare`** | `engine.comparator:main` | Multi-channel & playlist competitive intelligence engine with Jaccard overlap |
 | **`ytint-cohort`** | `engine.cohort_survival:main` | Longitudinal cohort survival modeling, Kaplan-Meier curves & Quick Ratio |
 | **`ytint-watch`** | `engine.watcher:main` | Continuous live streaming watcher & auto-poller daemon with adaptive velocity scaling |
+| **`ytint-moderate`** | `engine.moderator:main` | Bi-directional YouTube moderation action dispatcher, dry-run safety & policy hub |
+
 

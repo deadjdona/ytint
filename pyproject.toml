@@ -74,6 +74,7 @@ ytint-fingerprint = "engine.fingerprint:main"
 ytint-compare = "engine.comparator:main"
 ytint-cohort = "engine.cohort_survival:main"
 ytint-watch = "engine.watcher:main"
+ytint-moderate = "engine.moderator:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -383,3 +383,33 @@ Continuous background monitoring of channels and uploads with adaptive polling v
 # Reset state and watch list:
 .\.venv\Scripts\ytint-watch.exe --reset
 ```
+
+## Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub
+
+Execute or stage bi-directional creator moderation actions (pin comments, mark spam, hold for review, reject/remove, ban author) with dry-run safety by default, automated policy rule scanner, and audit log persistence:
+
+```powershell
+# Inspect current moderation queue status and recent audit log:
+.\.venv\Scripts\python.exe -m engine.moderator --status
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-moderate.exe --status
+
+# Scan pipeline forensics and stage recommended moderation actions (heldForReview, markAsSpam, rejected, banAuthor):
+.\.venv\Scripts\ytint-moderate.exe --scan-rules
+
+# Dispatch queued actions in dry-run simulation mode (default, no live API mutations):
+.\.venv\Scripts\ytint-moderate.exe --dispatch
+
+# Dispatch queued actions in live execution mode (requires YouTube API OAuth token):
+.\.venv\Scripts\ytint-moderate.exe --dispatch --live --token "YA29.YOUR_OAUTH_TOKEN"
+
+# Clear approved actions or clear entire queue:
+.\.venv\Scripts\ytint-moderate.exe --clear-approved
+.\.venv\Scripts\ytint-moderate.exe --clear-queue
+
+# Export moderation queue or audit history to JSON or CSV:
+.\.venv\Scripts\ytint-moderate.exe --export scratch/moderation_queue.json
+.\.venv\Scripts\ytint-moderate.exe --export scratch/moderation_queue.csv
+.\.venv\Scripts\ytint-moderate.exe --export-audit scratch/audit_log.json
+```
+
