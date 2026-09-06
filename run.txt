@@ -57,6 +57,8 @@ To rebuild from a specific stage onward:
 
 ```powershell
 .\.venv\Scripts\python.exe -m streamlit run src/app.py
+# Or via registered console shortcut:
+.\.venv\Scripts\ytint-app.exe
 ```
 
 ## Generate Executive Intelligence Dossier

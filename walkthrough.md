@@ -142,6 +142,29 @@ graph TD
   5. **Pipeline & CLI Integration**: Registered `ytint-alert` console script and added `--alert` flag to `pipeline.runner`.
   6. **Interactive Dashboard Console**: Tab 7 Section 7.5 Alerting Console with live threat scorecards, active incident ledger, webhook configuration, payload preview, and 1-click dispatch.
 
+### 🔍 Neural Semantic Vector Search & Feedback Clustering ([`src/engine/semantic_search.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/semantic_search.py))
+- **Command**: `ytint-search` or `ytint-search --query "audio quality issues"`
+- **Features**:
+  1. **Sub-50ms Neural Search**: Powered by precomputed 384-dimensional SentenceTransformer embeddings (`topic_embeddings.npy`) over 340,027 root comments.
+  2. **Multi-Dimensional Filtering**: Filter by Author Loyalty Tier (`Champions`, `Loyalists`, `Regular`, `Casual`, `Drive-by`), Minimum Upvotes, and specific Video ID.
+  3. **Thematic Feedback Clustering**: Automatically groups retrieved comments into topical clusters with c-TF-IDF keyword tags, sentiment metrics, and representative exemplar quotes.
+  4. **Dashboard Integration**: Tab 7 Section 7.6 search console with dynamic results table and 1-click JSON/CSV exports.
+
+### ⏱️ Chronological Event Replay & Crisis Simulation Engine ([`src/engine/event_replay.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/event_replay.py))
+- **Command**: `ytint-replay` or `ytint-replay --video-id <ID> --speed 5.0`
+- **Features**:
+  1. **Second-by-Second Playback**: Chronologically reconstructs conversational arrival curves, sentiment transitions, and flame-war escalations.
+  2. **Real-Time Flame-War Risk Gauges**: Computes rolling velocity, toxicity pressure, and polarity volatility to trigger automated crisis alerts.
+  3. **Interactive Frame Scrubber**: Tab 2 Section 2.5 console with play/pause simulation, speed multiplier, risk gauges, and active crisis trigger alerts.
+
+### 🎯 Creator Actionability & Engagement Optimization Assistant ([`src/engine/assistant.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/assistant.py))
+- **Command**: `ytint-assist` or `ytint-assist --triage-all`
+- **Features**:
+  1. **Action Triage Matrix**: Identifies Pin Candidates (high-signal tone setters), Heart Candidates (VIP loyalty reinforcement), Reply Candidates (unanswered technical questions), and De-escalation Sparks (flame-war containment).
+  2. **Empirical Causal Uplift**: Connects recommendations to Stage 39 DiD causal inference parameters (`+320% thread expansion`, `+0.28 sentiment lift`, `-45% toxicity suppression`).
+  3. **Context-Aware Reply Drafter**: Suggests personalized creator replies in 4 distinct creator voices (`Warm & Grateful`, `Clarifying & Factual`, `Empathetic & De-escalating`, `Playful`).
+  4. **Dashboard Integration**: Tab 7 Section 7.7 action queue with priority badges and 1-click CSV/JSON export.
+
 ### ⚡ High-Speed Zero-Copy Analytical SQL Engine ([`src/engine/sql_engine.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/sql_engine.py))
 - **Command**: `ytint-sql` or `ytint-sql --interactive`
 - **Features**:
@@ -178,6 +201,13 @@ graph TD
   4. **Shared Commenter Sentiment Migration Ledger**: Measures sentiment ($\Delta$) and toxicity differentials of shared authors, mapping positive vs negative shifts across competing channels with interactive scatter/bubble visualization.
   5. **Interactive Dashboard Workbench**: Tab 5 Section 5.6 featuring scope mode toggling (Cross-Channel vs Quarterly Cohorts vs Synthetic Demo), summary KPI scorecards, interactive Plotly polar radar chart (`go.Scatterpolar`), normalized scorecard ledger, audience overlap scatter map, and 1-click JSON/CSV exports.
 
+### 🖥️ Streamlit Intelligence Dashboard Console ([`src/ui/app.py`](file:///c:/Users/deadj/Sources/ytint/src/ui/app.py))
+- **Command**: `ytint-app` or `streamlit run src/app.py`
+- **Features**:
+  1. **Canonical Thin Delegator**: `src/app.py` directly delegates to `ui.app:main()` ensuring zero code duplication.
+  2. **Direct CLI Entrypoint**: Executable `ytint-app` registered in `pyproject.toml` for instant 1-command launching.
+  3. **Multi-Tab Modular Architecture**: 7 interactive analytical tabs with zero container-width deprecation warnings.
+
 ---
 
 ## 🎨 5. Streamlit Executive Dashboard Architecture
@@ -207,6 +237,29 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 - **Failed**: **0 failed**
 - **Duration**: ~116s
 - **Coverage**: Engine unit tests (`comparator`, `fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+
+---
+
+## 📦 7. Complete CLI Command Ecosystem
+
+All **14 standalone console scripts** are registered in `pyproject.toml` and operational:
+
+| Command | Module | Functionality |
+| :--- | :--- | :--- |
+| `ytint-runner` | `pipeline.runner:main` | Full 53-stage and incremental delta pipeline sweep |
+| `ytint-app` | `ui.app:main` | 7-tab Streamlit intelligence executive dashboard |
+| `ytint-report` | `engine.reporter:main` | Offline executive dossier HTML & print-ready PDF generator |
+| `ytint-ingest` | `engine.youtube_api:main` | Live YouTube Data API v3 connector |
+| `ytint-ai` | `engine.synthesizer:main` | LLM & Gemini RAG narrative synthesis |
+| `ytint-graph` | `engine.network_exporter:main` | 2D force-directed community graph & Gephi exporter |
+| `ytint-alert` | `engine.alerting:main` | Real-time webhook anomaly & threat alerting daemon |
+| `ytint-search` | `engine.semantic_search:main` | 384D SentenceTransformer neural vector search & feedback clustering |
+| `ytint-replay` | `engine.event_replay:main` | Chronological event replay & crisis simulation engine |
+| `ytint-assist` | `engine.assistant:main` | Creator actionability triage & causal reply assistant |
+| `ytint-sql` | `engine.sql_engine:main` | Out-of-core zero-copy DuckDB SQL querying & SQL Studio |
+| `ytint-narrative` | `engine.narrative:main` | Narrative scene reaction & timestamp scrubbing forensics |
+| `ytint-fingerprint` | `engine.fingerprint:main` | Forensic author persona & sockpuppet fingerprinting |
+| `ytint-compare` | `engine.comparator:main` | Multi-channel & playlist competitive intelligence engine |
 
 
 

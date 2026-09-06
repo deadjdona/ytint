@@ -96,8 +96,8 @@ uv pip install -e .
 ```powershell
 # Start the Streamlit application
 .\.venv\Scripts\python.exe -m streamlit run src/app.py
-# Or via entrypoint:
-.\.venv\Scripts\streamlit.exe run src/app.py
+# Or via registered console shortcut:
+.\.venv\Scripts\ytint-app.exe
 ```
 
 Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
