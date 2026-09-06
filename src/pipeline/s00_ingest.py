@@ -23,7 +23,7 @@ def parse_comment_dates(comment_date_series):
     unit = "ms" if median_value > 1e11 else "s"
     return pd.to_datetime(numeric_dates, unit=unit, errors="coerce")
 
-def migrate_from_commentsuite():
+def migrate_from_commentsuite(incremental: bool = False):
     config = load_config()
     raw_db_path = Path(config["paths"]["raw_db"])
     interim_dir = Path(config["paths"]["interim_dir"])
@@ -59,7 +59,11 @@ def migrate_from_commentsuite():
         LEFT JOIN channels ch ON c.channel_id = ch.channel_id;
         """
     else:
-        comments_query = """
+        cursor.execute("PRAGMA table_info(comments);")
+        c_cols = {row[1] for row in cursor.fetchall()}
+        reply_clause = "reply_count," if "reply_count" in c_cols else "0 AS reply_count,"
+        is_reply_clause = "is_reply," if "is_reply" in c_cols else ""
+        comments_query = f"""
         SELECT 
             comment_id,
             video_id,
@@ -67,6 +71,8 @@ def migrate_from_commentsuite():
             channel_id AS author_channel_id,
             comment_text AS text,
             comment_likes AS like_count,
+            {reply_clause}
+            {is_reply_clause}
             comment_date
         FROM comments;
         """
@@ -119,9 +125,16 @@ def migrate_from_commentsuite():
     else:
         df_comments['author_display_name'] = df_comments['author_display_name'].fillna(df_comments['author_channel_id'])
 
+    if 'is_reply' not in df_comments.columns:
+        df_comments['is_reply'] = df_comments['parent_id'].notna() & (df_comments['parent_id'] != "")
+    if 'reply_count' not in df_comments.columns:
+        df_comments['reply_count'] = 0
+
     # Process video metadata layer
     if not df_videos.empty:
-        df_videos['published_at'] = parse_comment_dates(df_videos['publish_date'])
+        print("🛠️ Processing video metadata layer...")
+        if 'publish_date' in df_videos.columns:
+            df_videos['published_at'] = parse_comment_dates(df_videos['publish_date'])
         if 'grab_date' in df_videos.columns:
             df_videos['grab_at'] = parse_comment_dates(df_videos['grab_date'])
         df_videos['title'] = df_videos['title'].fillna("Video Asset // ID: " + df_videos['video_id'].astype(str))
@@ -143,11 +156,77 @@ def migrate_from_commentsuite():
         df_videos['title'] = "Video Asset // ID: " + df_videos['video_id'].astype(str)
 
     # --- Save optimized analytical layers ---
+    comments_path = interim_dir / "comments_clean.parquet"
+    videos_path = interim_dir / "videos_clean.parquet"
+
+    if incremental and comments_path.exists():
+        print("⚡ Incremental mode: Reconciling new and updated records with cached Parquet artifacts...")
+        try:
+            df_existing_comments = pd.read_parquet(comments_path)
+            existing_cids = set(df_existing_comments['comment_id'].astype(str))
+            
+            # 1. Identify newly added comments
+            is_new_comment = ~df_comments['comment_id'].astype(str).isin(existing_cids)
+            df_new_comments = df_comments[is_new_comment].copy()
+            
+            # 2. Update mutable counters (like_count, reply_count) on existing comments without clobbering enriched columns
+            if not is_new_comment.all():
+                update_cols = ['comment_id']
+                if 'like_count' in df_comments.columns:
+                    update_cols.append('like_count')
+                if 'reply_count' in df_comments.columns:
+                    update_cols.append('reply_count')
+                df_common = df_comments[~is_new_comment][update_cols].copy()
+                df_existing_comments = df_existing_comments.set_index('comment_id')
+                df_existing_comments.update(df_common.set_index('comment_id'))
+                df_existing_comments = df_existing_comments.reset_index()
+
+            # 3. Append new comments (they will have NaN for enriched columns to be processed by s01)
+            if not df_new_comments.empty:
+                df_final_comments = pd.concat([df_existing_comments, df_new_comments], ignore_index=True)
+                print(f"  ➕ Appended {len(df_new_comments):,} new raw comments to existing {len(df_existing_comments):,} enriched rows.")
+            else:
+                df_final_comments = df_existing_comments
+                print(f"  ✓ 0 new comments detected. Preserved {len(df_existing_comments):,} existing comments with updated counters.")
+            
+            # 4. Update videos layer
+            if videos_path.exists() and not df_videos.empty:
+                df_existing_videos = pd.read_parquet(videos_path)
+                existing_vids = set(df_existing_videos['video_id'].astype(str))
+                df_new_videos = df_videos[~df_videos['video_id'].astype(str).isin(existing_vids)]
+                
+                df_existing_videos = df_existing_videos.set_index('video_id')
+                update_cols = [c for c in ['total_views', 'total_comments', 'video_likes', 'comment_rate', 'is_comment_disabled'] if c in df_videos.columns and c in df_existing_videos.columns]
+                if update_cols:
+                    df_existing_videos.update(df_videos.set_index('video_id')[update_cols])
+                df_final_videos = df_existing_videos.reset_index()
+                if not df_new_videos.empty:
+                    df_final_videos = pd.concat([df_final_videos, df_new_videos], ignore_index=True)
+            if 'published_at' in df_final_comments.columns:
+                df_final_comments['published_at'] = pd.to_datetime(df_final_comments['published_at'], errors='coerce')
+            if 'published_at' in df_final_videos.columns:
+                df_final_videos['published_at'] = pd.to_datetime(df_final_videos['published_at'], errors='coerce')
+
+            print("💾 Archiving updated Parquet structures to interim cache...")
+            df_final_comments.to_parquet(comments_path, index=False)
+            df_final_videos.to_parquet(videos_path, index=False)
+            print(f"✅ Incremental ingestion complete: {len(df_final_comments):,} comments, {len(df_final_videos):,} videos.")
+            return
+        except Exception as inc_err:
+            print(f"⚠️ Incremental reconcile error: {inc_err}. Falling back to full overwrite.")
+
     print("💾 Archiving clean Parquet structures to interim cache...")
-    df_comments.to_parquet(interim_dir / "comments_clean.parquet", index=False)
-    df_videos.to_parquet(interim_dir / "videos_clean.parquet", index=False)
+    df_comments.to_parquet(comments_path, index=False)
+    df_videos.to_parquet(videos_path, index=False)
 
     print(f"✅ Successfully ingested {len(df_comments)} comments across {len(df_videos)} unique videos.")
 
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Stage 00 Ingest & Synthesize")
+    parser.add_argument("--incremental", action="store_true", help="Perform non-destructive incremental upsert preserving enriched fields")
+    args = parser.parse_args()
+    migrate_from_commentsuite(incremental=args.incremental)
+
 if __name__ == "__main__":
-    migrate_from_commentsuite()
+    main()

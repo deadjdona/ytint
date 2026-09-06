@@ -80,6 +80,12 @@ uv pip install -e .
 # Or via registered console shortcut:
 .\.venv\Scripts\ytint-runner.exe
 
+# High-speed Incremental Delta Runner (processes only new/updated comments, skips in <1s if clean):
+.\.venv\Scripts\ytint-runner.exe --incremental
+
+# Audit changes between SQLite and interim Parquet:
+.\.venv\Scripts\ytint-runner.exe --diff
+
 # Run or rebuild from a specific stage
 .\.venv\Scripts\python.exe -m pipeline.runner --from-stage s19
 .\.venv\Scripts\python.exe -m pipeline.runner --stage s25

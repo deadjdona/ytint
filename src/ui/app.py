@@ -1733,6 +1733,52 @@ def main():
                             st.error(f"Ingestion failed: {ingest_err}")
 
         st.divider()
+        st.subheader("⚡ Pipeline Synchronization // Incremental Delta Runner")
+        st.markdown(
+            "Detect new or updated comments from SQLite and execute intelligent, incremental updates "
+            "across the 53-stage analytics pipeline in seconds without full recomputation."
+        )
+
+        with st.container(border=True):
+            from engine.delta import inspect_delta
+            raw_db = config.get("paths", {}).get("raw_db") or (interim_path.parent / "raw" / "commentsuite.sqlite3")
+            delta_rep = inspect_delta(raw_db, interim_path)
+
+            d_col1, d_col2, d_col3, d_col4 = st.columns(4)
+            with d_col1:
+                st.metric("New Comments Pending", f"+{delta_rep.new_comments_count:,}")
+            with d_col2:
+                st.metric("Updated Counters Pending", f"{delta_rep.updated_comments_count:,}")
+            with d_col3:
+                st.metric("New Videos Pending", f"+{delta_rep.new_videos_count:,}")
+            with d_col4:
+                sync_status_label = "⚡ Sync Required" if delta_rep.has_delta else "✅ Up to Date"
+                st.metric("Corpus Status", sync_status_label)
+
+            st.caption(
+                f"Source SQLite comments: **{delta_rep.total_sqlite_comments:,}** | "
+                f"Interim clean comments: **{delta_rep.total_interim_comments:,}** | "
+                f"Source videos: **{delta_rep.total_sqlite_videos:,}**"
+            )
+
+            sync_btn_col1, sync_btn_col2 = st.columns([2, 1])
+            with sync_btn_col1:
+                st.markdown(
+                    "Clicking **Run Incremental Pipeline Sweep** will non-destructively upsert new/updated comments in `s00`, "
+                    "selectively run NLP enrichment only on new rows in `s01`, and refresh downstream artifacts in seconds."
+                )
+            with sync_btn_col2:
+                if st.button("⚡ Run Incremental Pipeline Sweep", key="btn_run_incremental_pipeline"):
+                    with st.spinner("Executing incremental delta sweep across pipeline..."):
+                        try:
+                            from pipeline.runner import PipelineRunner
+                            runner = PipelineRunner()
+                            sweep_res = runner.run(incremental=True, force=False)
+                            st.success("🎉 Incremental pipeline sweep completed successfully! Reload dashboard to view updated intelligence.")
+                        except (Exception, SystemExit) as sweep_err:
+                            st.error(f"Sweep encountered an issue: {sweep_err}")
+
+        st.divider()
         st.subheader("💬 Ask ytint // AI Conversational Analyst")
         st.markdown(
             "Query your entire channel corpus using grounded Retrieval-Augmented Generation (RAG). "

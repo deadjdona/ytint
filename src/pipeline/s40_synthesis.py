@@ -91,7 +91,7 @@ def compile_ui_metrics():
         # ======================================================================
         pbar.set_description(f"🎭 {phases[2]}")
         
-        if 'sentiment_label' in df_comments.columns and 'sentiment_confidence' in df_comments.columns:
+        if 'topic' in df_comments.columns and 'sentiment_label' in df_comments.columns and 'sentiment_confidence' in df_comments.columns:
             # 1. Percentage distribution of sentiments per topic
             sentiment_counts = df_comments.groupby(['topic', 'sentiment_label']).size().unstack(fill_value=0)
             
@@ -108,9 +108,9 @@ def compile_ui_metrics():
                 avg_confidence=('sentiment_confidence', 'mean')
             ).reset_index()
         else:
-            logger.warning("Sentiment columns missing. Skipping polarity matrix.")
+            logger.warning("'topic' or sentiment features missing. Skipping sentiment metrics.")
             sentiment_pct = pd.DataFrame(columns=['topic'])
-            confidence_metrics = pd.DataFrame(columns=['topic'])
+            confidence_metrics = pd.DataFrame(columns=['topic', 'avg_confidence'])
 
         pbar.update(1)
 
@@ -140,6 +140,7 @@ def compile_ui_metrics():
 
         # Save back to the output directory
         df_topics.to_parquet(topics_path)
+        (output_dir / ".s40_complete").touch()
         
         pbar.set_description("✅ Synthesis Complete")
         pbar.update(1)

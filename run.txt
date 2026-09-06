@@ -20,6 +20,19 @@ The pipeline expects `data/raw/commentsuite.sqlite3`. Stages read and write the 
 
 # Alternatively, via registered console script shortcut:
 .\.venv\Scripts\ytint-runner.exe
+
+# High-speed Incremental Delta Runner (processes only new/updated comments, skips in <1s if clean):
+.\.venv\Scripts\python.exe -m pipeline.runner --incremental
+# Or:
+.\.venv\Scripts\ytint-runner.exe --incremental
+
+# Audit difference between SQLite and interim Parquet without running stages:
+.\.venv\Scripts\python.exe -m pipeline.runner --diff
+# Or:
+.\.venv\Scripts\ytint-runner.exe --diff
+
+# Force re-execution of all stages ignoring cache:
+.\.venv\Scripts\python.exe -m pipeline.runner --force
 ```
 
 To execute a single stage:

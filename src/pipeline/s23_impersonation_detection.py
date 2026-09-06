@@ -63,6 +63,8 @@ def run_impersonation_detection():
     
     if suspects.empty:
         print("✅ No impersonation detected in this dataset.")
+        out_file = out_dir / "impersonation_detection.parquet"
+        pd.DataFrame(columns=['author_display_name', 'unique_accounts', 'total_comments']).to_parquet(out_file, index=False)
         return
         
     suspects = suspects.sort_values(by=['unique_accounts', 'total_comments'], ascending=[False, False])

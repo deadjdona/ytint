@@ -150,6 +150,10 @@ graph LR
   - Granular limits for maximum uploads and comments per video to protect API quotas.
   - Built-in **Mock Mode** for offline simulation and automated testing.
   - Automatic Parquet materialization and SQLite upsert into `commentsuite.sqlite3`.
+- **⚡ Pipeline Synchronization // Incremental Delta Runner**:
+  - Real-time delta inspector between source SQLite (`commentsuite.sqlite3`) and interim Parquet artifacts.
+  - Displays live badges for pending new comments, modified upvote/reply counters, and pending new videos.
+  - One-click **"⚡ Run Incremental Pipeline Sweep"** button that non-destructively upserts new rows in `s00`, runs NLP inference strictly on missing comments in `s01`, and updates downstream analytical artifacts in seconds.
 - **💬 Ask ytint // AI Conversational Analyst (RAG)**:
   - Natural language Q&A interface grounded across all 53 pipeline metric layers.
   - Ask ad-hoc questions about channel dynamics, Pareto retention curves, bot infection rates, top audience intents, or optimal video posting strategies.

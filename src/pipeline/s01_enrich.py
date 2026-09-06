@@ -275,7 +275,7 @@ def calculate_linguistic_features(text):
     except Exception:
         return fallback
 
-def enrich_comments():
+def enrich_comments(incremental: bool = False):
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
     comments_file = interim_dir / "comments_clean.parquet"
@@ -293,13 +293,30 @@ def enrich_comments():
         print("⚠️ Ingested comments dataset is empty. Skipping enrichment.")
         return
 
-    df_comments['published_at'] = pd.to_datetime(df_comments['published_at'], errors='coerce')
+    has_enrich_cols = 'sentiment_label' in df_comments.columns
+    
+    if incremental and has_enrich_cols:
+        missing_mask = df_comments['sentiment_label'].isna() | (df_comments['sentiment_label'] == '')
+        num_missing = int(missing_mask.sum())
+        if num_missing == 0:
+            print(f"✅ Incremental check: All {len(df_comments):,} comments are already enriched.")
+            print("   ⏩ Zero pending comments require NLP/Sentiment/Toxicity inference. Skipping.")
+            sentinel = interim_dir / ".s01_complete"
+            sentinel.touch()
+            return
+        else:
+            print(f"⚡ Incremental enrichment: {num_missing:,} comments require feature calculation (preserving {len(df_comments)-num_missing:,} pre-enriched rows)...")
+
+    if 'published_at' in df_comments.columns:
+        df_comments['published_at'] = pd.to_datetime(df_comments['published_at'], errors='coerce')
+    else:
+        df_comments['published_at'] = pd.NaT
     print(f"📊 Dataset loaded into memory: {len(df_comments)} rows, {len(df_comments.columns)} columns.")
 
     # --- Pre-processing & Relational Graphs ---
     print("⏳ Computing relational tree flags (is_thread_terminal, reply_latency)...")
     
-    parent_ids_set = set(df_comments['parent_id'].dropna().unique())
+    parent_ids_set = set(df_comments['parent_id'].dropna().unique()) if 'parent_id' in df_comments.columns else set()
     df_comments['is_thread_terminal'] = ~df_comments['comment_id'].isin(parent_ids_set)
     
     df_parents = df_comments[['comment_id', 'published_at']].rename(
@@ -378,6 +395,98 @@ def enrich_comments():
         tox_model = Detoxify('multilingual', device=device)
         models_loaded = True
 
+    if incremental and has_enrich_cols and num_missing > 0:
+        print(f"🚀 Incremental Delta Mode: Enriching exclusively {num_missing:,} pending comments...")
+        load_models_if_needed()
+        df_delta = df_comments[missing_mask].copy()
+
+        # 1. Linguistic features
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (1/5) Calculating linguistic features for delta...")
+        ling_dicts = [calculate_linguistic_features(t) for t in df_delta['text']]
+        ling_data = pd.DataFrame(ling_dicts, index=df_delta.index)
+        for col in ling_data.columns:
+            df_delta[col] = ling_data[col]
+
+        # 2. BPE Tokens
+        if giga_tokenizer is not None:
+            try:
+                encoded_lists = giga_tokenizer.encode_batch_list(df_delta['text'].tolist())
+                df_delta['bpe_token_count'] = [len(toks) for toks in encoded_lists]
+            except Exception:
+                df_delta['bpe_token_count'] = df_delta['word_count']
+        else:
+            df_delta['bpe_token_count'] = df_delta['word_count']
+
+        # 3. Sentiment & Valence
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (3/5) Running deep learning Sentiment & Valence for delta...")
+        sentiments, scores, vader_compound = [], [], []
+        label_map = {0: "neutral", 1: "positive", 2: "negative"}
+        max_len = int(config.get("stage_01_enrich", {}).get("max_length", 256))
+        with torch.no_grad():
+            for i in range(0, len(df_delta), batch_size):
+                batch_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in df_delta['text'].iloc[i:i+batch_size].tolist()]
+                inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=max_len).to(device)
+                outputs = model(**inputs)
+                probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1).cpu().numpy()
+                for prob in probabilities:
+                    pred = np.argmax(prob)
+                    sentiments.append(label_map[pred])
+                    scores.append(float(prob[pred]))
+                    vader_compound.append(float(prob[1] - prob[2]))
+        df_delta['sentiment_label'] = sentiments
+        df_delta['sentiment_confidence'] = scores
+        df_delta['vader_compound'] = vader_compound
+
+        # 4. Emotions
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (4/5) Running CEDR Emotion extraction for delta...")
+        clean_emot_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in df_delta['text'].tolist()]
+        dataset = ListDataset(clean_emot_texts)
+        results = go_emotions(dataset, batch_size=batch_size, truncation=True, max_length=max_len)
+        emotion_1, emotion_2, emotion_3 = [], [], []
+        for res in results:
+            sorted_labels = sorted(res, key=lambda x: x['score'], reverse=True)
+            emotion_1.append(sorted_labels[0]['label'] if len(sorted_labels) > 0 else 'neutral')
+            emotion_2.append(sorted_labels[1]['label'] if len(sorted_labels) > 1 else 'neutral')
+            emotion_3.append(sorted_labels[2]['label'] if len(sorted_labels) > 2 else 'neutral')
+        df_delta['emotion_1'] = emotion_1
+        df_delta['emotion_2'] = emotion_2
+        df_delta['emotion_3'] = emotion_3
+
+        # 5. Toxicity
+        print(f"  [{datetime.now().strftime('%H:%M:%S')}] -> (5/5) Running Toxicity scoring for delta...")
+        tox_batch_size = 32
+        tox_results = {'toxicity': [], 'severe_toxicity': [], 'insult': [], 'obscene': []}
+        for i in range(0, len(df_delta), tox_batch_size):
+            batch_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in df_delta['text'].iloc[i:i+tox_batch_size].tolist()]
+            try:
+                inputs = tox_model.tokenizer(batch_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_len).to(device)
+                with torch.no_grad():
+                    out = tox_model.model(**inputs)[0]
+                    sc = torch.sigmoid(out).cpu().detach().numpy()
+                for class_idx, cla in enumerate(tox_model.class_names):
+                    if cla in tox_results:
+                        tox_results[cla].extend(sc[:, class_idx].tolist())
+            except Exception:
+                for cla in tox_results:
+                    tox_results[cla].extend([0.0] * len(batch_texts))
+        df_delta['toxicity'] = [round(v, 4) for v in tox_results['toxicity']]
+        df_delta['severe_toxicity'] = [round(v, 4) for v in tox_results['severe_toxicity']]
+        df_delta['insult'] = [round(v, 4) for v in tox_results['insult']]
+        df_delta['obscene'] = [round(v, 4) for v in tox_results['obscene']]
+
+        # Update into main comments dataframe
+        for col in df_delta.columns:
+            if col in df_comments.columns:
+                df_comments.loc[missing_mask, col] = df_delta[col].values
+            else:
+                df_comments[col] = df_delta[col]
+
+        print("💾 Archiving updated enriched dataset on disk...")
+        df_comments.to_parquet(comments_file, index=False)
+        (interim_dir / ".s01_complete").touch()
+        print(f"✅ Stage 01 Incremental Enrichment complete ({len(df_delta):,} delta rows processed in seconds).")
+        return
+
     checkpoint_dir = interim_dir / "enrich_checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     
@@ -389,8 +498,9 @@ def enrich_comments():
         if chunk_file.exists():
             try:
                 restored_chunk = pd.read_parquet(chunk_file)
-                target_ids = df_comments['comment_id'].iloc[start_idx:start_idx+len(restored_chunk)].tolist()
-                if list(restored_chunk['comment_id']) == target_ids:
+                expected_len = len(df_comments.iloc[start_idx:start_idx+chunk_size])
+                target_ids = df_comments['comment_id'].iloc[start_idx:start_idx+expected_len].tolist()
+                if len(restored_chunk) == expected_len and list(restored_chunk['comment_id']) == target_ids:
                     print(f"\n[{datetime.now().strftime('%H:%M:%S')}] ⏩ [Chunk {start_idx}-{start_idx+chunk_size}] Restored from checkpoint ({chunk_file.name})")
                     out_chunks.append(restored_chunk)
                     continue
@@ -534,5 +644,12 @@ def enrich_comments():
     final_df.to_parquet(comments_file, index=False)
     print("✅ Stage 01 Temporal, Linguistic, Sentiment, Emotion & Toxicity Enrichment Complete!")
 
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Stage 01 Deep Sentiment & Linguistic Enrichment")
+    parser.add_argument("--incremental", action="store_true", help="Perform incremental delta enrichment skipping pre-computed comments")
+    args = parser.parse_args()
+    enrich_comments(incremental=args.incremental)
+
 if __name__ == "__main__":
-    enrich_comments()
+    main()

@@ -11,6 +11,7 @@ if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
 from engine.config_loader import load_config, get_paths
+from engine.delta import inspect_delta, save_pipeline_state, load_pipeline_state, DeltaReport
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
@@ -348,7 +349,7 @@ class PipelineRunner:
                 "module": "pipeline.s40_synthesis",
                 "entry_func": "compile_ui_metrics",
                 "inputs": [self.interim / "comments_clean.parquet", self.output / "topic_metadata.parquet"],
-                "outputs": []  # Modifies topic_metadata.parquet in-place
+                "outputs": [self.output / ".s40_complete"]
             },
 
             # === Phase 5b: Supplementary Analysis Stages ===
@@ -511,14 +512,15 @@ class PipelineRunner:
                     
         return False
 
-    def execute_stage(self, stage_id: str):
+    def execute_stage(self, stage_id: str, incremental: bool = False):
         canonical_id = self.resolve_stage_id(stage_id)
         if not canonical_id or canonical_id not in self.registry:
             logger.error(f"❌ Cannot execute unknown stage [{stage_id}]")
             sys.exit(1)
             
         meta = self.registry[canonical_id]
-        logger.info(f"🚀 Running Stage [{canonical_id}] -> {meta['desc']}")
+        mode_tag = " [INCREMENTAL]" if incremental and canonical_id in ["s00", "s01"] else ""
+        logger.info(f"🚀 Running Stage [{canonical_id}]{mode_tag} -> {meta['desc']}")
         
         try:
             # Dynamically import the target script module
@@ -527,8 +529,13 @@ class PipelineRunner:
             # Resolve and execute the targeted functional entry hook
             run_func = getattr(module, meta["entry_func"])
             
-            # Run execution layer
-            run_func()
+            # Check if entry function supports incremental parameter
+            import inspect
+            sig = inspect.signature(run_func)
+            if incremental and "incremental" in sig.parameters:
+                run_func(incremental=True)
+            else:
+                run_func()
             
             # Touch sentinel files if configured
             for out_file in meta["outputs"]:
@@ -580,17 +587,57 @@ class PipelineRunner:
             
         return stage_input
 
-    def run(self, force_stage: str = None, run_from: str = None):
+    def run(self, force_stage: str = None, run_from: str = None, incremental: bool = False, diff_only: bool = False, force: bool = False):
         logger.info(f"Initializing ytint Processing Engine Execution Grid. Root context: {self.root_dir}")
         
+        if diff_only:
+            delta = inspect_delta(self.raw_db, self.interim)
+            print("\n📊 ytint Pipeline Ingestion Delta Audit:")
+            print(delta.summary_text())
+            print()
+            return delta
+
         if force_stage:
             resolved = self.resolve_stage_id(force_stage)
             if not resolved or resolved not in self.registry:
                 logger.error(f"❌ Requested stage '{force_stage}' does not exist in pipeline footprint.")
                 sys.exit(1)
-            self.execute_stage(resolved)
+            self.execute_stage(resolved, incremental=incremental)
             logger.info(f"🎉 Targeted Execution of Stage [{resolved}] Completed.")
             return
+
+        if incremental:
+            delta = inspect_delta(self.raw_db, self.interim)
+            logger.info(f"⚡ Inspecting incremental status: has_delta={delta.has_delta}, new_comments={delta.new_comments_count}, updated_comments={delta.updated_comments_count}, new_videos={delta.new_videos_count}")
+            
+            # Check if all downstream artifacts exist
+            missing_artifacts = any(self.stage_requires_execution(s) for s in self.ordered_stages)
+            
+            if not delta.has_delta and not missing_artifacts and not run_from and not force:
+                logger.info("✅ All pipeline artifacts are fully synchronized with source SQLite (0 pending deltas).")
+                logger.info("🎉 Incremental sweep finished in < 1 second. Nothing to recompute.")
+                save_pipeline_state(self.interim, delta, mode="incremental")
+                return delta
+
+            logger.info("⚡ Delta detected or synchronization required. Running incremental ingest and enrichment...")
+            # Execute s00 incrementally
+            self.execute_stage("s00", incremental=True)
+            # Execute s01 incrementally (enriches only missing rows)
+            self.execute_stage("s01", incremental=True)
+            
+            # Now run downstream stages from s02 onward
+            start_s02_idx = self.ordered_stages.index("s02") if "s02" in self.ordered_stages else 2
+            downstream = self.ordered_stages[start_s02_idx:]
+            cascade = bool(force)
+            for s in downstream:
+                if cascade or self.stage_requires_execution(s):
+                    self.execute_stage(s)
+                else:
+                    logger.info(f"✓ Skipping Stage [{s}] ({self.registry[s]['desc']}) - Artifacts Valid.")
+            
+            save_pipeline_state(self.interim, delta, mode="incremental")
+            logger.info("🎉 Complete Incremental Pipeline Processing Sweep Executed Successfully.")
+            return delta
 
         stages_to_run = list(self.ordered_stages)
         if run_from:
@@ -599,7 +646,7 @@ class PipelineRunner:
                 start_idx = self.ordered_stages.index(resolved_from)
                 stages_to_run = self.ordered_stages[start_idx:]
 
-        cascade = False
+        cascade = bool(force)
         for s in stages_to_run:
             if run_from and s == self.resolve_stage_id(run_from):
                 cascade = True
@@ -617,11 +664,20 @@ def main():
     parser = argparse.ArgumentParser(description="ytint Analytical Engine Runner Workflow Grid")
     parser.add_argument("--stage", type=str, default=None, help="Force execute a single standalone module stage slot")
     parser.add_argument("--from-stage", type=str, default=None, help="Force sequential cascade execution from this stage index forward")
+    parser.add_argument("--incremental", action="store_true", help="Perform intelligent incremental delta processing on newly added or modified records")
+    parser.add_argument("--diff", action="store_true", help="Inspect and display pending delta between SQLite and interim Parquet artifacts without executing")
+    parser.add_argument("--force", action="store_true", help="Force execution regardless of existing artifact status")
     parser.add_argument("--report", action="store_true", help="Generate Executive Intelligence Dossier HTML report upon completion")
     args = parser.parse_args()
 
     orchestrator = PipelineRunner()
-    orchestrator.run(force_stage=args.stage, run_from=args.from_stage)
+    orchestrator.run(
+        force_stage=args.stage,
+        run_from=args.from_stage,
+        incremental=args.incremental,
+        diff_only=args.diff,
+        force=args.force
+    )
 
     if args.report:
         try:
