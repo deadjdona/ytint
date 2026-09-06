@@ -1908,8 +1908,235 @@ def main():
                 with st.container(border=True):
                     st.markdown(st.session_state["rag_answer_text"])
 
+        st.divider()
+        st.subheader("🚨 Automated Anomaly & Threat Alerting Console")
+        st.markdown(
+            "Continuous automated threat monitoring scanning forensic, epidemiological, and viral signals "
+            "across all 53 pipeline layers. Formats and dispatches instant webhook alerts to Discord, Slack, or Telegram."
+        )
+
+        with st.container(border=True):
+            from engine.alerting import AlertManager
+            alert_mgr = AlertManager(output_path, interim_path, config)
+            threat_report = alert_mgr.scan_threats(severity_threshold="INFO")
+
+            # KPI Scorecards
+            kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+            with kpi_col1:
+                status_color = "🔴" if threat_report.max_severity == "CRITICAL" else ("🟠" if threat_report.max_severity == "WARNING" else "🟢")
+                st.metric("Threat Status", f"{status_color} {threat_report.max_severity}")
+            with kpi_col2:
+                st.metric("Critical Threats", f"{threat_report.critical_count}")
+            with kpi_col3:
+                st.metric("Warnings Flagged", f"{threat_report.warning_count}")
+            with kpi_col4:
+                st.metric("Total Active Anomalies", f"{threat_report.total_incidents}")
+
+            # Threat Digest Ledger
+            if threat_report.incidents:
+                incident_records = [
+                    {
+                        "Severity": inc.severity,
+                        "Threat Dimension": inc.title.replace("🚨 ", "").replace("⚠️ ", "").replace("📈 ", "").replace("🔥 ", "").replace("⚡ ", "").replace("🤖 ", "").replace("🎯 ", ""),
+                        "Forensic Summary": inc.summary,
+                        "Strategic Action": inc.action_recommendation
+                    }
+                    for inc in threat_report.incidents
+                ]
+                df_threats = pd.DataFrame(incident_records)
+                st.dataframe(df_threats, width="stretch", hide_index=True)
+            else:
+                st.success("✅ No critical threats or viral anomalies detected. Channel health is nominal.")
+
+            # Webhook Dispatcher
+            with st.expander("📡 Webhook Notification Dispatcher", expanded=False):
+                wh_col1, wh_col2 = st.columns([2, 1])
+                default_wh = config.get("alerting", {}).get("webhook_url", "")
+                with wh_col1:
+                    ui_webhook_url = st.text_input(
+                        "Webhook URL (Discord, Slack, Telegram, or Generic JSON):",
+                        value=default_wh,
+                        key="ui_alert_webhook_url"
+                    )
+                    wh_platform = st.selectbox(
+                        "Target Platform:",
+                        options=["auto", "discord", "slack", "telegram", "generic"],
+                        index=0,
+                        key="ui_alert_platform_sel"
+                    )
+                    wh_sev_thresh = st.selectbox(
+                        "Dispatch Threshold:",
+                        options=["INFO", "WARNING", "CRITICAL"],
+                        index=1,
+                        key="ui_alert_thresh_sel"
+                    )
+
+                with wh_col2:
+                    dry_run_toggle = st.checkbox(
+                        "Dry-Run Mode (Simulation only, no network calls)",
+                        value=True if not ui_webhook_url else False,
+                        key="ui_alert_dry_run_cb"
+                    )
+                    show_payload_preview = st.checkbox(
+                        "Preview Rendered Payload",
+                        value=False,
+                        key="ui_alert_preview_cb"
+                    )
+
+                if show_payload_preview:
+                    preview_report = alert_mgr.scan_threats(severity_threshold=wh_sev_thresh)
+                    resolved_p = wh_platform if wh_platform != "auto" else alert_mgr.detect_webhook_type(ui_webhook_url)
+                    if resolved_p == "discord":
+                        preview_dict = alert_mgr.format_discord_payload(preview_report)
+                    elif resolved_p == "slack":
+                        preview_dict = alert_mgr.format_slack_payload(preview_report)
+                    elif resolved_p == "telegram":
+                        preview_dict = alert_mgr.format_telegram_payload(preview_report)
+                    else:
+                        preview_dict = preview_report.to_dict()
+                    st.json(preview_dict)
+
+                if st.button("🚀 Dispatch Threat Alert Digest", key="btn_dispatch_alert"):
+                    with st.spinner("Compiling threat report and dispatching alert..."):
+                        active_report = alert_mgr.scan_threats(severity_threshold=wh_sev_thresh)
+                        dispatch_res = alert_mgr.dispatch(
+                            report=active_report,
+                            webhook_url=ui_webhook_url.strip() or None,
+                            webhook_type=wh_platform,
+                            dry_run=dry_run_toggle
+                        )
+                        if dispatch_res.get("mode") == "DRY_RUN":
+                            st.info(f"📁 Dry-Run Digest saved successfully to: `{dispatch_res.get('saved_to')}`")
+                        elif dispatch_res.get("success"):
+                            st.success(f"🎉 Threat notification successfully dispatched to {dispatch_res.get('platform', '').upper()}!")
+                        else:
+                            st.error(f"⚠️ Dispatch encountered an error: {dispatch_res.get('error')}")
+
+        st.divider()
+        st.subheader("🔍 Neural Semantic Vector Search & Feedback Clustering")
+        st.markdown(
+            "Sub-50ms neural vector similarity search over 340,027 root comments using precomputed 384-dimensional "
+            "SentenceTransformer embeddings. Search by natural language concepts with loyalty-tier filtering and "
+            "automatic thematic feedback clustering."
+        )
+
+        with st.container(border=True):
+            preset_queries = [
+                "Audio, microphone and sound distortion",
+                "Video length and editing pacing suggestions",
+                "Content and topic requests for future episodes",
+                "Constructive criticism and disagreements",
+                "Community praise and gratitude"
+            ]
+
+            st.markdown("**Suggested Quick-Queries:**")
+            pill_cols = st.columns(len(preset_queries))
+            for i, pq in enumerate(preset_queries):
+                with pill_cols[i]:
+                    if st.button(pq, key=f"btn_preset_{i}"):
+                        st.session_state["active_semantic_query"] = pq
+
+            initial_query = st.session_state.get("active_semantic_query", "")
+
+            v_col1, v_col2 = st.columns([3, 1])
+            with v_col1:
+                ui_search_query = st.text_input(
+                    "Natural Language Search Query or Concept:",
+                    value=initial_query,
+                    placeholder="e.g. microphone noise, requests for part 2, criticism of editing...",
+                    key="ui_semantic_query_input"
+                )
+            with v_col2:
+                ui_search_k = st.slider("Max Retrieved Comments:", min_value=5, max_value=100, value=20, step=5, key="ui_semantic_k_slider")
+
+            flt_col1, flt_col2, flt_col3, flt_col4 = st.columns(4)
+            with flt_col1:
+                ui_tier_filter = st.selectbox(
+                    "Filter by Loyalty Tier:",
+                    options=["All", "Champions", "Loyalists", "Potential", "Regular", "Casual", "Drive-by"],
+                    index=0,
+                    key="ui_semantic_tier_filter"
+                )
+            with flt_col2:
+                ui_min_likes = st.number_input("Minimum Likes Threshold:", min_value=0, value=0, step=1, key="ui_semantic_min_likes")
+            with flt_col3:
+                ui_cluster_toggle = st.checkbox("Cluster Feedback into Themes", value=True, key="ui_semantic_cluster_cb")
+            with flt_col4:
+                btn_exec_search = st.button("🔎 Search Vectors", key="btn_exec_semantic_search")
+
+            if btn_exec_search or ui_search_query.strip():
+                q_to_run = ui_search_query.strip()
+                if q_to_run:
+                    with st.spinner(f"Scanning 340k vector embeddings for '{q_to_run}'..."):
+                        from engine.semantic_search import SemanticSearchEngine
+                        search_engine = SemanticSearchEngine(interim_path, output_path, config)
+                        search_results = search_engine.search(
+                            query=q_to_run,
+                            top_k=ui_search_k,
+                            min_likes=ui_min_likes,
+                            loyalty_tier=ui_tier_filter if ui_tier_filter != "All" else None
+                        )
+                        if ui_cluster_toggle:
+                            search_engine.cluster_feedback(search_results)
+                        st.session_state["cached_search_results"] = search_results
+
+            if "cached_search_results" in st.session_state:
+                res_obj = st.session_state["cached_search_results"]
+
+                s_m1, s_m2, s_m3 = st.columns(3)
+                with s_m1:
+                    st.metric("Vector Query Latency", f"{res_obj.query_latency_ms:.1f} ms")
+                with s_m2:
+                    st.metric("Retrieved Comments", f"{res_obj.results_count}")
+                with s_m3:
+                    st.metric("Vector Corpus Size", f"{res_obj.total_searched:,}")
+
+                # Render Thematic Clusters
+                if res_obj.clusters:
+                    st.markdown("#### 📂 Thematic Feedback Clusters")
+                    n_cl = len(res_obj.clusters)
+                    cl_cols = st.columns(min(3, n_cl))
+                    for idx, c in enumerate(res_obj.clusters):
+                        col_idx = idx % min(3, n_cl)
+                        with cl_cols[col_idx]:
+                            with st.container(border=True):
+                                st.markdown(f"**Cluster #{c.cluster_id}: {c.theme_label}**")
+                                st.caption(f"Volume: **{c.comment_count}** comments | Total Likes: **{c.total_likes:,}**")
+                                st.markdown(f"**Dominant Cohort:** `{c.dominant_tier}`")
+                                st.markdown(f"**Avg Sentiment:** `{c.avg_sentiment:+.2f}`")
+                                st.markdown(f"> *\"{c.exemplar_quote}\"*")
+
+                # Render Comments Table
+                if res_obj.results:
+                    st.markdown("#### 💬 Top Semantic Matches")
+                    df_disp = res_obj.to_dataframe()
+                    cols_to_show = ["similarity_score", "video_title", "author_display_name", "rfm_tier", "like_count", "sentiment_score", "text"]
+                    cols_present = [c for c in cols_to_show if c in df_disp.columns]
+
+                    st.dataframe(df_disp[cols_present], width="stretch", hide_index=True)
+
+                    dl_col1, dl_col2 = st.columns(2)
+                    with dl_col1:
+                        st.download_button(
+                            label="⬇️ Download Search Results (.csv)",
+                            data=df_disp.to_csv(index=False).encode("utf-8"),
+                            file_name="ytint_semantic_search.csv",
+                            mime="text/csv",
+                            key="dl_search_csv"
+                        )
+                    with dl_col2:
+                        st.download_button(
+                            label="⬇️ Download Search Results (.json)",
+                            data=res_obj.to_json(),
+                            file_name="ytint_semantic_search.json",
+                            mime="application/json",
+                            key="dl_search_json"
+                        )
+
 if __name__ == "__main__":
     main()
+
+
 
 
 

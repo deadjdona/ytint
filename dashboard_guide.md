@@ -164,6 +164,18 @@ graph LR
   - Natural language Q&A interface grounded across all 53 pipeline metric layers.
   - Ask ad-hoc questions about channel dynamics, Pareto retention curves, bot infection rates, top audience intents, or optimal video posting strategies.
   - Grounded responses citing exact numerical evidence from the computed pipeline artifacts.
+- **🚨 Automated Anomaly & Threat Alerting Console (Section 7.5 / src/engine/alerting.py)**:
+  - Automated scanner continuously inspecting 7 forensic and viral dimensions (CIB astroturfing rings, creator impersonation, viral volume spikes, negative sentiment shocks, toxicity outbreaks, troll sparks, like inflation, topic injection).
+  - Real-time Threat Status scorecards (Overall Status, Critical Threats, Warnings, Total Active Anomalies).
+  - Active Threat Digest Ledger detailing severity, triggered threat dimensions, forensic metrics, and recommended creator interventions.
+  - Interactive Webhook Notification Dispatcher supporting Discord embeds, Slack Block Kit, Telegram HTML, or generic JSON endpoints.
+  - Built-in Dry-Run / Preview mode and live payload inspector before remote dispatch.
+- **🔍 Neural Semantic Vector Search & Feedback Clustering (Section 7.6 / src/engine/semantic_search.py)**:
+  - Sub-50ms neural similarity search across 340,027 root comments using precomputed 384-dimensional SentenceTransformer embeddings (`topic_embeddings.npy`).
+  - Natural language concept searching (sound distortion, future video ideas, editing pacing feedback, constructive criticism).
+  - Multi-dimensional filters: Author Loyalty Tier (`Champions`, `Loyalists`, `Regular`, `Casual`, `Drive-by`), Minimum Upvotes, and Video ID.
+  - Thematic Feedback Clustering: Groups retrieved comments into distinct thematic clusters with c-TF-IDF keyword tags, average sentiment, comment counts, and representative exemplar quotes.
+  - Direct 1-click downloads for search results in `.csv` and `.json`.
 
 ---
 

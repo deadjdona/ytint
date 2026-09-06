@@ -132,6 +132,16 @@ graph TD
   5. **Interactive WebGL Topology Explorer**: Renders 2D force-directed spring layouts in Plotly with dynamic node sizing, community coloring, and rich multi-attribute hover cards.
   6. **Dashboard Integration**: Tab 4 Section 4.6 interactive network explorer with dynamic top-$K$ filter slider (25-250), color dimension picker, and direct 1-click GEXF/GraphML download buttons.
 
+### 🚨 Automated Webhook Anomaly & Threat Alerting Daemon ([`src/engine/alerting.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/alerting.py))
+- **Command**: `ytint-alert --dry-run` or `ytint-runner --alert`
+- **Features**:
+  1. **Continuous Threat Scanning**: Scans 7 forensic and anomaly layers across CIB astroturfing rings, creator impersonation, viral volume surges, negative sentiment shocks, toxicity outbreaks, troll catalyst instigators, like inflation, and thematic hijacking.
+  2. **Multi-Platform Webhook Dispatcher**: Native, rich payload formatting for Discord embeds (color severity coding, timestamped threat fields), Slack Block Kit (section blocks, metric fields), Telegram HTML, and generic JSON endpoints.
+  3. **Zero-SDK Network Leanliness**: Built using Python standard library `urllib.request` with strict 7-second timeouts and robust error handling.
+  4. **Built-In Dry-Run & Simulation**: Automatically generates and saves structured alert digests to `data/output/alerts/latest_alert.json` when offline or in test mode without failing.
+  5. **Pipeline & CLI Integration**: Registered `ytint-alert` console script and added `--alert` flag to `pipeline.runner`.
+  6. **Interactive Dashboard Console**: Tab 7 Section 7.5 Alerting Console with live threat scorecards, active incident ledger, webhook configuration, payload preview, and 1-click dispatch.
+
 ---
 
 ## 🎨 5. Streamlit Executive Dashboard Architecture
@@ -144,7 +154,7 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, and 🌐 **Interactive Community Network & Gephi Topology Explorer** (2D force-directed spring layout, top-$K$ node filter slider 25-250, Louvain community coloring, and 1-click GEXF/GraphML export buttons).
 5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, and Dunn's post-hoc matrix.
 6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation (Bar, Histogram, Scatter, Line), 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, and instant CSV/Parquet export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation (Bar, Histogram, Scatter, Line), 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console** (live scorecards, active threat ledger, webhook dispatcher), and instant CSV/Parquet export across all 53 layers.
 
 ---
 
@@ -156,10 +166,11 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 ```
 
 **Results**:
-- **Total Tests**: **148 test cases**
-- **Passed**: **148 passed (100% pass rate)**
+- **Total Tests**: **157 test cases**
+- **Passed**: **157 passed (100% pass rate)**
 - **Failed**: **0 failed**
-- **Duration**: ~65s
-- **Coverage**: Engine unit tests (`network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+- **Duration**: ~66s
+- **Coverage**: Engine unit tests (`alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+
 
 

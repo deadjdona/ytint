@@ -63,6 +63,9 @@ ytint-report = "engine.reporter:main"
 ytint-ingest = "engine.youtube_api:main"
 ytint-ai = "engine.synthesizer:main"
 ytint-graph = "engine.network_exporter:main"
+ytint-alert = "engine.alerting:main"
+ytint-search = "engine.semantic_search:main"
+ytint-replay = "engine.event_replay:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

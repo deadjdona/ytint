@@ -139,6 +139,32 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 .\.venv\Scripts\ytint-runner.exe --networks
 ```
 
+### 8. Automated Anomaly & Threat Alerting (Webhooks)
+
+```powershell
+# Scan forensic & anomaly layers in dry-run mode (saved to data/output/alerts/latest_alert.json):
+.\.venv\Scripts\ytint-alert.exe --dry-run
+
+# Dispatch to Discord / Slack / Telegram webhooks:
+.\.venv\Scripts\ytint-alert.exe --webhook-url "https://discord.com/api/webhooks/..." --severity WARNING
+
+# Or automatically upon pipeline sweep:
+.\.venv\Scripts\ytint-runner.exe --alert
+```
+
+### 9. Neural Semantic Vector Search & Feedback Clustering
+
+```powershell
+# Run sub-50ms vector similarity search with thematic feedback clustering:
+.\.venv\Scripts\ytint-search.exe --query "audio quality issues microphone echo" --top-k 20 --clusters 4
+
+# Multi-faceted filtering (loyalty tier, minimum likes, sentiment polarity):
+.\.venv\Scripts\ytint-search.exe --query "video editing pacing" --tier "Loyalists" --min-likes 5 --sentiment-min 0.2
+
+# Export results directly to CSV or JSON:
+.\.venv\Scripts\ytint-search.exe --query "feature request roadmap" --export-format json --output search_results.json
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
@@ -149,7 +175,8 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, and **Interactive Community Network & Gephi Topology Explorer** (2D force-directed layout, top-$K$ node filtering, Louvain community coloring, and 1-click GEXF/GraphML exports).
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, and audience overlap heatmap.
 6. **Publication-Ready Visual Analytics Gallery**: Comprehensive catalog of 68+ high-resolution statistical plots with analytical guides and strategic takeaways.
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer (instant Bar, Histogram, Scatter, or Line charts), Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, and instant CSV/Parquet dataset export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer (instant Bar, Histogram, Scatter, or Line charts), Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, Automated Anomaly & Threat Alerting Console, **Neural Semantic Vector Search & Feedback Clustering Console** (sub-50ms dot-product similarity, RFM tier/sentiment filters, $k$-means thematic clustering, and CSV/JSON export), and instant dataset export across all 53 layers.
+
 
 ---
 

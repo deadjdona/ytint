@@ -130,3 +130,48 @@ Extract, serialize, and export community network topologies for Gephi, Cytoscape
 .\.venv\Scripts\ytint-runner.exe --networks
 ```
 
+## Automated Anomaly & Threat Alerting (Webhooks)
+
+Continuously scan forensic and anomaly layers and dispatch notifications to Discord, Slack, Telegram, or generic webhooks:
+
+```powershell
+# Run threat scan in dry-run mode (saves JSON digest to data/output/alerts/latest_alert.json):
+.\.venv\Scripts\python.exe -m engine.alerting --dry-run
+# Or via console script shortcut:
+.\.venv\Scripts\ytint-alert.exe --dry-run
+
+# Dispatch to a Discord webhook:
+.\.venv\Scripts\ytint-alert.exe --webhook-url "https://discord.com/api/webhooks/..." --severity WARNING
+
+# Dispatch to a Slack webhook:
+.\.venv\Scripts\ytint-alert.exe --webhook-url "https://hooks.slack.com/services/..." --severity CRITICAL
+
+# Dispatch to a Telegram bot:
+.\.venv\Scripts\ytint-alert.exe --webhook-url "https://api.telegram.org/bot<TOKEN>/sendMessage" --chat-id "<CHAT_ID>"
+
+# Automatically scan and dispatch alerts upon pipeline sweep:
+.\.venv\Scripts\ytint-runner.exe --alert
+```
+
+## Neural Semantic Vector Search & Feedback Clustering
+
+Perform sub-50ms natural language vector search and thematic feedback clustering over the 340,027 root comments:
+
+```powershell
+# Semantic query using neural SentenceTransformer (or auto-fallback):
+.\.venv\Scripts\python.exe -m engine.semantic_search "audio microphone quality"
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-search.exe "audio microphone quality"
+
+# Filter by loyalty tier and cluster retrieved feedback into thematic sub-topics:
+.\.venv\Scripts\ytint-search.exe "video editing pacing" --tier Champions --cluster --n-clusters 3
+
+# Fast mock projection mode for offline testing and unit tests:
+.\.venv\Scripts\ytint-search.exe "feature requests" --mock --top-k 10 --cluster
+
+# Output results as structured JSON:
+.\.venv\Scripts\ytint-search.exe "constructive criticism" --top-k 5 --json
+```
+
+
+

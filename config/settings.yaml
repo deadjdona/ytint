@@ -134,3 +134,44 @@ llm_analysis:
   ollama_model: "llama3"
   max_tokens: 1024
   temperature: 0.3
+
+# === Automated Webhook Anomaly & Threat Alerting ===
+alerting:
+  enabled: true
+  webhook_url: ""               # Discord, Slack, Telegram, or generic webhook URL (or env YTINT_WEBHOOK_URL)
+  webhook_type: "auto"          # auto | discord | slack | telegram | generic
+  telegram_chat_id: ""          # Required if webhook_type is telegram (or env YTINT_TELEGRAM_CHAT_ID)
+  severity_threshold: "WARNING" # Minimum severity to dispatch: INFO | WARNING | CRITICAL
+  rules:
+    cib_rings:
+      enabled: true
+      severity: "CRITICAL"
+      min_ring_size: 2
+    impersonation:
+      enabled: true
+      severity: "CRITICAL"
+    viral_spikes:
+      enabled: true
+      severity: "WARNING"
+      min_z_score: 3.0
+    sentiment_negativity_spike:
+      enabled: true
+      severity: "WARNING"
+      min_negative_z_score: 2.5
+    toxicity_outbreak:
+      enabled: true
+      severity: "WARNING"
+      min_r0: 1.0
+      min_toxic_share: 0.15
+    troll_catalysts:
+      enabled: true
+      severity: "WARNING"
+      min_catalyst_score: 10.0
+    like_inflation:
+      enabled: true
+      severity: "WARNING"
+      min_suspicious_count: 5
+    topic_injection:
+      enabled: true
+      severity: "INFO"
+      min_jsd: 0.35

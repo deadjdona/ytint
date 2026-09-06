@@ -669,6 +669,7 @@ def main():
     parser.add_argument("--force", action="store_true", help="Force execution regardless of existing artifact status")
     parser.add_argument("--report", action="store_true", help="Generate Executive Intelligence Dossier HTML report upon completion")
     parser.add_argument("--networks", action="store_true", help="Build and export GEXF and GraphML network graph files to output/networks/")
+    parser.add_argument("--alert", action="store_true", help="Scan forensic layers and dispatch anomaly alert digest via webhook")
     args = parser.parse_args()
 
     orchestrator = PipelineRunner()
@@ -699,5 +700,22 @@ def main():
         except Exception as e:
             logger.error(f"❌ Failed to export network graphs: {e}")
 
+    if args.alert:
+        try:
+            from engine.alerting import AlertManager
+            logger.info("🚨 Scanning forensic anomaly layers and dispatching alerts...")
+            manager = AlertManager()
+            report = manager.scan_threats()
+            res = manager.dispatch(report)
+            if res.get("mode") == "DRY_RUN":
+                logger.info(f"🎉 Alert scan complete (Dry-Run). Digest saved to: {res.get('saved_to')}")
+            elif res.get("success"):
+                logger.info(f"🎉 Alert successfully dispatched to {res.get('platform', '').upper()}!")
+            else:
+                logger.warning(f"⚠️ Webhook alert dispatch encountered an issue: {res.get('error')}")
+        except Exception as e:
+            logger.error(f"❌ Failed to run anomaly alerting daemon: {e}")
+
 if __name__ == "__main__":
-    main()
+    main()
+
