@@ -52,7 +52,8 @@ def segment_thematic_eras(df_comments, min_duration_weeks=12, penalty_modifier=2
         return []
 
     # 1. Pivot text distributions to build a clean temporal matrix (Weeks x Topics)
-    df_comments['week'] = df_comments['published_at'].dt.to_period('W').dt.to_timestamp()
+    df_comments = df_comments.copy()
+    df_comments['week'] = pd.to_datetime(df_comments['published_at']).dt.to_period('W').dt.to_timestamp()
     
     # Drop noise records (-1) to look purely at structured narrative trends
     df_structured = df_comments[df_comments[topic_column] != -1]
@@ -72,8 +73,8 @@ def segment_thematic_eras(df_comments, min_duration_weeks=12, penalty_modifier=2
     normalized_matrix = topic_matrix.div(row_sums, axis=0).fillna(0).values
     
     if len(normalized_matrix) < min_duration_weeks:
-        # Not enough history to calculate segments; return whole timeline as single Era
-        return [0, len(topic_matrix)]
+        # Not enough history to calculate segments; return start and end timestamps
+        return [topic_matrix.index[0], topic_matrix.index[-1]] if not topic_matrix.empty else []
 
     # 2. Configure Ruptures cost function engine (L2 tracking for variance shifts)
     algo = rpt.Window(width=min_duration_weeks, model="l2").fit(normalized_matrix)

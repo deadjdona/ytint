@@ -51,7 +51,7 @@ class PipelineRunner:
         # Phase 3: Author Profiling & Forensics (s16 - s27)
         # Phase 4: Video Dynamics, Cohorts & Longitudinal Topology (s28 - s37)
         # Phase 5: Predictive, Causal Modeling & Synthesis (s38 - s40)
-        # Phase 5b: Extended Analysis Stages (s41 - s46)
+        # Phase 5b: Extended Analysis Stages (s41 - s51)
         # Phase 6: Visualizations & Reporting (s99 - ALWAYS LAST)
         self.registry = {
             # === Phase 1: Ingestion & Foundational NLP/Semantics ===

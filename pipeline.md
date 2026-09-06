@@ -6,9 +6,9 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 
 ## 📋 Executive Summary
 
-- **Total Analytical Layers**: 48 discrete stages structured across 7 logical phases (s00–s46 + s99).
-- **1:1 Canonical File Mapping**: Every stage script in `src/pipeline/` is physically named after its canonical stage ID (`s00_ingest.py` through `s40_synthesis.py`, plus `s99_visualize.py`).
-- **Strict Dependency Ordering**: Foundational data ingestion and NLP enrichment execute first, followed by conversational topology, author forensics, longitudinal video dynamics, predictive modeling, and finally publication visualizations (`s99_visualize.py`).
+- **Total Analytical Layers**: 53 discrete stages structured across 7 logical phases (s00–s51 + s99).
+- **1:1 Canonical File Mapping**: Every stage script in `src/pipeline/` is physically named after its canonical stage ID (`s00_ingest.py` through `s51_topic_injection.py`, plus `s99_visualize.py`).
+- **Strict Dependency Ordering**: Foundational data ingestion and NLP enrichment execute first, followed by conversational topology, author forensics, longitudinal video dynamics, predictive modeling, extended supplementary analysis, and finally publication visualizations (`s99_visualize.py`).
 - **Inter-Step Upstream Data Reuse**: Downstream forensic and segmentation layers directly utilize precomputed tables (`authors_final.parquet`, `videos_final.parquet`, `topic_metadata.parquet`, `bot_classifications.parquet`) to eliminate redundant compute.
 - **Runner Execution**:
 
@@ -319,6 +319,76 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 
 - **Purpose**: Final pre-computation step synthesizing dashboard metadata and indexing topic titles in-place.
 - **Outputs**: Updates `topic_metadata.parquet` in-place
+
+---
+
+### Phase 5b: Extended Supplementary Analysis
+
+#### `s41`: TF-IDF Keyword Extraction per Video ([s41_tfidf_keywords.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s41_tfidf_keywords.py))
+
+- **Purpose**: Computes video-specific TF-IDF keyword extraction and uncovers salient terms that differentiate discussion across individual videos.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/tfidf_keywords.parquet`
+
+#### `s42`: Polarity vs Engagement Analysis ([s42_polarity_engagement.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s42_polarity_engagement.py))
+
+- **Purpose**: Evaluates whether controversial or negative comments systematically achieve higher upvote and reply engagement yields.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/polarity_engagement.parquet`
+
+#### `s43`: Emoji Signatures & Sentiment Mapping ([s43_emoji_signatures.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s43_emoji_signatures.py))
+
+- **Purpose**: Extracts emoji usage distributions, topic-specific emoji signatures, and constructs an empirical emoji-to-sentiment mapping.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/emoji_signatures.parquet`
+
+#### `s44`: Sentiment Anomaly Detection ([s44_sentiment_anomalies.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s44_sentiment_anomalies.py))
+
+- **Purpose**: Detects sudden hourly and daily negativity spikes crossing standard deviation thresholds ($>2.5\sigma$) to flag community crises.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/sentiment_anomalies.parquet`
+
+#### `s45`: Meta & Corpus Quality Analysis ([s45_corpus_quality.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s45_corpus_quality.py))
+
+- **Purpose**: Validates corpus completeness, comment disable flags, HTTP response codes, and language identification coverage.
+- **Inputs**: `comments_clean.parquet`, `videos_clean.parquet`
+- **Outputs**: `data/output/corpus_quality.parquet`, `data/output/language_coverage.parquet`
+
+#### `s46`: Within-Thread Topic Drift ([s46_thread_topic_drift.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s46_thread_topic_drift.py))
+
+- **Purpose**: Tracks semantic and thematic drift across conversational reply chains relative to the root comment's original topic.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/thread_topic_drift.parquet`, `data/output/video_topic_drift_summary.parquet`
+
+#### `s47`: Slang & Internet-Register Lexicon Analysis ([s47_slang_lexicon.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s47_slang_lexicon.py))
+
+- **Purpose**: Analyzes internet slang, gaming jargon, and neologism frequency and assesses their correlation with community sentiment.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/slang_lexicon_frequency.parquet`
+
+#### `s48`: Network Bow-Tie Structure & Top-K Concentration ([s48_bowtie_concentration.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s48_bowtie_concentration.py))
+
+- **Purpose**: Decomposes the directed author-reply network into canonical Bow-Tie components (SCC, IN, OUT, Tendrils/Tubes, Disconnected) and calculates Top-K engagement concentration ratios.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/network_bowtie_structure.parquet`, `data/output/top_k_concentration.parquet`
+
+#### `s49`: Series vs Standalone & Creator Sentiment Polarity ([s49_series_creator_sentiment.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s49_series_creator_sentiment.py))
+
+- **Purpose**: Benchmarks audience engagement on episodic series vs standalone uploads and computes creator-directed net sentiment polarity ratios.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/series_vs_standalone.parquet`, `data/output/creator_sentiment_polarity.parquet`
+
+#### `s50`: Cross-Modal Scene Reactions & Spoiler Detection ([s50_cross_modal_reactions.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s50_cross_modal_reactions.py))
+
+- **Purpose**: Classifies timestamped reactions into a 5-class scene taxonomy (Humor, Shock, Emotional, Critique, Navigation) and detects narrative spoilers.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/cross_modal_scene_reactions.parquet`, `data/output/spoiler_detections.parquet`
+
+#### `s51`: Topic Injection & Thematic Hijack Anomaly Scanner ([s51_topic_injection.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s51_topic_injection.py))
+
+- **Purpose**: Identifies astroturfed topic injections and sudden thematic hijacking across rolling time windows using Kullback-Leibler and Jensen-Shannon divergence.
+- **Inputs**: `comments_clean.parquet`
+- **Outputs**: `data/output/topic_injection_anomalies.parquet`
 
 ---
 

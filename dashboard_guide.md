@@ -1,6 +1,6 @@
 # 🧭 ytint Dashboard & Interactive Visual Analytics Guide
 
-The **ytint Executive Intelligence Dashboard** is a high-dimensional, interactive Streamlit analytics platform built on top of 42 modular computational pipeline layers. It provides creators, data scientists, and community managers with forensic, topological, semantic, causal, and predictive insights.
+The **ytint Executive Intelligence Dashboard** is a high-dimensional, interactive Streamlit analytics platform built on top of 53 modular computational pipeline layers. It provides creators, data scientists, and community managers with forensic, topological, semantic, causal, and predictive insights.
 
 ---
 
@@ -109,7 +109,7 @@ graph LR
 
 ### Tab 6: Publication-Ready Visual Analytics Gallery
 
-- **43+ High-Resolution Statistical Plots**:
+- **68+ High-Resolution Statistical Plots**:
   - Section 1: Temporal Dynamics & Lifecycle Modeling (Kaplan-Meier survival, Poisson bursts, STL decomposition, diurnal heatmaps).
   - Section 2: NLP, Semantics & Emotion Spectrum (UMAP embeddings, Plutchik wheel, named entities, word co-occurrence, toxicity heatmaps).
   - Section 3: Audience Networks, Segmentation & Forensics (Author network, bot heuristics, like inflation, Lorenz curve, Pareto).
@@ -125,12 +125,12 @@ graph LR
   - Upvote floor slider and toxicity ceiling slider.
   - Data table displays `Video Title` alongside `comment_id`, `author_display_name`, `like_count`, and `text`.
 - **⚡ Interactive Query Sandbox & Dynamic Visualizer**:
-  - Layer selector to load any of the 42 pipeline datasets.
+  - Layer selector to load any of the 53 pipeline datasets.
   - Optional Pandas/SQL query filter (e.g., `like_count > 10 and is_bot_suspect == True`).
   - Customizable Chart Type: **Bar Chart**, **Histogram**, **Scatter Plot**, or **Line Chart**.
   - Dropdown selectors for $X$-Axis Field, $Y$-Axis Field (Numeric), and Color Grouping Field.
 - **📥 Export Intelligence Datasets**:
-  - One-click CSV and Parquet downloads for all 42 generated pipeline artifacts.
+  - One-click CSV and Parquet downloads for all 53 generated pipeline artifacts.
 
 ---
 

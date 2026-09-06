@@ -9,12 +9,32 @@ paths:
 
 stage_01_enrich:
   sentiment_model: "blanchefort/rubert-base-cased-sentiment"
-  batch_size: 32 # Keep this modest to ensure it fits in GPU memory
+  batch_size: 32               # Keep this modest to ensure it fits in GPU memory
+  chunk_size: 5000             # Processing chunk size for memory-safe batching
+  max_length: 256              # Transformer tokenizer max sequence length
+  go_emotions_model: "cointegrated/rubert-tiny2-cedr-emotion-detection"
+  go_emotions_top_k: 3        # Number of top emotion labels to extract
 
 stage_02_topics:
   # Multilingual (50+ languages incl. ru/uk)
   embedding_model: "paraphrase-multilingual-MiniLM-L12-v2"
   min_topic_size: 25
+  n_drift_slices: 6            # Number of temporal quantiles for semantic drift
+  word2vec_dim: 30             # Word2Vec embedding dimensions for drift tracking
+  word2vec_window: 5           # Word2Vec context window size
+
+stage_07_stance:
+  sentiment_favor_threshold: 0.35     # Min positive sentiment to infer Favor
+  sentiment_against_threshold: -0.35  # Max negative sentiment to infer Against
+  toxicity_against_threshold: 0.5     # Min toxicity to infer Against stance
+  toxicity_favor_ceiling: 0.2         # Max toxicity to infer Favor from sentiment alone
+  conflict_toxicity_threshold: 0.4    # Threshold for high-conflict thread flagging
+  conflict_max_threads: 100           # Max polarized threads to export
+
+stage_08_code_switching:
+  min_alpha_chars: 10          # Minimum alphabetic characters for detection
+  min_secondary_chars: 3       # Min chars in secondary script to flag code-switching
+  secondary_ratio: 0.15        # Minimum fraction of secondary alphabet
 
 stage_28_narrative:
   change_point_penalty: "auto"
@@ -63,6 +83,33 @@ stage_15_toxicity:
   toxicity_threshold: 0.5      # Minimum toxicity score (0.0 to 1.0) to classify a comment as toxic
   catalyst_min_toxic: 2        # Minimum toxic comments for author to qualify as Troll Catalyst
   catalyst_min_score: 10.0     # Minimum catalyst impact score for high instigator tier
+
+stage_36_arrival_speed:
+  first_responder_days: 1      # Threshold for "First Responder" tier
+  on_time_days: 7              # Threshold for "On-Time" tier
+  late_arrival_days: 30        # Threshold for "Late Arrival" / "Necromancer" boundary
+  arrival_curve_minutes: 120   # Time window for minute-level arrival velocity curve
+
+stage_38_modeling:
+  xgboost_n_estimators: 100           # XGBoost tree count
+  xgboost_learning_rate: 0.1          # XGBoost learning rate
+  xgboost_max_depth: 5                # XGBoost max tree depth (regressor)
+  xgboost_clf_max_depth: 4            # XGBoost max tree depth (classifiers)
+  train_test_split: 0.8               # Chronological train/test split ratio
+  shap_max_samples: 1000              # Max SHAP explanation samples
+  isolation_forest_contamination: 0.01 # Expected bot/anomaly fraction
+  stl_period: 7                        # STL seasonality period (days)
+  minhash_threshold: 0.7               # MinHash Jaccard spam threshold
+  minhash_num_perm: 128                # MinHash permutation count
+  minhash_min_cluster: 3               # Min cluster size for spam flag
+  poisson_window: "15T"                # Poisson burst time window
+  poisson_p_threshold: 0.001           # Poisson burst p-value threshold
+  forecast_periods: 30                 # Forward forecast horizon (days)
+  kw_min_group_size: 10                # Min comments per video for Kruskal-Wallis
+  kw_max_groups: 50                    # Max video groups for post-hoc matrix
+  viral_early_minutes: 120             # "Early burst" window for viral classifier
+  viral_top_percentile: 0.90           # Top-N% like threshold for viral label
+  survival_censoring_days: 7           # Right-censoring window for Kaplan-Meier
 
 stage_39_creator_uplift:
   early_window_minutes: 120    # Time window (minutes since upload) defining early creator intervention

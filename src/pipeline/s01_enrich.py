@@ -364,10 +364,12 @@ def enrich_comments():
         model.eval()
 
         from transformers import pipeline as hf_pipeline
+        go_emotions_model_name = config.get("stage_01_enrich", {}).get("go_emotions_model", "cointegrated/rubert-tiny2-cedr-emotion-detection")
+        go_emotions_top_k = int(config.get("stage_01_enrich", {}).get("go_emotions_top_k", 3))
         go_emotions = hf_pipeline(
             "text-classification",
-            model="cointegrated/rubert-tiny2-cedr-emotion-detection",
-            top_k=3,
+            model=go_emotions_model_name,
+            top_k=go_emotions_top_k,
             device=device_id
         )
 
@@ -379,7 +381,7 @@ def enrich_comments():
     checkpoint_dir = interim_dir / "enrich_checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     
-    chunk_size = 5000
+    chunk_size = int(config.get("stage_01_enrich", {}).get("chunk_size", 5000))
     out_chunks = []
     
     for start_idx in tqdm(range(0, len(df_comments), chunk_size), desc="🔄 Processing Chunks (NLP & Sentiment)"):
@@ -434,7 +436,8 @@ def enrich_comments():
             with torch.no_grad():
                 for i in range(0, len(chunk), batch_size):
                     batch_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in chunk['text'].iloc[i:i+batch_size].tolist()]
-                    inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=256).to(device)
+                    max_len = int(config.get("stage_01_enrich", {}).get("max_length", 256))
+                    inputs = tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=max_len).to(device)
                     outputs = model(**inputs)
                     probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1).cpu().numpy()
                     
@@ -454,7 +457,7 @@ def enrich_comments():
             
             clean_emot_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in chunk['text'].tolist()]
             dataset = ListDataset(clean_emot_texts)
-            results = go_emotions(dataset, batch_size=batch_size, truncation=True, max_length=256)
+            results = go_emotions(dataset, batch_size=batch_size, truncation=True, max_length=max_len)
             
             for res in results:
                 sorted_labels = sorted(res, key=lambda x: x['score'], reverse=True)
@@ -477,7 +480,7 @@ def enrich_comments():
                 batch_texts = [str(t) if (t is not None and not pd.isna(t)) else "" for t in chunk['text'].iloc[i:i+tox_batch_size].tolist()]
                 
                 try:
-                    inputs = tox_model.tokenizer(batch_texts, return_tensors="pt", truncation=True, padding=True, max_length=256).to(device)
+                    inputs = tox_model.tokenizer(batch_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_len).to(device)
                     with torch.no_grad():
                         out = tox_model.model(**inputs)[0]
                         scores = torch.sigmoid(out).cpu().detach().numpy()

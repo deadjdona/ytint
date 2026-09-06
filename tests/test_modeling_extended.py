@@ -54,7 +54,7 @@ def test_detect_poisson_bursts():
         records.extend([{"published_at": d}] * c)
         
     df = pd.DataFrame(records)
-    bursts = detect_poisson_bursts(df, window="15T")
+    bursts = detect_poisson_bursts(df, window="15min")
     assert isinstance(bursts, pd.DataFrame)
 
 

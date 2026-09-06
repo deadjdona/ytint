@@ -233,14 +233,14 @@ def main():
         f"**Z-Score Spike Threshold:** {z_thresh_sidebar}σ\n\n"
         f"**PELT Penalty Model:** {pelt_penalty_sidebar}\n\n"
         f"**Embedding Model:** {config.get('stage_02_topics', {}).get('embedding_model', 'multilingual-MiniLM')}\n\n"
-        f"**Active Pipeline Stages:** 42 Stages (`s00`–`s40`, `s99`)"
+        f"**Active Pipeline Stages:** 53 Stages (`s00`–`s51`, `s99`)"
     )
 
     # ==============================================================================
     # 4. MAIN APP HEADER & TABBED WORKSPACE
     # ==============================================================================
     st.title("🎬 ytint // Conversational Intelligence & Executive Suite")
-    st.caption(f"Active Slice: **{comment_filter}** — {len(df_comments):,} records loaded across 42 analytical intelligence stages")
+    st.caption(f"Active Slice: **{comment_filter}** — {len(df_comments):,} records loaded across 53 analytical intelligence stages")
 
     tab_summary, tab_temporal, tab_topics, tab_audience, tab_modeling, tab_gallery, tab_export = st.tabs([
         "📋 Executive Briefing",
@@ -259,7 +259,7 @@ def main():
         st.header("Executive Intelligence Briefing")
         st.markdown(
             "Holistic synthesis of channel engagement dynamics, community integrity diagnostics, "
-            "and conversational resonance extracted across all 38 analytical stages."
+            "and conversational resonance extracted across all 53 analytical stages."
         )
 
         # 1.1 Executive Metric Tiles

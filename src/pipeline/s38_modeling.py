@@ -384,12 +384,12 @@ def category_benchmarking(df_comments):
     return stat, p_value, dunn_df
 
 
-def detect_poisson_bursts(df_comments, window='15T'):
+def detect_poisson_bursts(df_comments, window='15min'):
     """
     Task: Poisson Burst Brigading detection
     Math: Models arrival volume as Poisson process X ~ Poisson(lambda_hat). 
           Computes cumulative probability P(X >= x) = 1 - PoissonCDF(x - 1, lambda_hat).
-    Hardcode: window='15T' (15-minute intervals), p < 0.001 (99.9% confidence interval threshold for brigading).
+    Hardcode: window='15min' (15-minute intervals), p < 0.001 (99.9% confidence interval threshold for brigading).
     """
     print("⚡ Detecting Coordinated Brigading / Poisson Bursts...")
     try:

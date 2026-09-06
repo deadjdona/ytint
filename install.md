@@ -2,15 +2,15 @@
 
 ## Requirements
 
-- Python 3.14
+- Python 3.11+
 - [`uv`](https://docs.astral.sh/uv/)
 - NVIDIA drivers only when GPU acceleration is required
 
 ## Create the environment
 
 ```powershell
-uv python install 3.14
-uv venv .venv --python 3.14
+uv python install 3.11
+uv venv .venv --python 3.11
 .\.venv\Scripts\Activate.ps1
 uv pip install -r requirements.txt
 ```

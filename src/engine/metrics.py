@@ -13,6 +13,7 @@ def calculate_aging_scores(df_comments):
     if 'days_since_upload' not in df_comments.columns or 'sentiment_label' not in df_comments.columns:
         return pd.DataFrame()
 
+    df_comments = df_comments.copy()
     # Map sentiment to a numerical continuous scale for scalar math
     sentiment_weights = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}
     df_comments['sentiment_score'] = df_comments['sentiment_label'].map(sentiment_weights)
