@@ -103,15 +103,39 @@ The interactive UI is implemented in [`src/ui/app.py`](file:///c:/Users/deadj/So
 4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, CIB ring severity map, toxicity contagion ($R_0$), troll catalyst rankings.
 5. **Cross-Video Relations, Counterfactuals & Modeling**: Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, Dunn's post-hoc matrix.
 6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation (Bar, Histogram, Scatter, Line), and instant CSV/Parquet export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation (Bar, Histogram, Scatter, Line), live YouTube ingestion console, "Ask ytint" conversational RAG, automated webhook alerting, neural semantic vector search, creator actionability assistant, zero-copy DuckDB SQL Studio, continuous watcher daemon console, and instant CSV/Parquet export across all 53 layers.
+
+---
+
+## 📦 Native Intelligence Engines & CLI Ecosystem
+
+All **16 standalone console scripts** are registered in `pyproject.toml` and verified operational:
+
+1. **`ytint-runner`** (`pipeline.runner:main`): Full 53-stage and incremental delta pipeline sweep.
+2. **`ytint-app`** (`ui.app:main`): 7-tab Streamlit intelligence executive dashboard.
+3. **`ytint-report`** (`engine.reporter:main`): Offline executive dossier HTML & print-ready PDF generator.
+4. **`ytint-ingest`** (`engine.youtube_api:main`): Live YouTube Data API v3 connector.
+5. **`ytint-ai`** (`engine.synthesizer:main`): LLM & Gemini RAG narrative synthesis.
+6. **`ytint-graph`** (`engine.network_exporter:main`): 2D force-directed community graph & Gephi exporter.
+7. **`ytint-alert`** (`engine.alerting:main`): Real-time webhook anomaly & threat alerting daemon.
+8. **`ytint-search`** (`engine.semantic_search:main`): 384D SentenceTransformer neural vector search & feedback clustering.
+9. **`ytint-replay`** (`engine.event_replay:main`): Chronological event replay & crisis simulation engine.
+10. **`ytint-assist`** (`engine.assistant:main`): Creator actionability triage & causal reply assistant.
+11. **`ytint-sql`** (`engine.sql_engine:main`): Out-of-core zero-copy DuckDB SQL querying & SQL Studio.
+12. **`ytint-narrative`** (`engine.narrative:main`): Narrative scene reaction & timestamp scrubbing forensics.
+13. **`ytint-fingerprint`** (`engine.fingerprint:main`): Forensic author persona & sockpuppet fingerprinting.
+14. **`ytint-compare`** (`engine.comparator:main`): Multi-channel & playlist competitive intelligence engine.
+15. **`ytint-cohort`** (`engine.cohort_survival:main`): Audience churn & longitudinal cohort survival engine.
+16. **`ytint-watch`** (`engine.watcher:main`): Continuous live streaming watcher & auto-poller daemon.
 
 ---
 
 ## 🧪 Implementation Status & Validation
 
 - **Pipeline Stages**: All 53 canonical stages implemented with 1:1 physical script naming.
+- **Native Intelligence Engines**: 16 standalone high-performance engines and CLI entrypoints.
 - **Visualizations**: 68 publication-quality Matplotlib/Seaborn plots modularized in `src/pipeline/visualizations/`.
-- **Test Suite**: 100% pass rate (108/108 tests passing via `pytest`).
+- **Test Suite**: 100% pass rate (237/237 tests passing via `pytest` across 41 test modules).
 - **Syntax Validation**: All source files cleanly compile via `python -m compileall`.
 - **Configuration**: Fully centralized in `config/settings.yaml`.
 

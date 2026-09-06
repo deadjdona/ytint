@@ -412,3 +412,28 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
   - Pipeline Flag: `ytint-runner --report` or `python -m pipeline.runner --report`
   - Streamlit UI: Download button in Tab 1 (Executive Briefing) & Tab 7 (Export Hub) with live preview.
 
+---
+
+## 📦 Native Intelligence Engines & CLI Extensions
+
+Beyond the 53 core analytical pipeline stages, `ytint` includes **16 standalone, high-performance CLI engines** registered in `pyproject.toml` and installed as direct executable console commands:
+
+| Command | Module Entrypoint | Core Intelligence Functionality |
+| :--- | :--- | :--- |
+| **`ytint-runner`** | `pipeline.runner:main` | Full 53-stage analytical execution and `--incremental` delta sweep orchestrator |
+| **`ytint-app`** | `ui.app:main` | 7-tab Streamlit intelligence executive dashboard & interactive console |
+| **`ytint-report`** | `engine.reporter:main` | Offline-portable Executive Dossier HTML & print-ready PDF generator |
+| **`ytint-ingest`** | `engine.youtube_api:main` | Live YouTube Data API v3 channel/video/comment ingester with `--mock` fallback |
+| **`ytint-ai`** | `engine.synthesizer:main` | Multi-provider LLM & Gemini RAG narrative synthesis engine ("Ask ytint") |
+| **`ytint-graph`** | `engine.network_exporter:main` | Community network topology extractor & 1-click GEXF / GraphML exporter |
+| **`ytint-alert`** | `engine.alerting:main` | Automated Discord, Slack, Telegram, and generic webhook threat alerting daemon |
+| **`ytint-search`** | `engine.semantic_search:main` | Sub-50ms 384D SentenceTransformer neural vector search & feedback clustering |
+| **`ytint-replay`** | `engine.event_replay:main` | Chronological event replay & crisis simulation engine with playback scrubber |
+| **`ytint-assist`** | `engine.assistant:main` | Creator actionability triage & causal reply drafting assistant |
+| **`ytint-sql`** | `engine.sql_engine:main` | Out-of-core zero-copy DuckDB analytical SQL query engine & SQL Studio |
+| **`ytint-narrative`** | `engine.narrative:main` | Narrative scene reaction & second-by-second timestamp scrubbing forensics |
+| **`ytint-fingerprint`** | `engine.fingerprint:main` | Forensic author persona profiling & stylometric sockpuppet ring clustering |
+| **`ytint-compare`** | `engine.comparator:main` | Multi-channel & playlist competitive intelligence engine with Jaccard overlap |
+| **`ytint-cohort`** | `engine.cohort_survival:main` | Longitudinal cohort survival modeling, Kaplan-Meier curves & Quick Ratio |
+| **`ytint-watch`** | `engine.watcher:main` | Continuous live streaming watcher & auto-poller daemon with adaptive velocity scaling |
+

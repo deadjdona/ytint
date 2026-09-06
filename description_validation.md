@@ -157,7 +157,7 @@ Line-by-line check of [description.txt](file:///c:/Users/deadj/Sources/ytint/des
 | Line | Point | Status | Implementing Stage |
 |:-----|:------|:-------|:-------------------|
 | 107 | Video profile radar | ✅ | s37 `run_cross_video()` → `video_profile_radar.parquet` |
-| 108 | Channel-to-channel comparison | ✅ | Multi-video relative benchmarking across full corpus catalog |
+| 108 | Channel-to-channel comparison | ✅ | s37 multi-video benchmarking & `engine.comparator:main` (`ytint-compare`) cross-channel radar |
 | 109 | Before/after analysis around a controversy | ✅ | s37 `controversy_impact.png` — 14-day before/after sentiment |
 | 110 | Series vs standalone video comparison | ✅ | s49 `run_series_creator_sentiment()` → `series_vs_standalone.parquet`, viz `series_vs_standalone_benchmark.png` |
 | 111 | Category benchmarking | ✅ | s38 `category_benchmarking()` → Kruskal-Wallis + Dunn's test |
@@ -185,9 +185,9 @@ Line-by-line check of [description.txt](file:///c:/Users/deadj/Sources/ytint/des
 | Line | Point | Status | Implementing Stage |
 |:-----|:------|:-------|:-------------------|
 | 125 | Power-law of commenter activity | ✅ | viz `author_pareto.png` — Zipf distribution |
-| 126 | Author persistence / return rate | ✅ | s33 cohort retention; s19 `recency_days` |
-| 127 | Author "fingerprint": topics, sentiment, length | ✅ | s22 `run_author_fingerprints()` |
-| 128 | Cross-channel authors (audience overlap with other channels) | ✅ | Longitudinal author overlap modeling across video uploads |
+| 126 | Author persistence / return rate | ✅ | s33 cohort retention; s19 `recency_days`; `engine.cohort_survival:main` (`ytint-cohort`) |
+| 127 | Author "fingerprint": topics, sentiment, length | ✅ | s22 `run_author_fingerprints()`; `engine.fingerprint:main` (`ytint-fingerprint`) stylometrics |
+| 128 | Cross-channel authors (audience overlap with other channels) | ✅ | `engine.comparator:main` (`ytint-compare`) pairwise Jaccard overlap & migration ledger |
 | 129 | Display-name reuse and impersonation risk | ✅ | s23 `run_impersonation_detection()` |
 | 130 | Visualisations: Zipf plots, fingerprint heatmaps, new-vs-returning | ✅ | `author_pareto.png`, `author_fingerprints.png`, `new_vs_returning_share.png` |
 

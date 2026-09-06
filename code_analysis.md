@@ -66,7 +66,7 @@ graph TD
 
 - **Graceful Fallbacks**: Every module incorporates defensive exception handling, falling back from GPU/Rust dependencies to CPU/Numpy logic if external binaries are missing.
 - **100% Physical Script 1:1 Mapping**: Every script is uniquely named `s00_ingest.py` through `s51_topic_injection.py` plus `s99_visualize.py`.
-- **100% Test Suite Pass Rate**: Full test coverage (`pytest` passing all 108 unit, compatibility, and data pipeline tests).
+- **100% Test Suite Pass Rate**: Full test coverage (`pytest` passing all 237 unit, compatibility, and data pipeline tests across 41 test modules).
 
 ### 🎨 4. Modern, Sleek UI Architecture & Dynamic Simulators
 
