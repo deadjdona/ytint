@@ -160,6 +160,15 @@ graph TD
   4. **Viewer Confusion Hotspots**: Proactively identifies scene moments where audience questions and perplexity cluster, recommending creator interventions (pinned clarifications, chapter titles, or video updates).
   5. **Interactive Playback Scrubber Workbench**: Tab 3 Section 3.10 interactive console featuring video selector, scene resolution slider, dual-axis Plotly timeline with reaction taxonomy coloring and confusion hotspot badges, active scene spotlight card with quote montage, and 1-click JSON/CSV export.
 
+### 🕵️ Forensic Author Persona & Sockpuppet Fingerprinting ([`src/engine/fingerprint.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/fingerprint.py))
+- **Command**: `ytint-fingerprint` or `ytint-fingerprint --list-rings`
+- **Features**:
+  1. **Multi-Dimensional Stylometrics**: Computes Shannon vocabulary entropy ($H$), capitalization intensity, punctuation motifs (exclamation, question, ellipsis rates), average word count, and emoji signatures with Unicode symbol frequency parsing.
+  2. **Circadian Posting Rhythms**: Models 24-hour diurnal posting distributions (UTC hours 0..23) with peak hour identification and circadian entropy computation (distinguishing narrow automated bot bursts from organic human dispersion).
+  3. **Pairwise Stylistic & Temporal Forensics**: Computes stylometric cosine similarity, diurnal cosine similarity, and video target Jaccard overlap to generate composite sockpuppet likelihood scores ($0$–$100\%$).
+  4. **Coordinated Ring Graph Clustering**: Employs graph connected-components clustering to group high-confidence pairs into cohesive sockpuppet and alternate account rings.
+  5. **Interactive Dashboard Workbench**: Tab 4 Section 4.7 with confidence threshold sliders, summary KPI scorecards, pairwise scatter plot ($X$=Style, $Y$=Diurnal, Color=Score), ring ledger, suspect pair ledger, author persona dossier inspector with 24h diurnal clock and stylometric radar bar charts, and 1-click JSON/CSV exports.
+
 ---
 
 ## 🎨 5. Streamlit Executive Dashboard Architecture
@@ -169,7 +178,7 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 1. **Executive Briefing & Macro Intelligence**: High-level channel KPIs, 🤖 **AI Executive Strategy Briefing** live container, 📄 one-click Executive Dossier generator & PDF export, community loyalty summaries, and dynamic Plotly bubble quadrant matrix ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
 2. **Temporal Dynamics & Conversational Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, comparative multi-video playback dynamics, and ⏱️ **Real-Time Chronological Event Replay & Crisis Simulator** (interactive frame scrubber, dual-axis velocity/sentiment/toxicity timeline, flame-war risk gauges, active crisis trigger alerts, and JSON/CSV export).
 3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, ⚖️ **AI Flame-War & Debate Tree Summarizer**, target stance drift across debate depth, and ⏱️ **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports).
-4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, and 🌐 **Interactive Community Network & Gephi Topology Explorer** (2D force-directed spring layout, top-$K$ node filter slider 25-250, Louvain community coloring, and 1-click GEXF/GraphML export buttons).
+4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, 🌐 **Interactive Community Network & Gephi Topology Explorer** (2D force-directed spring layout, top-$K$ node filter slider 25-250, Louvain community coloring, and 1-click GEXF/GraphML export buttons), and 🕵️ **Forensic Author Persona & Sockpuppet Fingerprinting** (stylometric feature radar bar charts, 24-hour diurnal posting clocks, pairwise scatter matrix, clustered ring ledger, suspect pair matches, and JSON/CSV exports).
 5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, and Dunn's post-hoc matrix.
 6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
 7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation, 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console**, 🔍 **Neural Semantic Vector Search Console**, 🛠️ **Creator Actionability & Reply Drafter Workbench**, ⚡ **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and instant CSV/Parquet export across all 53 layers.
@@ -184,11 +193,11 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 ```
 
 **Results**:
-- **Total Tests**: **198 test cases** across 37 test modules
-- **Passed**: **198 passed (100% pass rate)**
+- **Total Tests**: **207 test cases** across 38 test modules
+- **Passed**: **207 passed (100% pass rate)**
 - **Failed**: **0 failed**
-- **Duration**: ~70s
-- **Coverage**: Engine unit tests (`narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+- **Duration**: ~75s
+- **Coverage**: Engine unit tests (`fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
 
 
 

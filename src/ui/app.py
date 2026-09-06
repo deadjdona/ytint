@@ -1692,6 +1692,224 @@ def main():
                         exporter.export_graph(G_disp, stem_name, ["graphml"])
                         st.rerun()
 
+        # 4.7 Forensic Author Persona & Sockpuppet Fingerprinting
+        st.divider()
+        st.subheader("🕵️ Forensic Author Persona & Sockpuppet Fingerprinting")
+        st.markdown(
+            "Detect coordinated sockpuppet rings and alternate accounts through multi-dimensional stylometrics "
+            "(Shannon vocabulary entropy, punctuation motifs, emoji signatures), 24-hour circadian posting rhythms, "
+            "and pairwise similarity clustering."
+        )
+
+        from engine.fingerprint import AuthorFingerprintEngine
+
+        fp_c1, fp_c2, fp_c3 = st.columns([2, 2, 1])
+        with fp_c1:
+            fp_min_comments = st.slider(
+                "Minimum Comment Threshold:",
+                min_value=2,
+                max_value=10,
+                value=3,
+                step=1,
+                key="slider_fp_min_comments"
+            )
+        with fp_c2:
+            fp_min_score = st.slider(
+                "Sockpuppet Confidence Threshold (%):",
+                min_value=60.0,
+                max_value=95.0,
+                value=75.0,
+                step=2.5,
+                key="slider_fp_min_score"
+            )
+        with fp_c3:
+            use_mock_fp = st.checkbox("Demo / Mock Mode", value=False, key="chk_fp_mock")
+
+        fp_engine = AuthorFingerprintEngine(interim_path, output_path)
+        fp_report = fp_engine.generate_forensic_report(
+            min_comments=fp_min_comments,
+            min_score=fp_min_score,
+            mock=use_mock_fp
+        )
+
+        # Summary Telemetry Cards
+        kpi_fp1, kpi_fp2, kpi_fp3, kpi_fp4, kpi_fp5 = st.columns(5)
+        with kpi_fp1:
+            with st.container(border=True):
+                st.metric("Profiled Authors", f"{fp_report.total_authors_profiled:,}")
+        with kpi_fp2:
+            with st.container(border=True):
+                st.metric("Evaluated Pairs", f"{fp_report.total_pairs_evaluated:,}")
+        with kpi_fp3:
+            with st.container(border=True):
+                st.metric("Suspect Pairs", f"{len(fp_report.high_confidence_pairs):,}")
+        with kpi_fp4:
+            with st.container(border=True):
+                st.metric("Clustered Rings", f"{len(fp_report.clustered_rings):,}")
+        with kpi_fp5:
+            with st.container(border=True):
+                max_ring_size = max([r.member_count for r in fp_report.clustered_rings], default=0)
+                st.metric("Largest Ring Size", f"{max_ring_size} accounts")
+
+        # Two Tabs: 1. Coordinated Rings & Pairwise Forensic Matrix, 2. Author Persona Deep-Dive
+        tab_fp_rings, tab_fp_personas = st.tabs([
+            "🕸️ Clustered Sockpuppet Rings & Pairwise Forensics",
+            "👤 Author Persona & Stylometric Dossier"
+        ])
+
+        with tab_fp_rings:
+            # Pairwise Scatter: Stylometric Similarity vs Diurnal Similarity
+            if fp_report.high_confidence_pairs:
+                df_pairs_ui = pd.DataFrame([p.to_dict() for p in fp_report.high_confidence_pairs])
+                fig_fp_scatter = px.scatter(
+                    df_pairs_ui,
+                    x="style_similarity",
+                    y="diurnal_similarity",
+                    color="composite_score",
+                    size="shared_videos_count" if df_pairs_ui["shared_videos_count"].max() > 0 else None,
+                    hover_name="author_a_name",
+                    hover_data={
+                        "author_b_name": True,
+                        "composite_score": True,
+                        "style_similarity": True,
+                        "diurnal_similarity": True,
+                        "shared_videos_count": True,
+                    },
+                    title="Pairwise Forensic Alignment: Stylometric Affinity vs. Circadian Diurnal Rhythm",
+                    labels={
+                        "style_similarity": "Stylometric Cosine Similarity (Entropy, Punctuation, Caps)",
+                        "diurnal_similarity": "24-Hour Circadian Diurnal Similarity",
+                        "composite_score": "Composite Probability (%)",
+                        "shared_videos_count": "Shared Video Targets"
+                    },
+                    template=PLOTLY_TEMPLATE,
+                    color_continuous_scale="Reds",
+                )
+                fig_fp_scatter.update_layout(
+                    height=450,
+                    margin=dict(l=40, r=40, t=50, b=40),
+                )
+                st.plotly_chart(fig_fp_scatter, width="stretch")
+                st.caption("Top-right quadrant represents high-risk alternate/sockpuppet accounts sharing identical writing styles and synchronized posting hours.")
+
+                # Clustered Sockpuppet Rings
+                if fp_report.clustered_rings:
+                    st.markdown("##### 🕸️ Clustered Multi-Account Sockpuppet Rings")
+                    rings_data = []
+                    for r in fp_report.clustered_rings:
+                        rings_data.append({
+                            "Ring ID": r.ring_id,
+                            "Accounts Count": r.member_count,
+                            "Confidence Score": f"{r.avg_confidence:.1f}%",
+                            "Peak Active Hour (UTC)": f"{r.primary_peak_hour:02d}:00",
+                            "Dominant Cohort": r.dominant_rfm_cohort,
+                            "Member Accounts": ", ".join(r.member_names[:5]) + (f" (+{len(r.member_names)-5} more)" if len(r.member_names) > 5 else "")
+                        })
+                    st.dataframe(pd.DataFrame(rings_data), width="stretch", hide_index=True)
+
+                # High-Confidence Pair Ledger
+                st.markdown("##### 👥 High-Confidence Sockpuppet Matches Ledger")
+                pairs_display = df_pairs_ui[[
+                    "composite_score", "author_a_name", "author_b_name",
+                    "style_similarity", "diurnal_similarity", "target_overlap_jaccard", "shared_videos_count"
+                ]].copy()
+                pairs_display.columns = [
+                    "Score (%)", "Author A", "Author B",
+                    "Style Sim", "Diurnal Sim", "Target Jaccard", "Shared Videos"
+                ]
+                st.dataframe(pairs_display.head(50), width="stretch", hide_index=True)
+            else:
+                st.info("No author pairs exceed the current confidence threshold. Try lowering the threshold or enabling 'Demo / Mock Mode'.")
+
+        with tab_fp_personas:
+            if fp_report.personas:
+                persona_names = {pid: f"{p.author_display_name} ({p.rfm_cohort} — {p.total_comments} comments)" for pid, p in fp_report.personas.items()}
+                selected_pid = st.selectbox(
+                    "Select Author to Inspect:",
+                    options=list(fp_report.personas.keys()),
+                    format_func=lambda pid: persona_names.get(pid, pid),
+                    key="sel_fp_persona_author"
+                )
+
+                sel_p = fp_report.personas[selected_pid]
+
+                # Persona Overview Card
+                with st.container(border=True):
+                    pc1, pc2, pc3, pc4, pc5 = st.columns(5)
+                    with pc1:
+                        st.metric("Vocab Shannon Entropy", f"{sel_p.vocab_entropy:.2f} bits", delta="Lexical Diversity")
+                    with pc2:
+                        st.metric("Punctuation Intensity", f"{sel_p.punctuation_intensity:.3f}", delta=f"{sel_p.caps_ratio:.1%} caps")
+                    with pc3:
+                        emojis_str = " ".join(sel_p.top_emojis) if sel_p.top_emojis else "None"
+                        st.metric("Emoji Signature", emojis_str, delta=f"{sel_p.emoji_frequency:.1f}/comment")
+                    with pc4:
+                        st.metric("Peak Activity Hour", f"{sel_p.peak_posting_hour:02d}:00 UTC", delta=f"{sel_p.circadian_entropy:.2f} entropy")
+                    with pc5:
+                        s_col = "normal" if sel_p.avg_sentiment >= 0 else "inverse"
+                        st.metric("Sentiment / Toxicity", f"{sel_p.avg_sentiment:+.2f}", delta=f"{sel_p.avg_toxicity:.3f} tox", delta_color=s_col)
+
+                # Visualizations Row: Diurnal Rhythm & Stylometric Radar
+                vis_col1, vis_col2 = st.columns(2)
+                with vis_col1:
+                    st.markdown("##### ⏰ 24-Hour Diurnal Posting Clock (UTC)")
+                    hours = [f"{h:02d}:00" for h in range(24)]
+                    fig_clock = px.bar(
+                        x=hours,
+                        y=sel_p.diurnal_histogram,
+                        title=f"Circadian Activity Profile: {sel_p.author_display_name}",
+                        labels={"x": "UTC Hour of Day", "y": "Posting Frequency Share"},
+                        template=PLOTLY_TEMPLATE,
+                    )
+                    fig_clock.update_traces(marker_color=COLOR_PRIMARY)
+                    fig_clock.update_layout(height=320, margin=dict(l=30, r=30, t=40, b=30))
+                    st.plotly_chart(fig_clock, width="stretch")
+
+                with vis_col2:
+                    st.markdown("##### 🧬 Stylometric Feature Fingerprint")
+                    feature_labels = [
+                        "Entropy", "Word Count", "Caps Ratio", "Punctuation",
+                        "Exclamation", "Question", "Emoji Rate", "Sentiment",
+                        "Toxicity", "Circadian"
+                    ]
+                    fig_radar = px.bar(
+                        x=feature_labels,
+                        y=sel_p.stylometric_vector,
+                        title=f"Normalized Style Vector: {sel_p.author_display_name}",
+                        labels={"x": "Forensic Dimension", "y": "Normalized Value [0, 1]"},
+                        template=PLOTLY_TEMPLATE,
+                    )
+                    fig_radar.update_traces(marker_color=COLOR_ACCENT)
+                    fig_radar.update_layout(height=320, margin=dict(l=30, r=30, t=40, b=30))
+                    st.plotly_chart(fig_radar, width="stretch")
+
+                # Verbatim Quote Feed
+                if sel_p.sample_comments:
+                    st.markdown("##### 🗣️ Representative Comments by this Author")
+                    for sc in sel_p.sample_comments:
+                        st.markdown(f"- _{sc}_")
+
+        # Export Hub
+        st.markdown("##### 💾 Export Forensic Author Reports")
+        exp_f1, exp_f2 = st.columns(2)
+        with exp_f1:
+            st.download_button(
+                label="💾 Export Forensic Report JSON",
+                data=json.dumps(fp_report.to_dict(), indent=2, ensure_ascii=False),
+                file_name="author_forensics_report.json",
+                mime="application/json",
+                key="dl_fingerprint_json"
+            )
+        with exp_f2:
+            if fp_report.high_confidence_pairs:
+                st.download_button(
+                    label="📊 Export Suspect Sockpuppet Pairs CSV",
+                    data=pd.DataFrame([p.to_dict() for p in fp_report.high_confidence_pairs]).to_csv(index=False),
+                    file_name="suspect_sockpuppet_pairs.csv",
+                    mime="text/csv",
+                    key="dl_fingerprint_csv"
+                )
+
     # ==============================================================================
     # TAB 5: PREDICTIVE MODELING & CAUSAL INTERVENTIONS
     # ==============================================================================

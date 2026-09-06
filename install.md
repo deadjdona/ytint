@@ -38,6 +38,7 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-assist`**: Direct CLI entrypoint for `engine.assistant:main` (Creator Actionability & Engagement Optimization Assistant)
 - **`ytint-sql`**: Direct CLI entrypoint for `engine.sql_engine:main` (Zero-Copy Analytical SQL Engine powered by DuckDB)
 - **`ytint-narrative`**: Direct CLI entrypoint for `engine.narrative:main` (Narrative Scene Reaction & Timestamp Scrubbing Forensics)
+- **`ytint-fingerprint`**: Direct CLI entrypoint for `engine.fingerprint:main` (Forensic Author Persona & Sockpuppet Fingerprinting)
 
 Validate the active environment:
 

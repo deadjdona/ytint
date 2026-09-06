@@ -275,4 +275,30 @@ Map in-video `@MM:SS` timestamp mentions to second-by-second playback timelines,
 .\.venv\Scripts\ytint-narrative.exe --mock --export scratch/mock_scenes.csv
 ```
 
+## Forensic Author Persona & Sockpuppet Fingerprinting
+
+Multi-dimensional stylometric profiling (Shannon vocabulary entropy, punctuation motifs, emoji signatures), 24-hour circadian posting rhythms, pairwise author similarity, and graph-based coordinated sockpuppet ring clustering:
+
+```powershell
+# List all clustered sockpuppet and alternate account rings:
+.\.venv\Scripts\python.exe -m engine.fingerprint --list-rings
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-fingerprint.exe --list-rings
+
+# Filter by minimum comments and confidence score threshold:
+.\.venv\Scripts\ytint-fingerprint.exe --min-comments 3 --min-score 80.0
+
+# Inspect a specific author's stylometrics and circadian profile:
+.\.venv\Scripts\ytint-fingerprint.exe --author-name "Zubenko"
+.\.venv\Scripts\ytint-fingerprint.exe --author-id "UC_BOT_ALPHA_01"
+
+# Fast mock demonstration mode:
+.\.venv\Scripts\ytint-fingerprint.exe --mock --list-rings
+
+# Export complete forensic report to JSON or suspect pairs to CSV:
+.\.venv\Scripts\ytint-fingerprint.exe --export scratch/author_forensics.json
+.\.venv\Scripts\ytint-fingerprint.exe --min-score 80.0 --export scratch/suspect_pairs.csv
+```
+
+
 

@@ -118,6 +118,17 @@ graph LR
   - **Color Dimension Selector**: Colorize nodes dynamically by Louvain Community Cluster (`community_id`), PageRank Authority (`pagerank`), Reply Activity (`in_degree`), or Inauthentic Bot Suspect Flag (`is_bot_suspect`).
   - **2D Force-Directed Spring Layout**: High-performance Plotly WebGL scatter graph with node sizing proportional to PageRank centrality, rich HTML hover tooltips (Community cluster, In/Out degree, RFM Loyalty Tier, Bot status), and active connection links.
   - **1-Click Topology Exporters**: Direct browser download buttons for `.gexf` (Gephi) and `.graphml` (Cytoscape / yEd) network files pre-computed with full structural attributes.
+- **🕵️ Forensic Author Persona & Sockpuppet Fingerprinting (Section 4.7 / src/engine/fingerprint.py)**:
+  - **Threshold Sliders & Controls**: Adjust Minimum Comment Threshold (2 to 10) and Sockpuppet Confidence Threshold (60% to 95%) with live profile recalculation or demo/mock mode.
+  - **Live Forensic Scorecards**: Profiled Authors, Evaluated Pairs, Suspect Sockpuppet Pairs, Clustered Sockpuppet Rings, and Largest Ring Size.
+  - **Pairwise Forensic Scatter Plot**: Dual-axis scatter plotting Stylometric Cosine Similarity (Shannon entropy, punctuation intensity, capitalization ratio) vs. 24-Hour Circadian Diurnal Similarity, colored by composite probability score and sized by shared video counts.
+  - **Clustered Sockpuppet Rings Ledger**: Lists detected multi-account rings with confidence score, peak active UTC hour, dominant RFM cohort, and member accounts.
+  - **Suspect Pair Matches Ledger**: Granular side-by-side comparison of author pairs with individual metric similarities (Style, Diurnal, Target Jaccard).
+  - **Author Persona & Stylometric Dossier Inspector**: Dropdown author selector with live Shannon entropy, punctuation intensity, caps ratio, top emojis, and dual interactive charts:
+    - **24-Hour Diurnal Posting Clock (UTC)**: Bar chart showing circadian posting hours and peak activity window.
+    - **Stylometric Feature Fingerprint**: Bar chart mapping normalized values across 10 forensic dimensions.
+    - **Verbatim Quote Feed**: Representative comments authored by the suspect account.
+  - **1-Click Export Hub**: Download complete forensic reports as structured JSON or suspect sockpuppet pairs as CSV.
 
 ---
 
