@@ -65,6 +65,8 @@ uv pip install -e .
 ```powershell
 # Execute the full 53-stage end-to-end pipeline sweep
 .\.venv\Scripts\python.exe -m pipeline.runner
+# Or via registered console shortcut:
+.\.venv\Scripts\ytint-runner.exe
 
 # Run or rebuild from a specific stage
 .\.venv\Scripts\python.exe -m pipeline.runner --from-stage s19
@@ -76,6 +78,8 @@ uv pip install -e .
 ```powershell
 # Start the Streamlit application
 .\.venv\Scripts\python.exe -m streamlit run src/app.py
+# Or via entrypoint:
+.\.venv\Scripts\streamlit.exe run src/app.py
 ```
 
 Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.

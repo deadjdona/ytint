@@ -7,7 +7,7 @@ The **ytint Executive Intelligence Dashboard** is a high-dimensional, interactiv
 ## 🏛️ Application Architecture
 
 - **Entrypoint**: [`src/app.py`](file:///c:/Users/deadj/Sources/ytint/src/app.py) is a thin, robust entrypoint that sets page configuration and invokes the modular UI application in [`src/ui/app.py`](file:///c:/Users/deadj/Sources/ytint/src/ui/app.py).
-- **Styling & Theme**: Dark slate palette (`#0f1117` background, `#1a1f2c` card containers, `#0066fe` primary cyan-blue, `#00e599` emerald success, `#ff3366` ruby alert) with modern Plotly `plotly_dark` themes.
+- **Styling & Theme**: Modern dark slate palette with centralized tokens in [`config/settings.yaml`](file:///c:/Users/deadj/Sources/ytint/config/settings.yaml) (`ui.palette`: `#0b0e14` canvas, `#11151c` sidebar, `#171d26` card surface, `#0066fe` Bloomberg primary blue) and Plotly `plotly_dark` themes with custom accents (`#00e599` emerald success, `#ff3366` ruby alert, `#00f0ff` cyber cyan, `#a855f7` purple).
 - **Zero-Deprecation Compliance**: Strict usage of standard Streamlit APIs (`st.container(border=True)`, `width="stretch"` on dataframes and plotly charts).
 - **Human-Readable Video Title Resolution**: Automatically extracts and maps official video titles from `videos_clean.parquet` across all table views, dropdown selectors, scatter tooltips, and matrix axes.
 
@@ -136,25 +136,86 @@ graph LR
 
 ## 🛠️ Configuration & Customization
 
-All thresholds and heuristics can be customized in [`config/settings.yaml`](file:///c:/Users/deadj/Sources/ytint/config/settings.yaml):
+All pipeline thresholds, forensic heuristics, and UI tokens are centralized in [`config/settings.yaml`](file:///c:/Users/deadj/Sources/ytint/config/settings.yaml):
 
 ```yaml
+# === Narrative & Change-Points ===
 stage_28_narrative:
+  change_point_penalty: "auto"
   z_threshold: 2.5
-  rolling_window_days: 7
 
-stage_25_cib:
-  time_window_seconds: 120
-  min_co_occurrences: 3
+# === Forensic Detection & Integrity ===
+stage_26_integrity:
+  lsh_threshold: 0.8           # MinHash Jaccard similarity for spam clusters
+  lsh_num_perm: 128            # Number of MinHash permutation hashes
+  burst_window_minutes: 5      # Rolling time-series bin size (minutes)
+  burst_multiplier: 10.0       # Volume multiplier over median for brigading bursts
 
-stage_27_like_inflation:
-  like_to_reply_ratio_threshold: 20.0
-  min_likes_threshold: 100
+stage_20_frequency_tiers:
+  casual_max: 5                # Upper bound for Casual tier (2-5 comments)
+  regular_max: 20              # Upper bound for Regular tier (6-20 comments)
+  superfan_max: 100            # Upper bound for Super-Fan tier (21-100 comments)
 
 stage_24_bot_heuristics:
-  repetition_similarity_threshold: 0.85
-  temporal_burst_seconds: 30
+  tier1_min_comments: 10       # Minimum volume for Tier 1 spam duplicate check
+  tier1_max_unique_ratio: 0.2  # Max unique token ratio to classify as duplicate spammer
+  tier2_min_comments: 50       # High-volume Tier 2 duplicate check
+  tier2_max_unique_ratio: 0.5  # Max unique token ratio for high-volume accounts
+  reused_name_min_comments: 5  # Cutoff for accounts with duplicate display names
+  reused_name_max_unique: 0.3  # Max unique ratio for accounts with duplicate display names
 
+stage_21_driveby_loyalists:
+  driveby_max_videos: 1        # Max videos for Drive-by tier
+  casual_max_videos: 3         # Max videos for Casual tier (2-3 videos)
+
+stage_27_like_inflation:
+  min_like_count: 5            # Minimum likes required to evaluate like inflation
+  inflation_quantile: 0.99     # Quantile threshold for anomalous like-to-reply ratios
+  min_inflation_ratio: 20.0    # Floor threshold for likes-per-reply ratio
+  bot_inflation_ratio: 10.0    # Lower threshold when author is a suspected bot
+
+stage_23_impersonation:
+  min_name_length: 6           # Min display name length to avoid false positives
+  min_unique_accounts: 2       # Min distinct channel IDs sharing the same display name
+
+stage_25_cib:
+  time_window_seconds: 120     # Max temporal delta (seconds) for synchronized comments
+  min_cooccurrences: 2         # Min synchronized events across videos for CIB ring
+
+stage_15_toxicity:
+  toxicity_threshold: 0.5      # Min toxicity score to classify comment as toxic
+  catalyst_min_toxic: 2        # Min toxic comments to qualify as Troll Catalyst
+  catalyst_min_score: 10.0     # Min catalyst impact score for high instigator tier
+
+stage_36_arrival_speed:
+  first_responder_days: 1      # Threshold for First Responder tier
+  on_time_days: 7              # Threshold for On-Time tier
+  late_arrival_days: 30        # Threshold for Late Arrival boundary
+  arrival_curve_minutes: 120   # Time window for minute-level arrival velocity curve
+
+# === Causal & Predictive Modeling ===
 stage_39_creator_uplift:
-  early_window_hours: 2.0
+  early_window_minutes: 120    # Minutes since upload defining early creator intervention
+
+stage_38_modeling:
+  xgboost_n_estimators: 100
+  xgboost_learning_rate: 0.1
+  xgboost_max_depth: 5
+  train_test_split: 0.8
+  shap_max_samples: 1000
+  forecast_periods: 30
+
+# === UI Palette & Styling ===
+ui:
+  palette:
+    background: "#0b0e14"      # Deep Kibana dark canvas
+    sidebar: "#11151c"         # Slate navigation tone
+    surface: "#171d26"         # Metric card surface
+    grid: "#283243"            # Subtle border line for card grids
+    text: "#e2e8f0"            # Off-white text readability
+    primary: "#0066fe"         # Bloomberg operational blue
+    accent: "#00f0ff"          # Cyber cyan highlight tracking
+    sentiment_pos: "#00ff66"   # Viridian positive metric accent
+    sentiment_neg: "#ff3366"   # Crimson negative metric accent
 ```
+

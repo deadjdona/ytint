@@ -15,25 +15,34 @@ Run these commands from the repository root in PowerShell.
 The pipeline expects `data/raw/commentsuite.sqlite3`. Stages read and write the Parquet artifacts configured in `config/settings.yaml`.
 
 ```powershell
+# Run full 53-stage pipeline sweep
 .\.venv\Scripts\python.exe -m pipeline.runner
+
+# Alternatively, via registered console script shortcut:
+.\.venv\Scripts\ytint-runner.exe
 ```
 
 To execute a single stage:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pipeline.runner --stage s07
+# Or:
+.\.venv\Scripts\ytint-runner.exe --stage s07
 ```
 
 To rebuild from a specific stage onward:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pipeline.runner --from-stage s02
+# Or:
+.\.venv\Scripts\ytint-runner.exe --from-stage s02
 ```
 
 ## Launch the dashboard
 
-`src/app.py` is the canonical Streamlit dashboard.
+`src/app.py` is the canonical Streamlit dashboard entrypoint delegating to `ui.app.main()`.
 
 ```powershell
 .\.venv\Scripts\python.exe -m streamlit run src/app.py
 ```
+

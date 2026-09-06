@@ -74,7 +74,7 @@ class PipelineRunner:
                 "module": "pipeline.s02_topics",
                 "entry_func": "run_topic_modeling",
                 "inputs": [self.interim / "comments_clean.parquet"],
-                "outputs": [self.output / "topic_metadata.parquet"]
+                "outputs": [self.output / "topic_metadata.parquet", self.output / "semantic_drift.parquet"]
             },
             "s03": {
                 "desc": "Named Entity Extraction (NER)",
@@ -125,7 +125,7 @@ class PipelineRunner:
                 "module": "pipeline.s09_thread_width",
                 "entry_func": "run_thread_width",
                 "inputs": [self.interim / "comments_clean.parquet"],
-                "outputs": [self.output / "thread_width_dist.parquet"]
+                "outputs": [self.output / "thread_width_dist.parquet", self.output / "attention_transfer.parquet"]
             },
             "s10": {
                 "desc": "Reply Latency Distribution",
@@ -297,7 +297,7 @@ class PipelineRunner:
                 "module": "pipeline.s33_cohorts",
                 "entry_func": "run_cohorts",
                 "inputs": [self.interim / "comments_clean.parquet"],
-                "outputs": [self.output / "cohort_retention.parquet", self.output / "cohort_retention_pct.parquet"]
+                "outputs": [self.output / "cohort_retention.parquet", self.output / "cohort_retention_pct.parquet", self.output / "new_vs_returning.parquet"]
             },
             "s34": {
                 "desc": "Cross-Video Audience Overlap",
@@ -318,14 +318,14 @@ class PipelineRunner:
                 "module": "pipeline.s36_arrival_speed",
                 "entry_func": "run_arrival_speed",
                 "inputs": [self.interim / "comments_clean.parquet"],
-                "outputs": [self.output / "arrival_speed.parquet"]
+                "outputs": [self.output / "arrival_speed.parquet", self.output / "minute_arrival_curve.parquet"]
             },
             "s37": {
                 "desc": "Comparative & Cross-Video Profiles",
                 "module": "pipeline.s37_cross_video_comparisons",
                 "entry_func": "run_cross_video",
                 "inputs": [self.interim / "comments_clean.parquet", self.output / "videos_final.parquet"],
-                "outputs": [self.output / "video_profile_radar.parquet"]
+                "outputs": [self.output / "video_profile_radar.parquet", self.output / "controversy_impact.parquet", self.output / "causal_impact_summary.parquet"]
             },
 
             # === Phase 5: Predictive, Causal Modeling & Synthesis ===
@@ -392,7 +392,7 @@ class PipelineRunner:
                 "module": "pipeline.s46_thread_topic_drift",
                 "entry_func": "run_thread_topic_drift",
                 "inputs": [self.interim / "comments_clean.parquet"],
-                "outputs": [self.output / "thread_topic_drift.parquet"]
+                "outputs": [self.output / "thread_topic_drift.parquet", self.output / "video_topic_drift_summary.parquet"]
             },
             "s47": {
                 "desc": "Slang & Internet-Register Lexicon Analysis",

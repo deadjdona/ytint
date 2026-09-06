@@ -32,14 +32,14 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 | :------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------- | :----------------------------------- | :------------------------------------------------------ |
 | **Phase 1: NLP & Semantics**     | `s00`    | [s00_ingest.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s00_ingest.py)                                   | Ingestion & Migration                | `comments_clean.parquet`, `videos_clean.parquet`        |
 |                                  | `s01`    | [s01_enrich.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s01_enrich.py)                                   | NLP & Sentiment Enrichment           | `.s01_complete` (enriched comments)                     |
-|                                  | `s02`    | [s02_topics.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s02_topics.py)                                   | Topic Modeling (BERTopic)            | `topic_metadata.parquet`                                |
+|                                  | `s02`    | [s02_topics.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s02_topics.py)                                   | Topic Modeling (BERTopic)            | `topic_metadata.parquet`, `semantic_drift.parquet`      |
 |                                  | `s03`    | [s03_ner.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s03_ner.py)                                         | Named Entity Recognition (NER)       | `named_entities.parquet`                                |
 |                                  | `s04`    | [s04_cooccurrence.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s04_cooccurrence.py)                       | Word Co-occurrence Network           | `word_cooccurrence_edges.parquet`, `_nodes.parquet`     |
 |                                  | `s05`    | [s05_tags_mentions.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s05_tags_mentions.py)                     | Hashtags & Mention Networks          | `tag_network_edges.parquet`, `_nodes.parquet`           |
 |                                  | `s06`    | [s06_audience_intent.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s06_audience_intent.py)                 | Audience Demand Intent Mining        | `audience_intent_summary.parquet`, `audience_content_requests.parquet` |
 |                                  | `s07`    | [s07_stance_drift.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s07_stance_drift.py)                       | Target Stance & Polarization Drift   | `stance_summary.parquet`, `stance_depth_drift.parquet`, `polarized_threads.parquet` |
 |                                  | `s08`    | [s08_code_switching.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s08_code_switching.py)                   | Code-Switching Language Impact       | `code_switching_impact.parquet`                         |
-| **Phase 2: Thread Dynamics**     | `s09`    | [s09_thread_width.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s09_thread_width.py)                       | Thread Width & Branching Factor      | `thread_width_dist.parquet`                             |
+| **Phase 2: Thread Dynamics**     | `s09`    | [s09_thread_width.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s09_thread_width.py)                       | Thread Width & Branching Factor      | `thread_width_dist.parquet`, `attention_transfer.parquet` |
 |                                  | `s10`    | [s10_reply_latency.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s10_reply_latency.py)                     | Reply Latency Distribution           | `reply_latency.parquet`                                 |
 |                                  | `s11`    | [s11_position_bias.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s11_position_bias.py)                     | Position Bias & Early Mover Effect   | `position_bias.parquet`                                 |
 |                                  | `s12`    | [s12_resolution_patterns.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s12_resolution_patterns.py)         | Conversation Resolution Patterns     | `resolution_patterns.parquet`                           |
@@ -66,9 +66,9 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 |                                  | `s33`    | [s33_cohorts.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s33_cohorts.py)                                 | Acquisition Cohorts & Retention      | `cohort_retention.parquet`, `cohort_retention_pct.parquet`, `new_vs_returning.parquet` |
 |                                  | `s34`    | [s34_overlap.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s34_overlap.py)                                 | Cross-Video Audience Overlap         | `video_overlap_matrix.parquet`                          |
 |                                  | `s35`    | [s35_topic_cohorts.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s35_topic_cohorts.py)                     | Topic-Cohort Affinity Clustering     | `topic_cohorts.parquet`                                 |
-|                                  | `s36`    | [s36_arrival_speed.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s36_arrival_speed.py)                     | Arrival Speed Dynamics               | `arrival_speed.parquet`                                 |
-|                                  | `s37`    | [s37_cross_video_comparisons.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s37_cross_video_comparisons.py) | Comparative Video Radar Profiles     | `video_profile_radar.parquet`                           |
-| **Phase 5: Predictive & Causal** | `s38`    | [s38_modeling.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s38_modeling.py)                               | XGBoost, Tree SHAP & Kaplan-Meier    | `xgboost_like_predictor.pkl`, `shap_values.npy`, `shap_features.parquet`, `kaplan_meier_survival.parquet`, `stl_decomposition.parquet`, `diurnal_heatmap.parquet`, `poisson_bursts.parquet`, `engagement_forecast.parquet`, `power_law_fit.parquet`, `toxicity_predictor.pkl`, `return_propensity.pkl`, `viral_comment_predictor.pkl` |
+|                                  | `s36`    | [s36_arrival_speed.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s36_arrival_speed.py)                     | Arrival Speed Dynamics               | `arrival_speed.parquet`, `minute_arrival_curve.parquet`  |
+|                                  | `s37`    | [s37_cross_video_comparisons.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s37_cross_video_comparisons.py) | Comparative Video Radar Profiles     | `video_profile_radar.parquet`, `controversy_impact.parquet`, `causal_impact_summary.parquet` |
+| **Phase 5: Predictive & Causal** | `s38`    | [s38_modeling.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s38_modeling.py)                               | XGBoost, Tree SHAP & Kaplan-Meier    | `xgboost_like_predictor.pkl`, `shap_values.npy`, `shap_features.parquet`, `kaplan_meier_survival.parquet`, `stl_decomposition.parquet`, `diurnal_heatmap.parquet`, `poisson_bursts.parquet`, `engagement_forecast.parquet`, `power_law_fit.parquet`, `kruskal_wallis_results.parquet`, `dunn_posthoc_matrix.parquet`, `toxicity_predictor.pkl`, `return_propensity.pkl`, `viral_comment_predictor.pkl` |
 |                                  | `s39`    | [s39_creator_uplift.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s39_creator_uplift.py)                   | Creator Causal Uplift (DiD)          | `creator_causal_uplift.parquet`, `creator_intervention_threads.parquet` |
 |                                  | `s40`    | [s40_synthesis.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s40_synthesis.py)                             | UI Metric Synthesis                  | Updates `topic_metadata.parquet` in-place               |
 | **Phase 5b: Extended Analysis**  | `s41`    | [s41_tfidf_keywords.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s41_tfidf_keywords.py)                   | TF-IDF Keyword Extraction            | `tfidf_keywords.parquet`                                |
@@ -82,7 +82,7 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 |                                  | `s49`    | [s49_series_creator_sentiment.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s49_series_creator_sentiment.py) | Series vs Standalone & Creator Net Polarity | `series_vs_standalone.parquet`, `creator_sentiment_polarity.parquet` |
 |                                  | `s50`    | [s50_cross_modal_reactions.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s50_cross_modal_reactions.py)     | Scene Reaction Taxonomy & Spoilers   | `cross_modal_scene_reactions.parquet`, `spoiler_detections.parquet` |
 |                                  | `s51`    | [s51_topic_injection.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s51_topic_injection.py)                 | Topic Injection Anomaly Scanner      | `topic_injection_anomalies.parquet`                     |
-| **Phase 6: Visualizations**      | `s99`    | [s99_visualize.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s99_visualize.py)                             | Publication Visualizations Gallery   | Renders all 65+ plots in `data/output/plots/`           |
+| **Phase 6: Visualizations**      | `s99`    | [s99_visualize.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s99_visualize.py)                             | Publication Visualizations Gallery   | Renders all 68+ plots in `data/output/plots/`           |
 
 ---
 
@@ -106,7 +106,7 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 
 - **Purpose**: Extracts latent conversational themes across comments using BERTopic and sentence embeddings.
 - **Inputs**: `comments_clean.parquet`
-- **Outputs**: `data/output/topic_metadata.parquet` (also updates `comments_clean.parquet` in-place with `topic` column)
+- **Outputs**: `data/output/topic_metadata.parquet`, `data/output/semantic_drift.parquet` (also updates `comments_clean.parquet` in-place with `topic` column and caches embeddings to `data/interim/embeddings_cache.npy`)
 
 #### `s03`: Named Entity Extraction ([s03_ner.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s03_ner.py))
 
@@ -151,7 +151,7 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 #### `s09`: Thread Width & Branching Factor ([s09_thread_width.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s09_thread_width.py))
 
 - **Purpose**: Maps the structural geometry of reply trees.
-- **Outputs**: `data/output/thread_width_dist.parquet`
+- **Outputs**: `data/output/thread_width_dist.parquet`, `data/output/attention_transfer.parquet`
 
 #### `s10`: Reply Latency Distribution ([s10_reply_latency.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s10_reply_latency.py))
 
@@ -294,12 +294,12 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 #### `s36`: Arrival Speed Dynamics ([s36_arrival_speed.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s36_arrival_speed.py))
 
 - **Purpose**: Segments commenters into speed tiers (First Responders $<1\text{h}$, Early Day $\le 24\text{h}$, Long-Tail $>24\text{h}$).
-- **Outputs**: `data/output/arrival_speed.parquet`
+- **Outputs**: `data/output/arrival_speed.parquet`, `data/output/minute_arrival_curve.parquet`
 
 #### `s37`: Comparative Video Radar Profiles ([s37_cross_video_comparisons.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s37_cross_video_comparisons.py))
 
-- **Purpose**: Generates multi-dimensional radar metrics across leading video uploads.
-- **Outputs**: `data/output/video_profile_radar.parquet`
+- **Purpose**: Generates multi-dimensional radar metrics across leading video uploads, calculates 14-day controversy impact, and counterfactual synthetic control causal modeling.
+- **Outputs**: `data/output/video_profile_radar.parquet`, `data/output/controversy_impact.parquet`, `data/output/causal_impact_summary.parquet`
 
 ---
 
@@ -396,7 +396,7 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 
 #### `s99`: Publication Visualizations Gallery ([s99_visualize.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s99_visualize.py))
 
-- **Purpose**: Generates all 55+ publication-ready visual artifacts in isolated submodules under `src/pipeline/visualizations/`.
+- **Purpose**: Generates all 68+ publication-ready visual artifacts in isolated submodules under `src/pipeline/visualizations/` (`nlp_plots.py`, `thread_plots.py`, `author_plots.py`, `temporal_plots.py`, and `model_plots.py`).
 - **Inputs**: All `.parquet` datasets produced across Phases 1 through 5.
 - **Outputs**: All PNG/HTML plot figures saved to `data/output/plots/`
 - **Execution Principle**: **Runs strictly last (`s99`)**, guaranteeing all upstream analytical tables are fully materialized.
