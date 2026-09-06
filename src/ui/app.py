@@ -6,6 +6,7 @@ and predictive modeling for large-scale YouTube comment corpora.
 """
 
 import sys
+import json
 import pathlib
 import streamlit as st
 import pandas as pd
@@ -1210,6 +1211,229 @@ def main():
             if "thread_summary_res" in st.session_state:
                 with st.container(border=True):
                     st.markdown(st.session_state["thread_summary_res"])
+
+        # 3.10 Narrative Scene Reaction & Timestamp Scrubbing Forensics
+        st.divider()
+        st.subheader("⏱️ Narrative Scene Reaction & Timestamp Scrubbing Forensics")
+        st.markdown(
+            "Detect scene-level audience reactions linked directly to in-video moments via timestamp extraction. "
+            "Scrub through video playback time to reveal laughter peaks, shock moments, emotional resonance, "
+            "and viewer confusion hotspots."
+        )
+
+        from engine.narrative import NarrativeForensicsEngine
+        from plotly.subplots import make_subplots
+
+        narrative_engine = NarrativeForensicsEngine(interim_path, output_path)
+        available_narrative_vids = narrative_engine.get_available_videos()
+
+        if available_narrative_vids:
+            vid_options = [v["video_id"] for v in available_narrative_vids]
+            vid_label_map = {
+                v["video_id"]: f"{v.get('title', v['video_id'])} ({v.get('timestamp_reactions', 0):,} timestamp reactions)"
+                for v in available_narrative_vids
+            }
+
+            nar_c1, nar_c2, nar_c3 = st.columns([3, 1, 1])
+            with nar_c1:
+                selected_nar_vid = st.selectbox(
+                    "Select Video to Analyze:",
+                    options=vid_options,
+                    format_func=lambda vid: vid_label_map.get(vid, vid),
+                    key="sel_narrative_video"
+                )
+            with nar_c2:
+                step_secs = st.slider(
+                    "Scene Bin Resolution (s):",
+                    min_value=10,
+                    max_value=60,
+                    value=30,
+                    step=5,
+                    key="slider_narrative_step"
+                )
+            with nar_c3:
+                use_mock_nar = st.checkbox("Demo / Mock Mode", value=False, key="chk_narrative_mock")
+
+            report = narrative_engine.analyze_video(selected_nar_vid, step_secs=step_secs, mock=use_mock_nar)
+
+            # Summary KPIs
+            kpi_n1, kpi_n2, kpi_n3, kpi_n4, kpi_n5 = st.columns(5)
+            with kpi_n1:
+                with st.container(border=True):
+                    st.metric("Total Video Runtime", report.formatted_duration)
+            with kpi_n2:
+                with st.container(border=True):
+                    st.metric("Timestamp Reactions", f"{report.total_timestamp_reactions:,}")
+            with kpi_n3:
+                with st.container(border=True):
+                    st.metric("Scene Clusters", f"{len(report.clusters):,}")
+            with kpi_n4:
+                with st.container(border=True):
+                    st.metric("Confusion Hotspots", f"{len(report.confusion_hotspots):,}")
+            with kpi_n5:
+                with st.container(border=True):
+                    peak_desc = f"{report.peak_moment.get('formatted_time', '0:00')} ({report.peak_moment.get('dominant_reaction', 'none')})" if report.peak_moment else "N/A"
+                    st.metric("Peak Scene Moment", peak_desc)
+
+            # Confusion / Question Hotspots Callout Banner
+            if report.confusion_hotspots:
+                for hs in report.confusion_hotspots[:3]:
+                    st.warning(
+                        f"❓ **Viewer Confusion Hotspot at {hs.formatted_time}** "
+                        f"(T+{hs.timestamp_sec}s — {hs.question_count} question/confusion comments): "
+                        f"Viewer questions cluster here — consider adding an on-screen clarification, pinned comment, or chapter title."
+                    )
+
+            # Dual-Axis Plotly Timeline Visualization
+            if report.clusters:
+                df_clusters = pd.DataFrame([c.to_dict() for c in report.clusters])
+
+                REACTION_PALETTE = {
+                    "humor_laughter": "#ffaa00",      # Amber / Gold
+                    "shock_surprise": "#ff3366",      # Crimson / Magenta
+                    "emotional_touching": "#00e599",   # Mint / Emerald
+                    "critique_analytical": "#0066fe",  # Royal Blue
+                    "chapter_navigation": "#a855f7",   # Purple
+                    "general_reaction": "#64748b",     # Slate
+                }
+
+                fig_nar = make_subplots(
+                    rows=2, cols=1,
+                    shared_xaxes=True,
+                    vertical_spacing=0.08,
+                    subplot_titles=(
+                        "Scene Reaction Density & Comment Volume Across Playback",
+                        "Sentiment Trajectory & Viewer Confusion Hotspots (VADER [-1, 1])"
+                    ),
+                    row_heights=[0.6, 0.4]
+                )
+
+                # Top Chart: Bar chart of reaction counts by cluster with dominant reaction color
+                bar_colors = [REACTION_PALETTE.get(c.dominant_reaction, "#64748b") for c in report.clusters]
+                fig_nar.add_trace(
+                    go.Bar(
+                        x=df_clusters["start_sec"],
+                        y=df_clusters["reaction_count"],
+                        marker_color=bar_colors,
+                        name="Reactions / Scene",
+                        customdata=df_clusters[["formatted_time", "dominant_reaction", "reaction_count"]].values,
+                        hovertemplate="<b>%{customdata[0]}</b><br>Reactions: %{customdata[2]}<br>Dominant: %{customdata[1]}<extra></extra>",
+                    ),
+                    row=1, col=1
+                )
+
+                # Add markers for confusion hotspots in top chart
+                if report.confusion_hotspots:
+                    hs_secs = [h.timestamp_sec for h in report.confusion_hotspots]
+                    hs_counts = [h.question_count for h in report.confusion_hotspots]
+                    hs_texts = [f"❓ {h.formatted_time}" for h in report.confusion_hotspots]
+                    fig_nar.add_trace(
+                        go.Scatter(
+                            x=hs_secs,
+                            y=hs_counts,
+                            mode="markers+text",
+                            marker=dict(symbol="triangle-up", size=12, color="#ffaa00", line=dict(width=1, color="#ffffff")),
+                            text=hs_texts,
+                            textposition="top center",
+                            name="Confusion Hotspots",
+                            hovertemplate="<b>Confusion Hotspot: %{text}</b><br>Questions: %{y}<extra></extra>",
+                        ),
+                        row=1, col=1
+                    )
+
+                # Bottom Chart: Rolling sentiment trajectory
+                fig_nar.add_trace(
+                    go.Scatter(
+                        x=df_clusters["start_sec"],
+                        y=df_clusters["average_sentiment"],
+                        mode="lines+markers",
+                        line=dict(color="#00e599", width=2),
+                        marker=dict(size=5, color="#00e599"),
+                        name="Avg Scene Sentiment",
+                        customdata=df_clusters[["formatted_time", "average_sentiment"]].values,
+                        hovertemplate="<b>%{customdata[0]}</b><br>Sentiment: %{customdata[1]:+.2f}<extra></extra>",
+                    ),
+                    row=2, col=1
+                )
+
+                # Zero line on sentiment
+                fig_nar.add_hline(y=0.0, line_dash="dot", line_color="rgba(255,255,255,0.3)", row=2, col=1)
+
+                fig_nar.update_layout(
+                    template=PLOTLY_TEMPLATE,
+                    height=520,
+                    margin=dict(l=40, r=40, t=50, b=40),
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                fig_nar.update_xaxes(title_text="Video Playback Timeline (Seconds)", row=2, col=1)
+                fig_nar.update_yaxes(title_text="Comment Count", row=1, col=1)
+                fig_nar.update_yaxes(title_text="VADER [-1, 1]", range=[-1.0, 1.0], row=2, col=1)
+
+                st.plotly_chart(fig_nar, width="stretch")
+
+                # Interactive Playback Scrubber Slider
+                st.markdown("#### 🎛️ Interactive Scene Scrubber & Quote Montage")
+                scrubber_idx = st.slider(
+                    "Scrub Video Playback Timeline:",
+                    min_value=0,
+                    max_value=len(report.clusters) - 1,
+                    value=0,
+                    format_func=lambda i: f"{report.clusters[i].formatted_time} (T+{report.clusters[i].start_sec}s–{report.clusters[i].end_sec}s) — {report.clusters[i].reaction_count} reactions [{report.clusters[i].dominant_reaction}]",
+                    key="slider_narrative_scrubber"
+                )
+
+                active_cluster = report.clusters[scrubber_idx]
+
+                # Active Scene Spotlight Card
+                with st.container(border=True):
+                    sc_col1, sc_col2, sc_col3, sc_col4 = st.columns(4)
+                    with sc_col1:
+                        st.metric("Scene Time Window", active_cluster.formatted_time, delta=f"{active_cluster.start_sec}s – {active_cluster.end_sec}s")
+                    with sc_col2:
+                        st.metric("Dominant Reaction", active_cluster.dominant_reaction.replace("_", " ").title())
+                    with sc_col3:
+                        s_color = "normal" if active_cluster.average_sentiment >= 0 else "inverse"
+                        st.metric("Scene Sentiment", f"{active_cluster.average_sentiment:+.2f}", delta_color=s_color)
+                    with sc_col4:
+                        st.metric("Reaction Volume", f"{active_cluster.reaction_count} comments")
+
+                    # Verbatim Quote Montage
+                    if active_cluster.sample_quotes:
+                        st.markdown("##### 🗣️ Verbatim Audience Reactions at This Moment")
+                        for q in active_cluster.sample_quotes:
+                            like_badge = f"👍 {q.likes}" if q.likes > 0 else ""
+                            sent_badge = f"Sentiment: {q.sentiment:+.2f}"
+                            st.markdown(
+                                f"- **{q.author}** at `{q.timestamp_str}` ({like_badge} {sent_badge} | `{q.reaction_type}`): "
+                                f"_{q.text}_"
+                            )
+                    else:
+                        st.caption("No verbatim quotes captured for this specific scene window.")
+
+                # Export Hub for Narrative Report
+                st.markdown("##### 💾 Export Narrative Forensics Data")
+                exp_n1, exp_n2 = st.columns(2)
+                with exp_n1:
+                    st.download_button(
+                        label="💾 Export Narrative Report JSON",
+                        data=json.dumps(report.to_dict(), indent=2, ensure_ascii=False),
+                        file_name=f"narrative_report_{selected_nar_vid}.json",
+                        mime="application/json",
+                        key="dl_narrative_json"
+                    )
+                with exp_n2:
+                    st.download_button(
+                        label="📊 Export Scene Clusters CSV",
+                        data=df_clusters.to_csv(index=False),
+                        file_name=f"scene_clusters_{selected_nar_vid}.csv",
+                        mime="text/csv",
+                        key="dl_narrative_csv"
+                    )
+            else:
+                st.info("No timestamp reactions found in this video's comment corpus. Try toggling 'Demo / Mock Mode' to preview synthetic scene forensics.")
+        else:
+            st.info("No videos available with timestamp reaction data. Ensure stage 28 / comments clean pipeline has run.")
 
     # ==============================================================================
     # TAB 4: AUDIENCE LOYALTY & FORENSICS

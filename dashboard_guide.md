@@ -87,6 +87,13 @@ graph LR
 - **⚖️ AI Flame-War & Debate Tree Summarizer**:
   - Automatically reconstructs threaded discussions from root comments down the entire reply tree.
   - Extracts the core controversy trigger, segments participants into opposing factions (Camp A vs Camp B), traces toxicity and emotional escalation dynamics, and recommends specific creator mediation actions.
+- **⏱️ Narrative Scene Reaction & Timestamp Scrubbing Forensics (Section 3.10 / src/engine/narrative.py)**:
+  - **Video Selector & Resolution Configuration**: Choose any uploaded video and adjust the scene bin resolution slider (10s to 60s buckets) with live timestamp reaction counts.
+  - **Summary Metric Cards**: Live scorecards for Total Video Runtime, Timestamp Reactions, Scene Clusters, Confusion Hotspots, and Peak Scene Moment.
+  - **Viewer Confusion Hotspots Callout Banner**: Proactively highlights timestamps where audience questions and confusion cluster, recommending creator intervention (e.g. pinned comment, chapter marker, or video description clarification).
+  - **Dual-Axis Interactive Plotly Timeline**: Combines a reaction density bar chart colored by dominant reaction taxonomy (`humor_laughter` amber, `shock_surprise` crimson, `emotional_touching` emerald, `critique_analytical` royal blue, `chapter_navigation` purple, `general_reaction` slate) with confusion hotspot triangle badges and a smoothed rolling VADER sentiment trajectory.
+  - **Interactive Scene Scrubber & Quote Montage**: Scrub smoothly through playback time to inspect the active scene spotlight card and verbatim quotes from viewers at that exact moment.
+  - **1-Click Export Hub**: Download complete narrative forensics reports as structured JSON or scene clusters CSV.
 
 ---
 

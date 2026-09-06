@@ -251,3 +251,28 @@ Execute sub-10ms ANSI SQL queries, multi-table joins, and window functions direc
 .\.venv\Scripts\ytint-sql.exe --interactive
 ```
 
+## Temporal Narrative Scene Reaction Forensics
+
+Map in-video `@MM:SS` timestamp mentions to second-by-second playback timelines, categorize scene reactions (humor, surprise, critique, spoilers), detect viewer confusion hotspots, and export scene cluster reports:
+
+```powershell
+# List all videos with timestamp reaction comments:
+.\.venv\Scripts\python.exe -m engine.narrative --list-videos
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-narrative.exe --list-videos
+
+# Analyze narrative scene reactions for a specific video:
+.\.venv\Scripts\ytint-narrative.exe --video-id 6h547XdZYiQ --step-secs 30
+
+# Inspect detected viewer confusion hotspots:
+.\.venv\Scripts\ytint-narrative.exe --video-id 6h547XdZYiQ --hotspots
+
+# Fast mock demonstration mode:
+.\.venv\Scripts\ytint-narrative.exe --mock --step-secs 20
+
+# Export narrative scene report to JSON or CSV:
+.\.venv\Scripts\ytint-narrative.exe --video-id 6h547XdZYiQ --export scratch/narrative_report.json
+.\.venv\Scripts\ytint-narrative.exe --mock --export scratch/mock_scenes.csv
+```
+
+

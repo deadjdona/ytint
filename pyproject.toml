@@ -69,6 +69,7 @@ ytint-search = "engine.semantic_search:main"
 ytint-replay = "engine.event_replay:main"
 ytint-assist = "engine.assistant:main"
 ytint-sql = "engine.sql_engine:main"
+ytint-narrative = "engine.narrative:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

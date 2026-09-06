@@ -142,6 +142,24 @@ graph TD
   5. **Pipeline & CLI Integration**: Registered `ytint-alert` console script and added `--alert` flag to `pipeline.runner`.
   6. **Interactive Dashboard Console**: Tab 7 Section 7.5 Alerting Console with live threat scorecards, active incident ledger, webhook configuration, payload preview, and 1-click dispatch.
 
+### ⚡ High-Speed Zero-Copy Analytical SQL Engine ([`src/engine/sql_engine.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/sql_engine.py))
+- **Command**: `ytint-sql` or `ytint-sql --interactive`
+- **Features**:
+  1. **Zero-Copy Parquet Mapping**: Registers 95+ Parquet tables across `data/interim/` and `data/output/` as clean SQL views directly over disk.
+  2. **Sub-10ms ANSI SQL**: Executes complex analytical queries, joins, aggregations, and window functions in DuckDB out-of-core with 0 bytes loaded into unmanaged RAM.
+  3. **Curated Presets**: 8 production-grade query templates (VIP champions, toxicity outbreaks, DiD causal lift, CIB rings, topical valence drift, video performance benchmarks, bot audits, sentiment attention economy).
+  4. **Strict AST Guardrails**: Built-in AST/regex safety enforcement strictly rejecting destructive SQL operations (`DROP`, `DELETE`, `UPDATE`, `INSERT`, `ALTER`, `TRUNCATE`).
+  5. **SQL Studio & Visual Chart Builder**: Tab 7 Section 7.8 workbench with catalog explorer, query editor, live telemetry badge, dynamic results table, Plotly chart generator (Bar, Line, Scatter, Histogram), and 1-click CSV/JSON export.
+
+### ⏱️ Temporal Narrative Scene Reaction Forensics ([`src/engine/narrative.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/narrative.py))
+- **Command**: `ytint-narrative` or `ytint-narrative --video-id <ID>`
+- **Features**:
+  1. **Dual-Format Timestamp Extraction**: Regex parser matching plain-text timestamps (`MM:SS`, `HH:MM:SS`, `@MM:SS`) and YouTube watch URL timestamps (`&t=450s`).
+  2. **Multi-Class Reaction Taxonomy**: Granular heuristic reaction classifier categorizing comments into `humor_laughter`, `shock_surprise`, `emotional_touching`, `critique_analytical`, `chapter_navigation`, and `general_reaction`.
+  3. **Temporal Scene Clustering**: Groups second-by-second audience reactions into configurable resolution bins (10s to 60s) with dominant reaction classification, average VADER sentiment, and verbatim quote montages.
+  4. **Viewer Confusion Hotspots**: Proactively identifies scene moments where audience questions and perplexity cluster, recommending creator interventions (pinned clarifications, chapter titles, or video updates).
+  5. **Interactive Playback Scrubber Workbench**: Tab 3 Section 3.10 interactive console featuring video selector, scene resolution slider, dual-axis Plotly timeline with reaction taxonomy coloring and confusion hotspot badges, active scene spotlight card with quote montage, and 1-click JSON/CSV export.
+
 ---
 
 ## 🎨 5. Streamlit Executive Dashboard Architecture
@@ -149,12 +167,12 @@ graph TD
 The dashboard is structured into **7 comprehensive analytical perspectives** in [`src/ui/app.py`](file:///c:/Users/deadj/Sources/ytint/src/ui/app.py):
 
 1. **Executive Briefing & Macro Intelligence**: High-level channel KPIs, 🤖 **AI Executive Strategy Briefing** live container, 📄 one-click Executive Dossier generator & PDF export, community loyalty summaries, and dynamic Plotly bubble quadrant matrix ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
-2. **Temporal Dynamics & Conversational Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, and comparative multi-video playback dynamics.
-3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, ⚖️ **AI Flame-War & Debate Tree Summarizer**, and target stance drift across debate depth.
+2. **Temporal Dynamics & Conversational Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, comparative multi-video playback dynamics, and ⏱️ **Real-Time Chronological Event Replay & Crisis Simulator** (interactive frame scrubber, dual-axis velocity/sentiment/toxicity timeline, flame-war risk gauges, active crisis trigger alerts, and JSON/CSV export).
+3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, ⚖️ **AI Flame-War & Debate Tree Summarizer**, target stance drift across debate depth, and ⏱️ **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports).
 4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, and 🌐 **Interactive Community Network & Gephi Topology Explorer** (2D force-directed spring layout, top-$K$ node filter slider 25-250, Louvain community coloring, and 1-click GEXF/GraphML export buttons).
 5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, and Dunn's post-hoc matrix.
 6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation (Bar, Histogram, Scatter, Line), 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console** (live scorecards, active threat ledger, webhook dispatcher), and instant CSV/Parquet export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation, 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console**, 🔍 **Neural Semantic Vector Search Console**, 🛠️ **Creator Actionability & Reply Drafter Workbench**, ⚡ **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and instant CSV/Parquet export across all 53 layers.
 
 ---
 
@@ -162,15 +180,15 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 
 ```powershell
 # Run the complete test suite
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -v
 ```
 
 **Results**:
-- **Total Tests**: **157 test cases**
-- **Passed**: **157 passed (100% pass rate)**
+- **Total Tests**: **198 test cases** across 37 test modules
+- **Passed**: **198 passed (100% pass rate)**
 - **Failed**: **0 failed**
-- **Duration**: ~66s
-- **Coverage**: Engine unit tests (`alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+- **Duration**: ~70s
+- **Coverage**: Engine unit tests (`narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
 
 
 

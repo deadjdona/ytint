@@ -186,6 +186,7 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 
 # Filter for priority unanswered questions and draft AI replies:
 .\.venv\Scripts\ytint-assist.exe --video-id WpbN3D5oQBo --action REPLY --draft-replies --tone clarifying
+```
 
 ### 12. High-Speed Zero-Copy Analytical SQL Engine (DuckDB)
 
@@ -206,13 +207,29 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 .\.venv\Scripts\ytint-sql.exe --interactive
 ```
 
+### 13. Temporal Narrative Scene Reaction Forensics
+
+```powershell
+# List videos with timestamp reaction comments:
+.\.venv\Scripts\ytint-narrative.exe --list-videos
+
+# Analyze narrative scene reactions for a specific video:
+.\.venv\Scripts\ytint-narrative.exe --video-id 6h547XdZYiQ --step-secs 30
+
+# Inspect detected viewer confusion hotspots:
+.\.venv\Scripts\ytint-narrative.exe --video-id 6h547XdZYiQ --hotspots
+
+# Fast mock simulation mode:
+.\.venv\Scripts\ytint-narrative.exe --mock --step-secs 20 --export scratch/mock_scenes.csv
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
 
 1. **Executive Briefing**: High-level KPI scorecards, AI Executive Strategy Briefing generator, one-click Executive Dossier generator & PDF export, community loyalty summaries, and interactive video performance quadrant matrix. ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
 2. **Temporal Dynamics & Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, multi-video playback comparisons, and **Real-Time Chronological Event Replay & Crisis Simulator** (interactive frame scrubber, dual-axis velocity/sentiment/toxicity timeline, flame-war risk gauges, active crisis trigger alerts, and JSON/CSV export).
-3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, AI Flame-War & Debate Tree Summarizer, target stance drift across debate depth, and multilingual code-switching lift.
+3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, AI Flame-War & Debate Tree Summarizer, target stance drift across debate depth, multilingual code-switching lift, and **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports).
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, and **Interactive Community Network & Gephi Topology Explorer** (2D force-directed layout, top-$K$ node filtering, Louvain community coloring, and 1-click GEXF/GraphML exports).
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, and audience overlap heatmap.
 6. **Publication-Ready Visual Analytics Gallery**: Comprehensive catalog of 68+ high-resolution statistical plots with analytical guides and strategic takeaways.
