@@ -234,6 +234,13 @@ graph LR
   - **⏱️ Live Query Telemetry**: Millisecond execution timing badge, row count returns, and memory safety monitors.
   - **📊 Dynamic Visual Chart Builder**: Interactive Plotly visualizer rendering Bar Charts, Line Charts, Scatter Plots, or Histograms dynamically from query results with customizable X/Y metric axes.
   - **💾 1-Click Multi-Format Export**: Direct download buttons for CSV and JSON result sets.
+- **📡 Continuous Live Streaming Watcher & Auto-Poller Console (Section 7.9 / src/engine/watcher.py)**:
+  - **🔴 Live Polling Telemetry KPIs**: Instant real-time cards tracking Daemon Status (`ACTIVE` / `STANDBY`), Monitored Targets, Total Poll Cycles Executed, and Automated Incremental Pipeline Sweeps Triggered.
+  - **🎯 Multi-Target Registry & Adaptive Velocity Ledger**: Comprehensive tabular tracking of active watch targets with real-time comment velocity (comments/minute), dynamically scaled poll intervals ($\tau \in [60\text{s}, 1800\text{s}]$), and last poll timestamps.
+  - **➕ Dynamic Target Registration**: In-browser form to register new YouTube channels (`@handle` or channel ID) or active live streams/video IDs with custom descriptive labels.
+  - **⚡ On-Demand Manual Poll Execution**: 1-click trigger button executing an immediate polling cycle across all registered targets with offline `--mock` testing toggle.
+  - **📜 Real-Time Daemon Event Stream**: Formatted reverse-chronological log stream capturing polling triggers, velocity recalibrations, incremental pipeline sweeps, and webhook alert dispatches.
+  - **💾 1-Click State JSON Export**: Direct browser download button for the active daemon state ledger (`data/output/watcher_state.json`).
 
 ---
 

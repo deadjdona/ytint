@@ -277,6 +277,25 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 .\.venv\Scripts\ytint-cohort.exe --mock --matrix
 ```
 
+### 17. Continuous Live Streaming Watcher & Auto-Poller Daemon
+
+```powershell
+# Run a single polling cycle in mock simulation mode:
+.\.venv\Scripts\ytint-watch.exe --mock --once
+
+# Inspect active watcher daemon health, telemetry, and targets from disk:
+.\.venv\Scripts\ytint-watch.exe --status
+
+# Monitor a specific channel or video with adaptive velocity scaling (60s..1800s):
+.\.venv\Scripts\ytint-watch.exe --channel @mkbhd --interval 120 --adaptive
+
+# Run daemon continuously with automated incremental pipeline sync and threat alerts:
+.\.venv\Scripts\ytint-watch.exe --video WpbN3D5oQBo --auto-sync --auto-alert
+
+# Fast mock demonstration running N iterations:
+.\.venv\Scripts\ytint-watch.exe --mock --iterations 3
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
@@ -287,7 +306,7 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, **Interactive Community Network & Gephi Topology Explorer** (2D force-directed layout, top-$K$ node filtering, Louvain community coloring, and 1-click GEXF/GraphML exports), and **Forensic Author Persona & Sockpuppet Fingerprinting** (stylometric feature radar bar charts, 24-hour diurnal posting clocks, pairwise scatter matrix, clustered ring ledger, and suspect pair matches).
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, audience overlap heatmap, **Multi-Channel & Playlist Competitive Intelligence Engine** (cross-channel and temporal release cohort selector, 6-dimension Plotly polar radar chart, normalized benchmark scorecard, audience overlap Venn/bubble map, shared commenter migration ledger), and **Audience Churn & Longitudinal Cohort Survival Engine** (monthly/quarterly cohort retention triangle heatmap, continuous-time Kaplan-Meier survival curves with right-censoring, community state dynamics & Quick Ratio trajectory, and empirical social validation uplift).
 6. **Publication-Ready Visual Analytics Gallery**: Comprehensive catalog of 68+ high-resolution statistical plots with analytical guides and strategic takeaways.
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer, Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, Automated Anomaly & Threat Alerting Console, Neural Semantic Vector Search & Feedback Clustering Console, Creator Actionability & Engagement Optimization Workbench, **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and instant dataset export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer, Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, Automated Anomaly & Threat Alerting Console, Neural Semantic Vector Search & Feedback Clustering Console, Creator Actionability & Engagement Optimization Workbench, **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and **Continuous Live Streaming Watcher & Auto-Poller Console** (real-time telemetry status, active target velocity ledger, on-demand poll triggers, incremental sweep orchestration, and JSON state exports).
 
 
 ---

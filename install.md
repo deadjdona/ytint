@@ -41,6 +41,7 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-fingerprint`**: Direct CLI entrypoint for `engine.fingerprint:main` (Forensic Author Persona & Sockpuppet Fingerprinting)
 - **`ytint-compare`**: Direct CLI entrypoint for `engine.comparator:main` (Multi-Channel & Playlist Competitive Intelligence Engine)
 - **`ytint-cohort`**: Direct CLI entrypoint for `engine.cohort_survival:main` (Audience Churn & Longitudinal Cohort Survival Engine)
+- **`ytint-watch`**: Direct CLI entrypoint for `engine.watcher:main` (Continuous Live Streaming Watcher & Auto-Poller Daemon)
 
 Validate the active environment:
 

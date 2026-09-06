@@ -357,5 +357,29 @@ Longitudinal monthly/quarterly commenter acquisition cohorts, continuous-time Ka
 .\.venv\Scripts\ytint-cohort.exe --mock --survival
 ```
 
+## Continuous Live Streaming Watcher & Auto-Poller Daemon
 
+Continuous background monitoring of channels and uploads with adaptive polling velocity scaling (60s to 1800s), automated incremental pipeline sweep triggers, and webhook alerting:
 
+```powershell
+# Check current daemon state, registered targets, and polling metrics:
+.\.venv\Scripts\python.exe -m engine.watcher --status
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-watch.exe --status
+
+# Run a single offline mock cycle and inspect target velocity adjustments:
+.\.venv\Scripts\ytint-watch.exe --mock --once
+
+# Add channels or video targets to watch list:
+.\.venv\Scripts\ytint-watch.exe --add-channel "@mkbhd"
+.\.venv\Scripts\ytint-watch.exe --add-video "dQw4w9WgXcQ"
+
+# Remove target from watch list:
+.\.venv\Scripts\ytint-watch.exe --remove-target "@mkbhd"
+
+# Start continuous daemon loop with custom base interval (seconds):
+.\.venv\Scripts\ytint-watch.exe --interval 180 --auto-pipeline --alert
+
+# Reset state and watch list:
+.\.venv\Scripts\ytint-watch.exe --reset
+```

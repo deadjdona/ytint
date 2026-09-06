@@ -210,6 +210,15 @@ graph TD
   4. **Empirical Causal Social Validation Uplift**: Quantifies the retention multiplier when an author's initial comment receives early social reinforcement (likes/replies), extending median survival lifespan from 35.0 to 63.0 days (+80.0% lift, log-rank $p = 7.32 \times 10^{-31}$).
   5. **Interactive Dashboard Workbench**: Tab 5 Section 5.7 featuring granularity selector, churn threshold slider, Plotly retention triangle heatmap, Kaplan-Meier step curves with 95% confidence intervals, state migration stacked bars, and 1-click CSV/JSON exports.
 
+### 16. Continuous Live Streaming Watcher & Auto-Poller Daemon ([`src/engine/watcher.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/watcher.py))
+- **Command**: `ytint-watch`
+- **Capabilities**:
+  1. **Adaptive Polling Velocity Scaling**: Dynamically scales target polling intervals between a high-activity floor ($\tau_{\text{min}} = 60\text{s}$) and a low-activity ceiling ($\tau_{\text{max}} = 1800\text{s}$) based on real-time comment velocity ($V$, comments/min): $\tau_{\text{next}} = \text{clamp}(\tau_{\text{base}} / (1 + \log_2(1 + V)), \tau_{\text{min}}, \tau_{\text{max}})$. High-velocity uploads poll every 60s, while idle uploads relax to 30 minutes, preserving YouTube Data API quota.
+  2. **Automated Incremental Pipeline Trigger**: When fresh comments or uploads are ingested, the daemon triggers `pipeline.runner:main` with `--incremental` (and optional `--alert`), syncing downstream Parquet tables and dispatching threat notifications within seconds.
+  3. **Multi-Target Registry & State Persistence**: Manages registered channels and specific video targets in a unified daemon state ledger atomically serialized to `data/output/watcher_state.json`.
+  4. **Interactive Dashboard Console**: Tab 7 Section 7.9 featuring real-time daemon status KPIs, target ledger with comment velocities and polling intervals, on-demand poll cycle trigger, target adder form, recent event stream, and 1-click state JSON export.
+  5. **Standalone CLI Runner**: Registered `ytint-watch` console script supporting `--status`, `--interval`, `--auto-pipeline`, `--alert`, `--add-channel`, `--add-video`, `--remove-target`, `--once`, `--mock`, and `--reset`.
+
 ### 🖥️ Streamlit Intelligence Dashboard Console ([`src/ui/app.py`](file:///c:/Users/deadj/Sources/ytint/src/ui/app.py))
 - **Command**: `ytint-app` or `streamlit run src/app.py`
 - **Features**:
@@ -229,7 +238,7 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, 🌐 **Interactive Community Network & Gephi Topology Explorer** (2D force-directed spring layout, top-$K$ node filter slider 25-250, Louvain community coloring, and 1-click GEXF/GraphML export buttons), and 🕵️ **Forensic Author Persona & Sockpuppet Fingerprinting** (stylometric feature radar bar charts, 24-hour diurnal posting clocks, pairwise scatter matrix, clustered ring ledger, suspect pair matches, and JSON/CSV exports).
 5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, Dunn's post-hoc matrix, audience overlap heatmap, 🌐 **Multi-Channel & Playlist Competitive Intelligence Engine** (cross-channel and temporal release cohort selector, 6-dimension Plotly polar radar chart, normalized benchmark scorecard, audience overlap Venn/bubble map, shared commenter migration ledger), and ⏳ **Audience Churn & Longitudinal Cohort Survival Engine** (monthly/quarterly cohort retention triangle heatmap, continuous-time Kaplan-Meier survival curves with right-censoring, community state dynamics & Quick Ratio trajectory, and empirical social validation uplift).
 6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation, 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console**, 🔍 **Neural Semantic Vector Search Console**, 🛠️ **Creator Actionability & Reply Drafter Workbench**, ⚡ **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and instant CSV/Parquet export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation, 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console**, 🔍 **Neural Semantic Vector Search Console**, 🛠️ **Creator Actionability & Reply Drafter Workbench**, ⚡ **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), 📡 **Continuous Live Streaming Watcher & Auto-Poller Console** (real-time telemetry KPIs, multi-target adaptive velocity ledger, target registration form, manual poll runner, event stream, and JSON state export), and instant CSV/Parquet export across all 53 layers.
 
 ---
 
@@ -241,17 +250,17 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 ```
 
 **Results**:
-- **Total Tests**: **229 test cases** across 40 test modules
-- **Passed**: **229 passed (100% pass rate)**
+- **Total Tests**: **237 test cases** across 41 test modules
+- **Passed**: **237 passed (100% pass rate)**
 - **Failed**: **0 failed**
-- **Duration**: ~86s
-- **Coverage**: Engine unit tests (`cohort_survival`, `comparator`, `fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+- **Duration**: ~87s
+- **Coverage**: Engine unit tests (`watcher`, `cohort_survival`, `comparator`, `fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
 
 ---
 
 ## 📦 7. Complete CLI Command Ecosystem
 
-All **15 standalone console scripts** are registered in `pyproject.toml` and operational:
+All **16 standalone console scripts** are registered in `pyproject.toml` and operational:
 
 | Command | Module | Functionality |
 | :--- | :--- | :--- |
@@ -270,3 +279,4 @@ All **15 standalone console scripts** are registered in `pyproject.toml` and ope
 | `ytint-fingerprint` | `engine.fingerprint:main` | Forensic author persona & sockpuppet fingerprinting |
 | `ytint-compare` | `engine.comparator:main` | Multi-channel & playlist competitive intelligence engine |
 | `ytint-cohort` | `engine.cohort_survival:main` | Audience churn & longitudinal cohort survival engine |
+| `ytint-watch` | `engine.watcher:main` | Continuous live streaming watcher & auto-poller daemon |

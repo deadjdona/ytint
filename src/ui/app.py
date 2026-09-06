@@ -3700,6 +3700,123 @@ def main():
                 else:
                     st.info("Query returned 0 rows.")
 
+        # ==============================================================================
+        # 7.9 CONTINUOUS LIVE STREAMING WATCHER & AUTO-POLLER (ytint-watch)
+        # ==============================================================================
+        st.divider()
+        st.subheader("⚡ Section 7.9: Continuous Live Streaming Watcher & Auto-Poller Daemon (ytint-watch)")
+        st.markdown(
+            "Autonomous continuous background poller monitoring active YouTube channels and uploads. "
+            "Dynamically scales polling frequency based on incoming comment velocity to conserve API quota, "
+            "automatically triggers incremental pipeline sweeps (`runner.py --incremental`), and evaluates threat levels."
+        )
+
+        from engine.watcher import YouTubeWatcherDaemon
+
+        raw_db_path = config.get("paths", {}).get("raw_db") or (interim_path.parent / "raw" / "commentsuite.sqlite3")
+        daemon_inst = YouTubeWatcherDaemon(interim_dir=interim_path, output_dir=output_path, raw_db=raw_db_path)
+        d_state = daemon_inst.get_state()
+
+        # Telemetry KPI scorecards
+        w_kpi1, w_kpi2, w_kpi3, w_kpi4, w_kpi5 = st.columns(5)
+        with w_kpi1:
+            with st.container(border=True):
+                st.metric("Daemon Status", d_state.status.upper(), delta="Active Polling" if d_state.status == "running" else "Standby")
+        with w_kpi2:
+            with st.container(border=True):
+                st.metric("Total Poll Cycles", f"{d_state.total_cycles:,}")
+        with w_kpi3:
+            with st.container(border=True):
+                st.metric("Comments Ingested", f"{d_state.total_comments_ingested:,}")
+        with w_kpi4:
+            with st.container(border=True):
+                st.metric("Incremental Syncs", f"{d_state.total_syncs_executed:,}")
+        with w_kpi5:
+            with st.container(border=True):
+                st.metric("Quota Consumed", f"{d_state.total_quota_consumed:,} units")
+
+        # Control Workbench
+        with st.container(border=True):
+            st.markdown("##### 🎮 Watcher Daemon Controls & On-Demand Actions")
+            w_act_col1, w_act_col2, w_act_col3 = st.columns(3)
+            with w_act_col1:
+                use_watch_mock = st.checkbox("Mock Simulation Mode", value=True, key="cb_watch_mock")
+                if st.button("⚡ Trigger Single Poll Cycle Now", key="btn_trigger_poll_cycle"):
+                    with st.spinner("Executing polling cycle across active targets..."):
+                        poll_res = daemon_inst.poll_once(mock=use_watch_mock)
+                        st.success(
+                            f"🎉 Poll Cycle #{poll_res.cycle_index} complete! Found +{poll_res.new_comments_found} comments across "
+                            f"{poll_res.targets_checked} targets. Sync: {poll_res.pipeline_sync_triggered} ({poll_res.pipeline_sync_duration_sec}s). "
+                            f"Next in {poll_res.next_poll_in_sec}s."
+                        )
+                        st.rerun()
+
+            with w_act_col2:
+                st.markdown("Add a video ID or channel handle to the active watch list:")
+                new_watch_target = st.text_input("Video ID or Channel (@handle):", placeholder="e.g. WpbN3D5oQBo", key="input_watch_target")
+                if st.button("➕ Add to Active Watch List", key="btn_add_watch_target"):
+                    t_val = new_watch_target.strip()
+                    if t_val:
+                        t_type = "channel" if ("@" in t_val or t_val.startswith("UC")) else "video"
+                        daemon_inst.add_target(t_type, t_val, f"Monitored {t_type.capitalize()}: {t_val}")
+                        st.success(f"Added [{t_type}] {t_val} to active watch targets!")
+                        st.rerun()
+
+            with w_act_col3:
+                st.markdown("Daemon configuration:")
+                st.caption(
+                    f"• Base Interval: **{daemon_inst.base_interval_sec}s**\n\n"
+                    f"• Adaptive Velocity Scaling: **{'Enabled (60s..1800s)' if daemon_inst.adaptive else 'Disabled'}**\n\n"
+                    f"• Auto Incremental Sync: **{'Enabled' if daemon_inst.auto_sync else 'Disabled'}**\n\n"
+                    f"• Auto Threat Alerting: **{'Enabled' if daemon_inst.auto_alert else 'Disabled'}**"
+                )
+
+        # Monitored Targets Ledger
+        st.markdown("##### 🎯 Active Monitored Targets & Velocity Ledger")
+        if d_state.monitored_targets:
+            target_rows = []
+            for t in d_state.monitored_targets:
+                target_rows.append({
+                    "Target Type": t.target_type.upper(),
+                    "Target ID": t.target_id,
+                    "Title / Handle": t.target_name,
+                    "Velocity (cmds/min)": t.comment_velocity_per_min,
+                    "Adaptive Interval": f"{t.current_polling_interval_sec}s",
+                    "Last Polled": t.last_polled_at or "Pending",
+                    "Status": t.status.upper()
+                })
+            st.dataframe(pd.DataFrame(target_rows), width="stretch", hide_index=True)
+        else:
+            st.info("No targets registered. Click 'Trigger Single Poll Cycle Now' to auto-discover recent videos.")
+
+        # Recent Polling Event Stream
+        if d_state.recent_events:
+            st.markdown("##### 📋 Recent Polling & Synchronization Events")
+            event_rows = []
+            for e in reversed(d_state.recent_events[-10:]):
+                event_rows.append({
+                    "Cycle #": e.cycle_index,
+                    "Timestamp": e.timestamp,
+                    "Targets": e.targets_checked,
+                    "New Comments": f"+{e.new_comments_found}",
+                    "Sync Triggered": "Yes" if e.pipeline_sync_triggered else "No",
+                    "Sync Runtime": f"{e.pipeline_sync_duration_sec:.2f}s",
+                    "Threats": e.threats_detected,
+                    "Next Interval": f"{e.next_poll_in_sec}s",
+                    "Error": e.error or "None"
+                })
+            st.dataframe(pd.DataFrame(event_rows), width="stretch", hide_index=True)
+
+        # 1-Click State Export
+        st.markdown("##### 💾 Export Watcher State")
+        st.download_button(
+            label="💾 Download Watcher State JSON",
+            data=d_state.to_json(),
+            file_name="watcher_state.json",
+            mime="application/json",
+            key="dl_watcher_state_json"
+        )
+
 
 if __name__ == "__main__":
     main()
