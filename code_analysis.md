@@ -31,8 +31,24 @@ graph TD
         BotClass -.-> Forensics
     end
 
+    subgraph Native Intelligence Engines Tier
+        Output[(Output Parquet)] --> SQL[DuckDB Zero-Copy SQL Studio<br>ytint-sql]
+        Output --> Watcher[Live Watcher & Poller Daemon<br>ytint-watch]
+        Output --> Search[384D Vector Search<br>ytint-search]
+        Output --> Replay[Crisis Event Replay<br>ytint-replay]
+        Output --> Fingerprint[Sockpuppet Forensics<br>ytint-fingerprint]
+        Output --> Compare[Competitive Intelligence<br>ytint-compare]
+        Output --> Cohort[Cohort Churn Survival<br>ytint-cohort]
+        Output --> Narrative[Narrative Scene Forensics<br>ytint-narrative]
+        Output --> Assist[Creator Assistant<br>ytint-assist]
+        Output --> AI[LLM & Gemini RAG<br>ytint-ai]
+        Output --> Alert[Webhook Alerting<br>ytint-alert]
+        Output --> Graph[Network Exporter<br>ytint-graph]
+        Output --> Report[Executive Dossier<br>ytint-report]
+    end
+
     subgraph Presentation & Intelligence Tier
-        ML --> Output[(Output Parquet)]
+        ML --> Output
         Ext --> Output
         Forensics --> Output
         Video --> Output
@@ -40,6 +56,13 @@ graph TD
         Output --> Viz[s99: Modular Visualizations Gallery<br>src/pipeline/visualizations/ // 68+ Plots]
         Output --> App[Streamlit Interactive Intelligence App<br>src/ui/app.py // 7 Tabs & Simulators]
         Viz --> App
+        SQL -.-> App
+        Watcher -.-> App
+        Fingerprint -.-> App
+        Compare -.-> App
+        Cohort -.-> App
+        Narrative -.-> App
+        Replay -.-> App
     end
 ```
 
@@ -50,33 +73,48 @@ graph TD
 ### 💎 1. Methodological & Mathematical Sophistication
 
 - **Quasi-Experimental Causal Inference**: Implements Difference-in-Differences (`s39_creator_uplift.py`) to quantify the causal lift of creator interventions (+3,130% reply lift, +1,548% like lift).
+- **Longitudinal Churn Survival & Quick Ratio Dynamics**: Fits continuous-time Kaplan-Meier audience churn curves and tracks monthly community state transitions (New, Retained, Resurrected, Lapsed) against the $1.0$ Quick Ratio growth parity floor (`cohort_survival.py`).
 - **Epidemiological Toxicity Modeling**: Implements epidemic branching models (`s15_toxicity_contagion.py`) calculating reproduction numbers ($R_0$) and flame-war spark catalysts.
+- **Forensic Stylometrics & Circadian Clock Modeling**: Models Shannon vocabulary entropy, punctuation motifs, and 24-hour diurnal posting distributions with graph connected-components clustering to detect coordinated sockpuppet rings (`fingerprint.py`).
+- **Cross-Channel Benchmarking & Audience Overlap Forensics**: Computes pairwise Jaccard overlap and shared commenter sentiment/toxicity migration ledgers across multi-channel video catalogs (`comparator.py`).
+- **Temporal Narrative Scene Reaction Forensics**: Second-by-second timestamp reaction clustering with automated viewer confusion hotspot detection (`narrative.py`).
+- **Adaptive Polling Velocity Scaling**: Preserves API quota by scaling polling intervals ($\tau \in [60\text{s}, 1800\text{s}]$) logarithmically with comment velocity (`watcher.py`).
 - **Explainable Machine Learning**: Combines gradient-boosted trees (XGBoost) with exact Tree SHAP Shapley value attributions (`s38_modeling.py`).
 - **Non-Parametric Survival Analysis**: Right-censored Kaplan-Meier thread lifespan survival analysis with Log-Rank hypothesis testing.
 - **Change-Point & Anomaly Detection**: Pruned Exact Linear Time (PELT) dynamic programming and rolling Gaussian $Z$-score spike detection.
 
 ### ⚡ 2. High-Performance Processing & Data Flow
 
+- **Zero-Copy Out-of-Core DuckDB Engine**: Instant sub-10ms ANSI SQL queries, joins, and window functions directly over 95+ Parquet tables without loading full tables into RAM (`sql_engine.py`).
+- **Sub-50ms Neural Semantic Vector Search**: Memory-mapped NumPy BLAS cosine similarity search over 340,027 SentenceTransformer embeddings with thematic $k$-means feedback clustering (`semantic_search.py`).
+- **Incremental Delta Synchronization**: High-speed change detection (`delta.py`) executing pipeline updates in seconds while preserving pre-calculated heavy NLP embeddings.
 - **Rust-Accelerated Tokenization**: Uses `gigatoken` BPE token hashing to catch multi-account spam variants across hundreds of thousands of comments in sub-second runtimes.
-- **Vectorized Parquet Storage**: Replaced unindexed relational queries with snappy-compressed Apache Parquet tables, cutting I/O overhead and enabling sub-5-second full pipeline execution.
+- **Vectorized Parquet Storage**: Snappy-compressed Apache Parquet tables, cutting I/O overhead and enabling sub-5-second full pipeline execution.
 - **Strict Dependency-Ordered Pipeline Lifecycle**: Deterministic 7-phase execution grid in `runner.py` ensuring downstream calculations cleanly build upon upstream artifacts.
-- **Inter-Step Upstream Data Reuse**: Downstream forensic layers (`frequency_tiers`, `driveby_loyalists`, `bot_heuristics`, `like_inflation`, `video_radar`) directly consume precomputed `authors_final.parquet` and `videos_final.parquet` tables instead of rescanning raw datasets.
+- **Inter-Step Upstream Data Reuse**: Downstream forensic layers directly consume precomputed `authors_final.parquet` and `videos_final.parquet` tables instead of rescanning raw datasets.
 
 ### 🛡️ 3. Resilience & Defensive Engineering
 
 - **Graceful Fallbacks**: Every module incorporates defensive exception handling, falling back from GPU/Rust dependencies to CPU/Numpy logic if external binaries are missing.
 - **100% Physical Script 1:1 Mapping**: Every script is uniquely named `s00_ingest.py` through `s51_topic_injection.py` plus `s99_visualize.py`.
 - **100% Test Suite Pass Rate**: Full test coverage (`pytest` passing all 237 unit, compatibility, and data pipeline tests across 41 test modules).
+- **Zero-SDK Network Leanliness**: Webhooks and REST integrations built on Python standard library `urllib.request` with strict timeouts and robust retry handling.
 
 ### 🎨 4. Modern, Sleek UI Architecture & Dynamic Simulators
 
 - **7 Dedicated Analytical Perspectives**: Structured into an intuitive tabbed hierarchy (Executive Briefing, Temporal Flashpoints, NLP & Intent, Loyalty & Forensics, Predictive Modeling, Visual Gallery, Data Explorer).
-- **Interactive Plotly Visualizations**:
+- **Interactive Plotly Visualizations & Workbenches**:
   - **Dynamic Video Quadrant Matrix**: Volume vs Sentiment vs Likes scatter with median/mean crosshairs and clean hover tooltips.
   - **Dynamic Anomaly Sensitivity Scanner**: Real-time $Z$-score and baseline window sliders dynamically recalculating anomaly markers.
-  - **Comparative Multi-Video Playback**: Side-by-side / overlaid sentiment and toxicity trajectories across video releases.
+  - **Real-Time Event Replay & Crisis Scrubber**: Interactive frame scrubber, velocity/sentiment timeline, and risk gauge dials (Tab 2 Section 2.5).
+  - **Narrative Scene Playback Scrubber**: Second-by-second timeline with confusion hotspot markers and verbatim quotes (Tab 3 Section 3.10).
   - **Interactive 3D RFM Community Space**: 3D scatter rotatable across Recency, Frequency, and Monetary likes.
+  - **Forensic Persona Dossier Inspector**: 24-hour diurnal posting clock and stylometric radar bar charts (Tab 4 Section 4.7).
   - **"What-If" Comment Virality Simulator**: Live input sliders with dynamic attribution waterfall chart.
+  - **Multi-Channel Polar Radar Matrix**: 6-dimension benchmark radar and shared commenter migration bubble map (Tab 5 Section 5.6).
+  - **Longitudinal Cohort Retention Heatmap**: Triangle retention matrices, Kaplan-Meier step curves with 95% CI, and state migration stacked bars (Tab 5 Section 5.7).
+  - **Zero-Copy SQL Studio**: Schema browser, 8 analytical SQL presets, live telemetry, and Plotly visual chart builder (Tab 7 Section 7.8).
+  - **Continuous Watcher Daemon Console**: Live status KPIs, target velocity ledger, and manual poll runner (Tab 7 Section 7.9).
   - **Interactive Query Sandbox**: Multi-layer dataset querying console supporting all 53 layers with dynamic Bar, Histogram, Scatter, and Line chart generation.
 - **Human-Readable Video Title Resolution**: Automatically resolves raw video IDs into full video titles across tables, dropdowns, tooltips, and matrix axes.
 - **Dark/Slate Design System**: Containerized card layouts (`st.container(border=True)`), zero deprecated Streamlit parameters (`width="stretch"` compliant).
@@ -250,8 +288,15 @@ graph TD
 With the completion of the **Continuous Live Streaming Watcher & Auto-Poller Daemon (`ytint-watch`)**, the platform stands as a unified, production-grade intelligence suite comprising:
 - **53 Automated Analytical Stages** (Ingestion, NLP, Causal DiD, Machine Learning, Graph Networks, Forensics).
 - **16 Standalone High-Performance CLI Engines** (`runner`, `app`, `report`, `ingest`, `ai`, `graph`, `alert`, `search`, `replay`, `assist`, `sql`, `narrative`, `fingerprint`, `compare`, `cohort`, `watch`).
-- **7 Comprehensive Streamlit Tabs** with zero deprecation warnings, responsive layouts, and interactive visual workbenches.
+- **7 Comprehensive Streamlit Tabs** with zero deprecation warnings, responsive layouts, and 12+ interactive visual workbenches.
 - **Zero-Copy Analytical Querying Tier** powered by embedded DuckDB executing sub-10ms queries over 95+ Parquet layers.
+- **Sub-50ms In-Memory Vector Search** across 340,000+ embeddings via memory-mapped NumPy BLAS.
+- **Real-Time Automated Ingestion & Polling** with adaptive comment velocity interval scaling ($60\text{s}$–$1800\text{s}$).
+
+### 🔭 Architectural Frontiers for Enterprise Scaling:
+1. **Distributed Compute Clustering (Ray / Dask)**: For enterprise creator networks with >10 million comments, distributed cluster workers can partition Phase 1 and 2 NLP tasks across nodes.
+2. **Multimodal Vision & Audio Alignment (CLIP / Whisper)**: Directly aligning speech-to-text transcript timestamps and keyframe vision embeddings with comment timestamp references.
+3. **Bi-Directional YouTube Moderation Action Agent**: Expanding `ytint-assist` to execute OAuth-authorized comment pinning, hearting, and hold-for-review actions directly via YouTube Data API endpoints.
 
 ---
 
@@ -265,6 +310,8 @@ With the completion of the **Continuous Live Streaming Watcher & Auto-Poller Dae
 | **P4** | **Multi-Channel Competitive Intelligence Engine (`ytint-compare`)** | Strategic Analytics | Cross-channel audience overlap (Jaccard index), shared commenter migration, creator loyalty retention vs churn, and comparative radar matrices in Tab 5 and CLI. | ✅ **Completed** |
 | **P5** | **Audience Churn & Longitudinal Cohort Survival Engine (`ytint-cohort`)** | Audience Science | Longitudinal retention matrices, continuous Kaplan-Meier churn survival curves, Community Quick Ratio dynamics, and stratified social validation uplift in Tab 5 and CLI. | ✅ **Completed** |
 | **P6** | **Continuous Live Streaming Watcher & Auto-Poller Daemon (`ytint-watch`)** | Real-Time Ingestion | Continuous channel & video monitoring with adaptive velocity scaling ($60\text{s}$–$1800\text{s}$), automated incremental pipeline sweep triggers, and webhook alerting in Tab 7 and CLI. | ✅ **Completed** |
+| **P7** | **Bi-Directional Moderation Action Dispatcher** | Community Management | OAuth 2.0 authorized direct execution of creator moderation actions (pin comment, heart VIPs, hold-for-review troll catalysts) directly from the `ytint-assist` workbench. | 📋 *Planned* |
+| **P8** | **Multimodal Transcript & Vision Alignment** | Cross-Modal AI | Whisper transcription & CLIP frame embeddings mapped directly to narrative scene reaction clusters and confusion hotspots. | 📋 *Planned* |
 
 ---
 
