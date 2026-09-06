@@ -327,5 +327,35 @@ Cross-channel benchmarking, temporal cohort comparison, Jaccard audience overlap
 .\.venv\Scripts\ytint-compare.exe --mock --export scratch/mock_profiles.csv
 ```
 
+## Audience Churn & Longitudinal Cohort Survival Engine
+
+Longitudinal monthly/quarterly commenter acquisition cohorts, continuous-time Kaplan-Meier churn survival curves with right-censoring, community state transitions (New, Retained, Resurrected, Lapsed), monthly Community Quick Ratios, and stratified retention uplift from early social validation:
+
+```powershell
+# Print monthly cohort retention matrix table (%):
+.\.venv\Scripts\python.exe -m engine.cohort_survival --matrix
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-cohort.exe --matrix
+
+# Print cohort active author counts matrix:
+.\.venv\Scripts\ytint-cohort.exe --counts
+
+# Print Kaplan-Meier survival curve and key retention milestones (7d, 14d, 30d, 60d, 90d, 180d):
+.\.venv\Scripts\ytint-cohort.exe --survival
+
+# Print monthly community state dynamics and Community Quick Ratios:
+.\.venv\Scripts\ytint-cohort.exe --quick-ratio
+
+# Print stratified social validation survival uplift (likes/replies on first comment):
+.\.venv\Scripts\ytint-cohort.exe --stratified
+
+# Set custom inactivity churn threshold in days (default: 60) and export full dossier:
+.\.venv\Scripts\ytint-cohort.exe --inactivity-days 90 --export data/output/audience_cohort_intelligence_report.json
+
+# Fast mock demonstration mode:
+.\.venv\Scripts\ytint-cohort.exe --mock --matrix
+.\.venv\Scripts\ytint-cohort.exe --mock --survival
+```
+
 
 

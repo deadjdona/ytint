@@ -2407,6 +2407,325 @@ def main():
                 key="dl_comp_csv"
             )
 
+        # ==============================================================================
+        # 5.7 AUDIENCE CHURN & LONGITUDINAL COHORT SURVIVAL ENGINE (ytint-cohort)
+        # ==============================================================================
+        st.divider()
+        st.subheader("⏳ Section 5.7: Longitudinal Audience Churn & Cohort Survival Engine (ytint-cohort)")
+        st.markdown(
+            "Track monthly commenter acquisition cohorts over time ($M+0 \\dots M+k$), model continuous "
+            "Kaplan-Meier survival curves ($\\hat{S}(t)$) and community half-life ($t_{1/2}$), monitor community state "
+            "migration (New, Retained, Resurrected, Lapsed), and measure the causal retention uplift of early social validation."
+        )
+
+        from engine.cohort_survival import AudienceCohortEngine
+
+        with st.container(border=True):
+            ch_ctrl_1, ch_ctrl_2, ch_ctrl_3 = st.columns([1, 1, 1])
+            with ch_ctrl_1:
+                cohort_granularity = st.radio(
+                    "Cohort Time Bucket:",
+                    options=["month", "quarter"],
+                    format_func=lambda x: "Monthly (M+0..M+k)" if x == "month" else "Quarterly (Q+0..Q+k)",
+                    horizontal=True,
+                    key="sel_cohort_granularity"
+                )
+            with ch_ctrl_2:
+                churn_days_val = st.slider(
+                    "Inactivity Churn Threshold (Days):",
+                    min_value=30,
+                    max_value=120,
+                    value=60,
+                    step=10,
+                    help="An author is considered churned if no comment has been observed for longer than this period.",
+                    key="slider_churn_inactivity_days"
+                )
+            with ch_ctrl_3:
+                use_cohort_mock = st.checkbox("Mock Data (Fast Demo Mode)", value=False, key="cb_cohort_mock")
+
+        # Load or compute report
+        with st.spinner("Computing longitudinal cohort matrices and survival models..."):
+            try:
+                if use_cohort_mock:
+                    cohort_report = AudienceCohortEngine.generate_mock_report()
+                else:
+                    precomputed_cohort_file = output_path / "audience_cohort_intelligence_report.json"
+                    if precomputed_cohort_file.exists() and churn_days_val == 60 and cohort_granularity == "month":
+                        with open(precomputed_cohort_file, "r", encoding="utf-8") as f:
+                            cached_data = json.load(f)
+                        engine = AudienceCohortEngine(interim_path, output_path)
+                        cohort_report = engine.generate_full_report(churn_inactivity_days=float(churn_days_val), granularity=cohort_granularity)
+                    else:
+                        engine = AudienceCohortEngine(interim_path, output_path)
+                        cohort_report = engine.generate_full_report(churn_inactivity_days=float(churn_days_val), granularity=cohort_granularity)
+            except Exception as cohort_err:
+                st.warning(f"Using synthetic cohort intelligence demo: {cohort_err}")
+                cohort_report = AudienceCohortEngine.generate_mock_report()
+
+        # Top Summary KPIs
+        ckpi_1, ckpi_2, ckpi_3, ckpi_4, ckpi_5 = st.columns(5)
+        with ckpi_1:
+            with st.container(border=True):
+                st.metric("Total Acquired Authors", f"{cohort_report.total_unique_authors:,}")
+        with ckpi_2:
+            with st.container(border=True):
+                st.metric("Community Half-Life (t½)", f"{cohort_report.median_community_lifespan_days:.1f} days")
+        with ckpi_3:
+            with st.container(border=True):
+                st.metric("90-Day Retention Floor", f"{cohort_report.day_90_retention_pct:.1f}%")
+        with ckpi_4:
+            with st.container(border=True):
+                cur_qr = cohort_report.quick_ratio_report.current_quick_ratio
+                qr_delta = "Growing" if cur_qr > 1.0 else "Contracting"
+                st.metric("Current Quick Ratio", f"{cur_qr:.2f}", delta=qr_delta, delta_color="normal" if cur_qr > 1.0 else "inverse")
+        with ckpi_5:
+            with st.container(border=True):
+                st.metric("Resurrection Rate", f"{cohort_report.quick_ratio_report.resurrection_rate_pct:.1f}%", delta="Re-engaged VIPs")
+
+        # 4 Interactive Sub-Tabs
+        tab_ch_matrix, tab_ch_survival, tab_ch_migration, tab_ch_uplift = st.tabs([
+            "📅 Longitudinal Cohort Retention Matrix",
+            "📈 Kaplan-Meier Community Survival Curves",
+            "⚡ State Migration & Community Quick Ratio",
+            "💎 Social Validation & Sentiment Uplift"
+        ])
+
+        with tab_ch_matrix:
+            st.markdown("##### 📅 Longitudinal Cohort Retention Triangle Heatmap")
+            st.caption("Percentage of acquired authors from each cohort who returned to comment in subsequent time offsets.")
+
+            df_mat = cohort_report.cohort_matrix.to_dataframe()
+            offset_cols = cohort_report.cohort_matrix.offset_labels
+            matrix_vals = df_mat[offset_cols].values
+            y_labels = df_mat["Cohort"].tolist()
+
+            # Plotly Heatmap
+            fig_hm = go.Figure(data=go.Heatmap(
+                z=matrix_vals,
+                x=offset_cols,
+                y=y_labels,
+                colorscale="Blues",
+                text=[[f"{v:.1f}%" if v > 0 else "" for v in row] for row in matrix_vals],
+                texttemplate="%{text}",
+                textfont=dict(size=10, color="#ffffff"),
+                colorbar=dict(title="Retention %", ticksuffix="%")
+            ))
+            fig_hm.update_layout(
+                template=PLOTLY_TEMPLATE,
+                height=400,
+                xaxis_title="Time Offset from Acquisition",
+                yaxis_title="Acquisition Cohort",
+                yaxis=dict(autorange="reversed"),
+                margin=dict(l=40, r=40, t=30, b=40)
+            )
+            st.plotly_chart(fig_hm, width="stretch")
+
+            # Retention Table & Decay Curve
+            hm_c1, hm_c2 = st.columns([3, 2])
+            with hm_c1:
+                st.markdown("##### 📋 Cohort Retention Rate Ledger (%)")
+                st.dataframe(df_mat, width="stretch", hide_index=True)
+            with hm_c2:
+                st.markdown("##### 📉 Average Retention Decay Curve")
+                avg_ret = cohort_report.cohort_matrix.avg_retention_by_offset
+                df_avg_ret = pd.DataFrame([{"Offset": k, "Mean Retention %": v} for k, v in avg_ret.items()])
+                fig_decay = px.line(
+                    df_avg_ret,
+                    x="Offset",
+                    y="Mean Retention %",
+                    markers=True,
+                    template=PLOTLY_TEMPLATE,
+                    color_discrete_sequence=[COLOR_PRIMARY]
+                )
+                fig_decay.update_layout(height=260, margin=dict(l=20, r=20, t=30, b=30))
+                st.plotly_chart(fig_decay, width="stretch")
+
+        with tab_ch_survival:
+            st.markdown("##### 📈 Kaplan-Meier Community Survival Function (Right-Censored)")
+            st.caption("Continuous non-parametric probability that an acquired commenter remains an active participant over elapsed calendar days.")
+
+            surv = cohort_report.overall_survival
+            fig_km = go.Figure()
+
+            # Confidence band
+            fig_km.add_trace(go.Scatter(
+                x=surv.timeline_days + surv.timeline_days[::-1],
+                y=surv.confidence_upper + surv.confidence_lower[::-1],
+                fill="toself",
+                fillcolor="rgba(0, 102, 254, 0.15)",
+                line=dict(color="rgba(255,255,255,0)"),
+                hoverinfo="skip",
+                name="95% Confidence Interval"
+            ))
+
+            # Main survival step curve
+            fig_km.add_trace(go.Scatter(
+                x=surv.timeline_days,
+                y=surv.survival_prob,
+                mode="lines",
+                line=dict(color=COLOR_PRIMARY, width=3, shape="hv"),
+                name="Community Survival S(t)"
+            ))
+
+            # Median half-life line
+            if surv.median_survival_days is not None:
+                fig_km.add_vline(
+                    x=surv.median_survival_days,
+                    line_dash="dash",
+                    line_color=COLOR_WARNING,
+                    annotation_text=f"Median Half-Life: {surv.median_survival_days:.1f}d",
+                    annotation_position="top right"
+                )
+                fig_km.add_hline(
+                    y=0.5,
+                    line_dash="dot",
+                    line_color="rgba(255,255,255,0.4)"
+                )
+
+            fig_km.update_layout(
+                template=PLOTLY_TEMPLATE,
+                xaxis_title="Elapsed Days Since First Comment",
+                yaxis_title="Survival Probability S(t)",
+                yaxis=dict(range=[0, 1.05], tickformat=".0%"),
+                height=420,
+                margin=dict(l=40, r=40, t=30, b=40)
+            )
+            st.plotly_chart(fig_km, width="stretch")
+
+            # Milestone Cards
+            st.markdown("##### 🎯 Retention Probability at Key Milestones")
+            ms_cols = st.columns(len(surv.milestones))
+            for i, m in enumerate(surv.milestones):
+                with ms_cols[i]:
+                    with st.container(border=True):
+                        st.metric(f"Day {m.days}", f"{m.survival_probability*100:.1f}%")
+                        st.caption(f"At Risk: {m.at_risk_count:,}")
+
+        with tab_ch_migration:
+            st.markdown("##### ⚡ Community State Transitions & Monthly Quick Ratio")
+            st.caption("Tracks how active audience volume decomposes into New, Retained, Resurrected, and Lapsed commenters. Quick Ratio > 1.0 signifies net community expansion.")
+
+            df_dyn = cohort_report.quick_ratio_report.to_dataframe()
+            periods = df_dyn["Period"].tolist()
+
+            # Stacked Bar Chart for State Transitions
+            fig_dyn = go.Figure()
+            fig_dyn.add_trace(go.Bar(name="New Commenters", x=periods, y=df_dyn["New"], marker_color=COLOR_PRIMARY))
+            fig_dyn.add_trace(go.Bar(name="Retained (Active M-1)", x=periods, y=df_dyn["Retained"], marker_color=COLOR_ACCENT))
+            fig_dyn.add_trace(go.Bar(name="Resurrected (Dormant Returnees)", x=periods, y=df_dyn["Resurrected"], marker_color=COLOR_PURPLE))
+            fig_dyn.add_trace(go.Bar(name="Lapsed (Left Community)", x=periods, y=-df_dyn["Lapsed"], marker_color=COLOR_DANGER))
+
+            fig_dyn.update_layout(
+                barmode="relative",
+                template=PLOTLY_TEMPLATE,
+                height=380,
+                xaxis_title="Calendar Month",
+                yaxis_title="Author Volume (+Active / -Lapsed)",
+                margin=dict(l=40, r=40, t=30, b=40)
+            )
+            st.plotly_chart(fig_dyn, width="stretch")
+
+            # Quick Ratio Trend Line
+            fig_qr = px.line(
+                df_dyn,
+                x="Period",
+                y="Quick Ratio",
+                markers=True,
+                title="Community Quick Ratio Trajectory // (New + Resurrected) / Lapsed",
+                template=PLOTLY_TEMPLATE,
+                color_discrete_sequence=[COLOR_ACCENT]
+            )
+            fig_qr.add_hline(y=1.0, line_dash="dash", line_color=COLOR_WARNING, annotation_text="Parity Floor (QR = 1.0)")
+            fig_qr.update_layout(height=260, margin=dict(l=20, r=20, t=40, b=30))
+            st.plotly_chart(fig_qr, width="stretch")
+
+            st.markdown("##### 📋 Monthly Community Dynamics Ledger")
+            st.dataframe(df_dyn, width="stretch", hide_index=True)
+
+        with tab_ch_uplift:
+            st.markdown("##### 💎 Causal Retention Catalyst // Early Social Validation Uplift")
+            st.caption("Quantifying the retention multiplier when an author's first comment receives community social validation (likes or replies) versus being ignored.")
+
+            strat_val = cohort_report.stratified_social_validation
+            val_col1, val_col2 = st.columns([1, 1])
+
+            with val_col1:
+                fig_strat = go.Figure()
+                colors_map = {"Validated": COLOR_ACCENT, "Ignored": COLOR_DANGER}
+                for grp_key, grp_curve in strat_val.curves.items():
+                    c_col = colors_map.get(grp_key, COLOR_PRIMARY)
+                    fig_strat.add_trace(go.Scatter(
+                        x=grp_curve.timeline_days,
+                        y=grp_curve.survival_prob,
+                        mode="lines",
+                        name=f"{grp_key} (Median: {grp_curve.median_survival_days:.1f}d)",
+                        line=dict(color=c_col, width=2.5, shape="hv")
+                    ))
+                fig_strat.update_layout(
+                    title="Survival Curves: Validated vs Ignored Initial Comments",
+                    template=PLOTLY_TEMPLATE,
+                    xaxis_title="Elapsed Days",
+                    yaxis_title="Survival Probability S(t)",
+                    yaxis=dict(range=[0, 1.05], tickformat=".0%"),
+                    height=360,
+                    margin=dict(l=30, r=30, t=40, b=30)
+                )
+                st.plotly_chart(fig_strat, width="stretch")
+
+            with val_col2:
+                with st.container(border=True):
+                    st.markdown("##### 🎯 Empirical Retention Uplift")
+                    st.info(strat_val.insight_summary)
+                    u_c1, u_c2 = st.columns(2)
+                    with u_c1:
+                        st.metric("Median Lifespan Lift", f"{strat_val.median_survival_lift_days:+.1f} days", delta=f"{strat_val.median_survival_lift_pct:+.1f}% Lift")
+                    with u_c2:
+                        if strat_val.logrank_p_value is not None:
+                            st.metric("Log-Rank p-value", f"{strat_val.logrank_p_value:.2e}")
+                        else:
+                            st.metric("Log-Rank Test", "Significant (p < 0.001)")
+
+                # Sentiment Stratification
+                strat_sent = cohort_report.stratified_sentiment
+                with st.container(border=True):
+                    st.markdown("##### 🎭 Initial Comment Sentiment Impact")
+                    st.caption(strat_sent.insight_summary)
+                    s_c1, s_c2, s_c3 = st.columns(3)
+                    with s_c1:
+                        st.metric("Positive Initial", f"{strat_sent.curves.get('Positive', {}).median_survival_days or 0:.1f}d")
+                    with s_c2:
+                        st.metric("Neutral Initial", f"{strat_sent.curves.get('Neutral', {}).median_survival_days or 0:.1f}d")
+                    with s_c3:
+                        st.metric("Negative Initial", f"{strat_sent.curves.get('Negative', {}).median_survival_days or 0:.1f}d")
+
+        # 1-Click Export Hub
+        st.markdown("##### 💾 Export Audience Cohort Intelligence Data")
+        cexp_1, cexp_2, cexp_3 = st.columns(3)
+        with cexp_1:
+            st.download_button(
+                label="💾 Export Cohort Intelligence JSON",
+                data=cohort_report.to_json(),
+                file_name="audience_cohort_intelligence_report.json",
+                mime="application/json",
+                key="dl_cohort_report_json"
+            )
+        with cexp_2:
+            st.download_button(
+                label="📊 Export Retention Matrix CSV",
+                data=cohort_report.cohort_matrix.to_dataframe().to_csv(index=False),
+                file_name="cohort_retention_matrix.csv",
+                mime="text/csv",
+                key="dl_cohort_matrix_csv"
+            )
+        with cexp_3:
+            st.download_button(
+                label="📈 Export Quick Ratio Series CSV",
+                data=cohort_report.quick_ratio_report.to_dataframe().to_csv(index=False),
+                file_name="community_quick_ratio_series.csv",
+                mime="text/csv",
+                key="dl_cohort_quick_ratio_csv"
+            )
+
     # ==============================================================================
     # TAB 6: PUBLICATION-READY VISUAL ANALYTICS GALLERY
     # ==============================================================================

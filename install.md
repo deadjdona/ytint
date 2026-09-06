@@ -40,6 +40,7 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-narrative`**: Direct CLI entrypoint for `engine.narrative:main` (Narrative Scene Reaction & Timestamp Scrubbing Forensics)
 - **`ytint-fingerprint`**: Direct CLI entrypoint for `engine.fingerprint:main` (Forensic Author Persona & Sockpuppet Fingerprinting)
 - **`ytint-compare`**: Direct CLI entrypoint for `engine.comparator:main` (Multi-Channel & Playlist Competitive Intelligence Engine)
+- **`ytint-cohort`**: Direct CLI entrypoint for `engine.cohort_survival:main` (Audience Churn & Longitudinal Cohort Survival Engine)
 
 Validate the active environment:
 

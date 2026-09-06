@@ -156,6 +156,14 @@ graph LR
   - **👥 Audience Overlap & Commenter Migration Map**: Pairwise selector showing Jaccard similarity and Overlap Coefficient. Dynamic Plotly scatter/bubble map of shared commenters plotting sentiment in Channel A vs Channel B (points above the diagonal show positive sentiment migration; points below show negative shift).
   - **📝 Shared Commenter Migration Ledger**: Identifies high-activity cross-channel commenters, comment volumes across channels, and net sentiment shifts.
   - **💾 1-Click Multi-Format Export**: Direct download buttons for complete report JSON and benchmark profiles CSV.
+- **⏳ Longitudinal Audience Churn & Cohort Survival Engine (Section 5.7 / src/engine/cohort_survival.py)**:
+  - **Granularity & Inactivity Threshold Controls**: Toggle between Monthly and Quarterly cohort views, and adjust the Inactivity Churn Threshold slider (30 to 120 days, default 60 days).
+  - **Top Summary KPI Scorecards**: Total Acquired Authors, Median Community Half-Life ($t_{1/2}$), 90-Day Retention Floor %, Current Quick Ratio (with growing/contracting indicator), and Re-engagement (Resurrection) Rate %.
+  - **📅 Longitudinal Cohort Retention Triangle Heatmap**: Color-graded Plotly heatmap with cell text displaying retention percentages from acquisition month $M_0$ across time offsets $M+0 \dots M+k$, alongside an average retention decay curve.
+  - **📈 Continuous Kaplan-Meier Community Survival Curve**: Non-parametric step function ($\hat{S}(t)$) with 95% confidence interval shading, median half-life marker line, and milestone retention probability scorecards (Day 7, 14, 30, 60, 90, 180).
+  - **⚡ Community State Migration & Quick Ratio Stream**: Stacked bar chart visualizing New, Retained, Resurrected, and Lapsed commenter volumes per calendar month, paired with a Quick Ratio trajectory line against the critical $1.0$ parity threshold.
+  - **💎 Causal Social Validation & Sentiment Uplift**: Dual Kaplan-Meier survival curves demonstrating the empirical +80% retention lift when an author's initial comment receives community social validation (likes or replies) versus being ignored, complete with log-rank statistical significance ($p < 10^{-30}$) and sentiment valence breakdown.
+  - **💾 1-Click Export Hub**: Direct download buttons for Full Cohort Intelligence JSON, Cohort Retention Matrix CSV, and Community Quick Ratio Series CSV.
 
 ---
 
