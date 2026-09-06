@@ -2510,8 +2510,176 @@ def main():
         else:
             st.info("No actionable comments found matching the active filters for this video.")
 
+        # 7.8 Zero-Copy Analytical SQL Studio & Query Workbench
+        st.divider()
+        st.subheader("⚡ Zero-Copy Analytical SQL Studio & Query Workbench")
+        st.markdown(
+            "High-performance, out-of-core analytical query engine powered by **DuckDB**. "
+            "Run arbitrary ANSI SQL queries, multi-table joins, aggregations, and window functions "
+            "directly over all **80+ analytical Parquet layers** with sub-10ms latency."
+        )
+
+        from engine.sql_engine import SQLEngine, PRESET_QUERIES
+
+        sql_engine = SQLEngine()
+
+        if not sql_engine.is_available():
+            st.warning("⚠️ DuckDB is not installed in this environment. Run `pip install duckdb>=1.0.0` to enable the Analytical SQL Studio.")
+        else:
+            # 1. Schema Explorer Expander
+            with st.expander("🗂️ Browse Parquet Table Catalog & Schema Explorer", expanded=False):
+                cat = sql_engine.get_table_catalog()
+                cat_df = pd.DataFrame(cat)
+                if not cat_df.empty:
+                    st.dataframe(cat_df[["table_name", "row_count", "size_mb", "file_name"]], width="stretch")
+                    
+                    inspect_col1, inspect_col2 = st.columns([2, 3])
+                    with inspect_col1:
+                        table_names_list = [c["table_name"] for c in cat]
+                        default_idx = table_names_list.index("authors") if "authors" in table_names_list else 0
+                        inspect_table = st.selectbox(
+                            "Select Table to Inspect Schema",
+                            options=table_names_list,
+                            index=default_idx,
+                            key="sql_inspect_table_select"
+                        )
+                    with inspect_col2:
+                        if inspect_table:
+                            schema_df = sql_engine.get_table_schema(inspect_table)
+                            st.dataframe(schema_df, width="stretch")
+
+            # 2. Preset Queries & Controls
+            sq_c1, sq_c2 = st.columns([3, 1])
+            with sq_c1:
+                preset_keys = list(PRESET_QUERIES.keys())
+                selected_preset = st.selectbox(
+                    "💡 Curated Analytical SQL Presets",
+                    options=["-- Custom SQL Query --"] + preset_keys,
+                    format_func=lambda x: f"{PRESET_QUERIES[x]['title']}" if x in PRESET_QUERIES else "✍️ Custom SQL Query (Write your own)",
+                    key="sql_preset_select"
+                )
+            with sq_c2:
+                max_rows_ui = st.slider("Result Limit", min_value=10, max_value=1000, value=100, step=10, key="sql_limit_slider")
+
+            default_query = "SELECT rfm_cohort, count(*) AS author_count, round(avg(frequency), 1) AS avg_comments, round(avg(monetary), 1) AS avg_likes, round(avg(avg_sentiment), 3) AS avg_sentiment\nFROM authors\nGROUP BY rfm_cohort\nORDER BY avg_likes DESC;"
+            if selected_preset in PRESET_QUERIES:
+                default_query = PRESET_QUERIES[selected_preset]["sql"]
+                st.caption(f"ℹ️ **Preset:** {PRESET_QUERIES[selected_preset]['description']}")
+
+            user_sql = st.text_area(
+                "SQL Query (DuckDB ANSI SQL)",
+                value=default_query,
+                height=130,
+                key=f"sql_text_area_{selected_preset}"
+            )
+
+            btn_run_sql = st.button("🚀 Execute SQL Query", key="btn_run_sql", type="primary")
+
+            # Auto-run query on initial load or button press
+            session_sql_key = f"sql_last_result_{selected_preset}"
+            if btn_run_sql or session_sql_key not in st.session_state:
+                with st.spinner("Executing analytical query via DuckDB zero-copy engine..."):
+                    q_res = sql_engine.execute_query(user_sql, limit=max_rows_ui)
+                    st.session_state[session_sql_key] = q_res
+            else:
+                q_res = st.session_state[session_sql_key]
+
+            if q_res.error:
+                st.error(f"❌ SQL Execution Error: {q_res.error}")
+            else:
+                st.success(
+                    f"⚡ Query Executed in **{q_res.execution_time_ms:.2f} ms** | "
+                    f"Returned **{q_res.row_count:,} rows** ({q_res.column_count} columns)"
+                )
+
+                if not q_res.df.empty:
+                    tab_sql_data, tab_sql_chart = st.tabs(["📋 Query Result Table", "📊 Visual Chart Builder"])
+
+                    with tab_sql_data:
+                        st.dataframe(q_res.df, width="stretch")
+
+                    with tab_sql_chart:
+                        num_cols = q_res.df.select_dtypes(include=[np.number]).columns.tolist()
+                        all_cols = q_res.df.columns.tolist()
+
+                        if len(num_cols) > 0 and len(all_cols) >= 2:
+                            ch_c1, ch_c2, ch_c3 = st.columns(3)
+                            with ch_c1:
+                                chart_type = st.selectbox(
+                                    "Chart Type",
+                                    options=["Bar Chart", "Line Chart", "Scatter Plot", "Histogram"],
+                                    key="sql_chart_type"
+                                )
+                            with ch_c2:
+                                x_col = st.selectbox("X-Axis Column", options=all_cols, index=0, key="sql_chart_x")
+                            with ch_c3:
+                                y_col = st.selectbox("Y-Axis Column (Metric)", options=num_cols, index=0, key="sql_chart_y")
+
+                            if chart_type == "Bar Chart":
+                                fig_sql = px.bar(
+                                    q_res.df,
+                                    x=x_col,
+                                    y=y_col,
+                                    title=f"{y_col} by {x_col}",
+                                    template=PLOTLY_TEMPLATE,
+                                    color_discrete_sequence=[COLOR_PRIMARY]
+                                )
+                            elif chart_type == "Line Chart":
+                                fig_sql = px.line(
+                                    q_res.df,
+                                    x=x_col,
+                                    y=y_col,
+                                    title=f"{y_col} across {x_col}",
+                                    template=PLOTLY_TEMPLATE,
+                                    color_discrete_sequence=[COLOR_ACCENT]
+                                )
+                            elif chart_type == "Scatter Plot":
+                                fig_sql = px.scatter(
+                                    q_res.df,
+                                    x=x_col,
+                                    y=y_col,
+                                    title=f"{y_col} vs {x_col}",
+                                    template=PLOTLY_TEMPLATE,
+                                    color_discrete_sequence=[COLOR_WARNING]
+                                )
+                            else:
+                                fig_sql = px.histogram(
+                                    q_res.df,
+                                    x=y_col,
+                                    title=f"Distribution of {y_col}",
+                                    template=PLOTLY_TEMPLATE,
+                                    color_discrete_sequence=[COLOR_PURPLE]
+                                )
+                            fig_sql.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+                            st.plotly_chart(fig_sql, width="stretch")
+                        else:
+                            st.info("Visual chart builder requires at least one numerical metric column in the query results.")
+
+                    # Export controls
+                    exp_col1, exp_col2 = st.columns(2)
+                    with exp_col1:
+                        st.download_button(
+                            label="⬇️ Download Query Results (.csv)",
+                            data=q_res.df.to_csv(index=False).encode("utf-8"),
+                            file_name="ytint_sql_results.csv",
+                            mime="text/csv",
+                            key="dl_sql_csv"
+                        )
+                    with exp_col2:
+                        st.download_button(
+                            label="⬇️ Download Query Results (.json)",
+                            data=json.dumps(q_res.to_dict(), indent=2, ensure_ascii=False),
+                            file_name="ytint_sql_results.json",
+                            mime="application/json",
+                            key="dl_sql_json"
+                        )
+                else:
+                    st.info("Query returned 0 rows.")
+
+
 if __name__ == "__main__":
     main()
+
 
 
 

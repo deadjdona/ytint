@@ -217,3 +217,37 @@ Triage viewer comments into high-leverage creator actions (Pin, Heart, Reply Que
 .\.venv\Scripts\ytint-assist.exe --video-id WpbN3D5oQBo --export scratch/triage.json
 .\.venv\Scripts\ytint-assist.exe --mock --export scratch/triage.csv
 ```
+
+## High-Speed Zero-Copy Analytical SQL Engine (DuckDB)
+
+Execute sub-10ms ANSI SQL queries, multi-table joins, and window functions directly over all 95+ Apache Parquet tables across `data/interim/` and `data/output/`:
+
+```powershell
+# List all registered Parquet views, row counts, and disk sizes:
+.\.venv\Scripts\python.exe -m engine.sql_engine --list-tables
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-sql.exe --list-tables
+
+# Describe column types and schema of a specific table:
+.\.venv\Scripts\ytint-sql.exe --describe authors
+.\.venv\Scripts\ytint-sql.exe --describe comments
+
+# Execute an ad-hoc ANSI SQL query:
+.\.venv\Scripts\ytint-sql.exe "SELECT rfm_cohort, count(*) as cnt FROM authors GROUP BY 1 ORDER BY 2 DESC"
+
+# Run a curated analytical preset query:
+.\.venv\Scripts\ytint-sql.exe --preset champions_rfm
+.\.venv\Scripts\ytint-sql.exe --preset toxicity_outbreaks
+.\.venv\Scripts\ytint-sql.exe --preset creator_causal_lift
+
+# Output formatting options (table, JSON, or CSV):
+.\.venv\Scripts\ytint-sql.exe "SELECT * FROM comments WHERE toxicity > 0.8 LIMIT 5" --format json
+
+# Export query results directly to CSV or Parquet:
+.\.venv\Scripts\ytint-sql.exe "SELECT * FROM authors WHERE monetary > 50" --export scratch/top_authors.csv
+.\.venv\Scripts\ytint-sql.exe "SELECT * FROM authors WHERE monetary > 50" --export scratch/top_authors.parquet
+
+# Launch the interactive ANSI SQL REPL studio:
+.\.venv\Scripts\ytint-sql.exe --interactive
+```
+

@@ -36,6 +36,7 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-search`**: Direct CLI entrypoint for `engine.semantic_search:main` (Neural Semantic Vector Search & Feedback Clustering)
 - **`ytint-replay`**: Direct CLI entrypoint for `engine.event_replay:main` (Real-Time Chronological Event Replay & Crisis Simulation Engine)
 - **`ytint-assist`**: Direct CLI entrypoint for `engine.assistant:main` (Creator Actionability & Engagement Optimization Assistant)
+- **`ytint-sql`**: Direct CLI entrypoint for `engine.sql_engine:main` (Zero-Copy Analytical SQL Engine powered by DuckDB)
 
 Validate the active environment:
 

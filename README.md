@@ -187,8 +187,23 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 # Filter for priority unanswered questions and draft AI replies:
 .\.venv\Scripts\ytint-assist.exe --video-id WpbN3D5oQBo --action REPLY --draft-replies --tone clarifying
 
-# Fast mock demonstration mode:
-.\.venv\Scripts\ytint-assist.exe --mock --draft-replies --tone warm --export scratch/triage.json
+### 12. High-Speed Zero-Copy Analytical SQL Engine (DuckDB)
+
+```powershell
+# List all 95+ registered Parquet tables, row counts, and sizes:
+.\.venv\Scripts\ytint-sql.exe --list-tables
+
+# Describe table column schemas:
+.\.venv\Scripts\ytint-sql.exe --describe authors
+
+# Run an ad-hoc ANSI SQL query directly over Parquet files on disk:
+.\.venv\Scripts\ytint-sql.exe "SELECT rfm_cohort, count(*) as cnt FROM authors GROUP BY 1 ORDER BY 2 DESC"
+
+# Run a curated analytical preset (e.g., VIP champions, toxicity outbreaks, DiD causal lift):
+.\.venv\Scripts\ytint-sql.exe --preset champions_rfm
+
+# Launch interactive ANSI SQL REPL studio:
+.\.venv\Scripts\ytint-sql.exe --interactive
 ```
 
 ---
@@ -201,7 +216,7 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, and **Interactive Community Network & Gephi Topology Explorer** (2D force-directed layout, top-$K$ node filtering, Louvain community coloring, and 1-click GEXF/GraphML exports).
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, and audience overlap heatmap.
 6. **Publication-Ready Visual Analytics Gallery**: Comprehensive catalog of 68+ high-resolution statistical plots with analytical guides and strategic takeaways.
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer, Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, Automated Anomaly & Threat Alerting Console, Neural Semantic Vector Search & Feedback Clustering Console, **Creator Actionability & Engagement Optimization Workbench** (action triage for Pin, Heart, Reply Questions, and De-escalate sparks with Stage 39 DiD causal uplift estimation, AI reply drafting, and JSON/CSV export), and instant dataset export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer, Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, Automated Anomaly & Threat Alerting Console, Neural Semantic Vector Search & Feedback Clustering Console, Creator Actionability & Engagement Optimization Workbench, **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and instant dataset export across all 53 layers.
 
 
 ---

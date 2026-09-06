@@ -53,7 +53,8 @@ dependencies = [
     "streamlit>=1.30.0",
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
-    "coverage>=7.0.0"
+    "coverage>=7.0.0",
+    "duckdb>=1.0.0"
 ]
 
 [project.scripts]
@@ -67,6 +68,7 @@ ytint-alert = "engine.alerting:main"
 ytint-search = "engine.semantic_search:main"
 ytint-replay = "engine.event_replay:main"
 ytint-assist = "engine.assistant:main"
+ytint-sql = "engine.sql_engine:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

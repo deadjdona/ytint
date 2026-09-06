@@ -193,6 +193,13 @@ graph LR
   - **Empirical Causal Uplift Estimates**: Integrates Stage 39 DiD causal inference parameters (`+320% thread expansion`, `+0.28 sentiment lift`, `-45% toxicity suppression`, `+3.8x like amplification`).
   - **AI Context-Aware Reply Drafter**: 1-click generation of suggested responses tailored to commenter loyalty cohort in four distinct creator voices (`Warm & Grateful`, `Clarifying & Factual`, `Empathetic & De-escalating`, `Playful`).
   - **Direct Triage Export**: 1-click downloads for the complete prioritized action queue in `.csv` and `.json`.
+- **⚡ Zero-Copy Analytical SQL Studio & Query Workbench (Section 7.8 / src/engine/sql_engine.py)**:
+  - **Out-of-Core DuckDB Engine**: Instant sub-10ms ANSI SQL queries directly over all **95+ analytical Parquet tables** without database server setup or in-memory DataFrame copying.
+  - **🗂️ Interactive Schema Browser**: Live catalog view of all Parquet tables, file sizes, row counts, and column types (`DESCRIBE SELECT * FROM <table>`).
+  - **💡 8 Curated Analytical Presets**: 1-click SQL templates including VIP RFM Champions, Toxicity Outbreaks, DiD Causal Lift, CIB Coordinated Rings, Topical Valence Drift, Video Engagement Benchmarks, Bot Repetition Audits, and Sentiment Attention Economy.
+  - **⏱️ Live Query Telemetry**: Millisecond execution timing badge, row count returns, and memory safety monitors.
+  - **📊 Dynamic Visual Chart Builder**: Interactive Plotly visualizer rendering Bar Charts, Line Charts, Scatter Plots, or Histograms dynamically from query results with customizable X/Y metric axes.
+  - **💾 1-Click Multi-Format Export**: Direct download buttons for CSV and JSON result sets.
 
 ---
 
