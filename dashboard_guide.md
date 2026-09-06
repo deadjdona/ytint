@@ -97,6 +97,12 @@ graph LR
   - Points color-coded by behavioral RFM cohort (Champions, Loyalists, Potential, At-Risk, Hibernating).
   - Camera coordinates preset with clean default perspective (`x=1.5, y=1.5, z=1.2`).
 - **RFM Author Segmentation Ledger**: Ranked table of top commenters.
+- **🌐 Interactive Community Network & Gephi Topology Explorer (Section 4.6 / src/engine/network_exporter.py)**:
+  - **Graph Topology Selector**: Switch between Author Reply Network (Directed who-replies-to-whom), Author-Video Bipartite Network (Multi-modal content engagement), and Author Co-Commenting Network (Shared video community co-occurrence).
+  - **Dynamic Top-$K$ Node Filter Slider**: Interactive filter (25 to 250 nodes, default 75) to isolate high-influence subgraphs and prevent WebGL canvas overcrowding.
+  - **Color Dimension Selector**: Colorize nodes dynamically by Louvain Community Cluster (`community_id`), PageRank Authority (`pagerank`), Reply Activity (`in_degree`), or Inauthentic Bot Suspect Flag (`is_bot_suspect`).
+  - **2D Force-Directed Spring Layout**: High-performance Plotly WebGL scatter graph with node sizing proportional to PageRank centrality, rich HTML hover tooltips (Community cluster, In/Out degree, RFM Loyalty Tier, Bot status), and active connection links.
+  - **1-Click Topology Exporters**: Direct browser download buttons for `.gexf` (Gephi) and `.graphml` (Cytoscape / yEd) network files pre-computed with full structural attributes.
 
 ---
 

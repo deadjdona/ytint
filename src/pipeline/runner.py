@@ -668,6 +668,7 @@ def main():
     parser.add_argument("--diff", action="store_true", help="Inspect and display pending delta between SQLite and interim Parquet artifacts without executing")
     parser.add_argument("--force", action="store_true", help="Force execution regardless of existing artifact status")
     parser.add_argument("--report", action="store_true", help="Generate Executive Intelligence Dossier HTML report upon completion")
+    parser.add_argument("--networks", action="store_true", help="Build and export GEXF and GraphML network graph files to output/networks/")
     args = parser.parse_args()
 
     orchestrator = PipelineRunner()
@@ -687,6 +688,16 @@ def main():
             logger.info(f"🎉 Executive Dossier successfully written to: {report_path}")
         except Exception as e:
             logger.error(f"❌ Failed to generate executive dossier: {e}")
+
+    if args.networks:
+        try:
+            from engine.network_exporter import NetworkExporter
+            logger.info("🌐 Exporting structural network graphs (GEXF & GraphML)...")
+            exporter = NetworkExporter()
+            exporter.export_all_networks()
+            logger.info(f"🎉 Network graphs exported to: {exporter.networks_dir}")
+        except Exception as e:
+            logger.error(f"❌ Failed to export network graphs: {e}")
 
 if __name__ == "__main__":
     main()

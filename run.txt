@@ -112,3 +112,21 @@ Synthesize deep pipeline metrics into executive strategic briefings, analyze fla
 # Specify alternative providers (ollama, openai, gemini):
 .\.venv\Scripts\ytint-ai.exe --provider ollama --model llama3 --summary
 ```
+
+## Export Network Graphs (GEXF & GraphML)
+
+Extract, serialize, and export community network topologies for Gephi, Cytoscape, and yEd:
+
+```powershell
+# Export all 3 network graphs (Author Reply, Bipartite, Co-Commenting) in GEXF and GraphML:
+.\.venv\Scripts\python.exe -m engine.network_exporter
+# Or via console script shortcut:
+.\.venv\Scripts\ytint-graph.exe
+
+# Export a specific network (author, bipartite, cocomment):
+.\.venv\Scripts\ytint-graph.exe --network author --format gexf
+
+# Automatically export network graphs during pipeline execution:
+.\.venv\Scripts\ytint-runner.exe --networks
+```
+

@@ -130,6 +130,17 @@ graph TD
   4. **Dashboard Integration**: Tab 7 Quick-Sync container with live pending delta metrics badge and one-click "Run Incremental Pipeline Sweep" action.
 - **Outcome**: Reduces end-to-end pipeline execution time from 15 minutes to seconds on incremental data syncs.
 
+### ✅ 10. Interactive Network Graph & Gephi Exporter (`ytint-graph`) — RESOLVED
+- **Status**: Completed. Implemented standalone network engine in `src/engine/network_exporter.py` with CLI entrypoint `ytint-graph` and pipeline runner integration `--networks`.
+- **Capabilities**:
+  1. **Author Reply Network (Directed)**: Constructs who-replies-to-whom interaction topologies with Louvain modularity communities, PageRank centrality, in/out-degrees, interaction weights, and sentiment/toxicity edge means.
+  2. **Author-Video Bipartite Network**: Multi-modal two-mode connection graph linking active multi-video authors to published video nodes with title mappings.
+  3. **Author Co-Commenting Network**: Shared engagement community graph linking authors who co-participate across identical video uploads with Jaccard overlap indices.
+  4. **Industry-Standard Serializers**: Exports to native `.gexf` (Gephi) and `.graphml` (Cytoscape / yEd) with strict primitive type-safety.
+  5. **Interactive WebGL Topology Explorer**: Renders 2D force-directed spring layouts in Plotly with dynamic node sizing, community coloring, and rich multi-attribute hover cards.
+  6. **Dashboard Integration**: Tab 4 Section 4.6 interactive network explorer with dynamic top-$K$ filter slider (25-250), color dimension picker, and direct 1-click GEXF/GraphML download buttons.
+- **Outcome**: Unlocks professional network science and social graph intelligence both directly inside the dashboard and via external visualization suites (Gephi, Cytoscape).
+
 ---
 
 ## 4. Architectural Quality Scorecard

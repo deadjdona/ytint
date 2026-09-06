@@ -1148,6 +1148,102 @@ def main():
             else:
                 st.info("Series benchmark data available upon stage execution.")
 
+        # 4.6 Interactive Community Network & Gephi Topology Explorer
+        st.divider()
+        st.subheader("🌐 Interactive Community Network & Gephi Topology Explorer")
+        st.markdown(
+            "Explore author conversational interaction graphs, bipartite video affiliations, and co-commenting clusters. "
+            "Inspect influential bridge nodes and export full graphs to **Gephi (GEXF)** or **Cytoscape (GraphML)**."
+        )
+
+        with st.container(border=True):
+            from engine.network_exporter import NetworkExporter
+
+            net_col1, net_col2, net_col3 = st.columns([2, 1, 1])
+            with net_col1:
+                net_type = st.selectbox(
+                    "Select Network Topology:",
+                    options=[
+                        "Author Reply Network (Directed)",
+                        "Author-Video Bipartite Network",
+                        "Author Co-Commenting Network"
+                    ],
+                    key="net_type_sel"
+                )
+            with net_col2:
+                net_top_k = st.slider(
+                    "Influential Node Limit:",
+                    min_value=25,
+                    max_value=250,
+                    value=75,
+                    step=25,
+                    key="net_top_k_slider"
+                )
+            with net_col3:
+                net_color_by = st.selectbox(
+                    "Color Nodes By:",
+                    options=["community_id", "pagerank", "in_degree", "is_bot_suspect"],
+                    index=0,
+                    key="net_color_sel"
+                )
+
+            exporter = NetworkExporter(interim_path, output_path)
+
+            # Build and render the selected graph
+            with st.spinner("Constructing topological force-directed layout..."):
+                if "Reply" in net_type:
+                    G_disp = exporter.build_author_reply_network(df_comments_raw, df_authors, data_layers.get("bot_classifications"))
+                    stem_name = "author_reply_network"
+                elif "Bipartite" in net_type:
+                    G_disp = exporter.build_bipartite_network(df_comments_raw, df_videos, max_authors=net_top_k)
+                    stem_name = "bipartite_network"
+                else:
+                    G_disp = exporter.build_cocommenting_network(df_comments_raw, min_overlap=2, max_authors=net_top_k)
+                    stem_name = "cocommenting_network"
+
+                fig_net = exporter.generate_interactive_network_figure(
+                    G_disp,
+                    top_k=net_top_k,
+                    color_dimension=net_color_by
+                )
+                st.plotly_chart(fig_net, width="stretch")
+
+            # GEXF / GraphML Download Actions
+            net_dl_col1, net_dl_col2, net_dl_col3 = st.columns([2, 1, 1])
+            with net_dl_col1:
+                st.caption(
+                    f"Graph contains **{G_disp.number_of_nodes():,} nodes** and **{G_disp.number_of_edges():,} edges**. "
+                    "Download formatted graph files with embedded PageRank, Louvain communities, and interaction weights."
+                )
+            with net_dl_col2:
+                gexf_file = output_path / "networks" / f"{stem_name}.gexf"
+                if gexf_file.exists():
+                    st.download_button(
+                        label=f"⬇️ Download {stem_name}.gexf (Gephi)",
+                        data=gexf_file.read_bytes(),
+                        file_name=f"{stem_name}.gexf",
+                        mime="application/xml",
+                        key=f"dl_gexf_{stem_name}"
+                    )
+                else:
+                    if st.button("Generate GEXF", key=f"btn_gen_gexf_{stem_name}"):
+                        exporter.export_graph(G_disp, stem_name, ["gexf"])
+                        st.rerun()
+            with net_dl_col3:
+                graphml_file = output_path / "networks" / f"{stem_name}.graphml"
+                if graphml_file.exists():
+                    st.download_button(
+                        label=f"⬇️ Download {stem_name}.graphml (Cytoscape)",
+                        data=graphml_file.read_bytes(),
+                        file_name=f"{stem_name}.graphml",
+                        mime="application/xml",
+                        key=f"dl_graphml_{stem_name}"
+                    )
+                else:
+                    if st.button("Generate GraphML", key=f"btn_gen_graphml_{stem_name}"):
+                        exporter.export_graph(G_disp, stem_name, ["graphml"])
+                        st.rerun()
+
     # ==============================================================================
     # TAB 5: PREDICTIVE MODELING & CAUSAL INTERVENTIONS
     # ==============================================================================
