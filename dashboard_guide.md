@@ -148,6 +148,14 @@ graph LR
 - **🌐 Cross-Video Commenter Overlap Matrix**:
   - Jaccard similarity heatmap formatted with human-readable video titles.
 - **Tree SHAP Attribution & 30-Day Forward Forecast**: Feature importance rankings and Prophet/ARIMA daily volume projection with confidence intervals.
+- **🌐 Multi-Channel & Playlist Competitive Intelligence Engine (Section 5.6 / src/engine/comparator.py)**:
+  - **Cross-Channel & Cohort Target Switcher**: Toggle between Multi-Channel Comparison, Quarterly Release Cohorts (e.g., 2026Q1 vs 2026Q2 vs 2026Q3), and Synthetic Benchmark Demo.
+  - **Executive KPI Strip**: Total Profiled Cohorts, Evaluated Pairwise Overlaps, Shared Commenter Population, Max Jaccard Overlap %, and Average Toxicity Reproduction Rate ($R_0$).
+  - **🎯 Normalized Radar Benchmark Matrix**: Interactive Plotly polar radar chart (`go.Scatterpolar`) comparing entities across 6 normalized dimensions: Discussion Volume, Engagement Velocity, Sentiment Positivity, Community Safety, Audience Loyalty, and Lexical Sophistication.
+  - **📋 Comprehensive Performance Ledger**: Tabular comparison of total videos, comments, unique authors, comments/video, likes/comment, reply ratio, positive/negative sentiment %, VADER polarity, mean toxicity, and vocabulary Shannon entropy.
+  - **👥 Audience Overlap & Commenter Migration Map**: Pairwise selector showing Jaccard similarity and Overlap Coefficient. Dynamic Plotly scatter/bubble map of shared commenters plotting sentiment in Channel A vs Channel B (points above the diagonal show positive sentiment migration; points below show negative shift).
+  - **📝 Shared Commenter Migration Ledger**: Identifies high-activity cross-channel commenters, comment volumes across channels, and net sentiment shifts.
+  - **💾 1-Click Multi-Format Export**: Direct download buttons for complete report JSON and benchmark profiles CSV.
 
 ---
 

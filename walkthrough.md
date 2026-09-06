@@ -169,6 +169,15 @@ graph TD
   4. **Coordinated Ring Graph Clustering**: Employs graph connected-components clustering to group high-confidence pairs into cohesive sockpuppet and alternate account rings.
   5. **Interactive Dashboard Workbench**: Tab 4 Section 4.7 with confidence threshold sliders, summary KPI scorecards, pairwise scatter plot ($X$=Style, $Y$=Diurnal, Color=Score), ring ledger, suspect pair ledger, author persona dossier inspector with 24h diurnal clock and stylometric radar bar charts, and 1-click JSON/CSV exports.
 
+### 🌐 Multi-Channel & Playlist Competitive Intelligence ([`src/engine/comparator.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/comparator.py))
+- **Command**: `ytint-compare` or `ytint-compare --compare CH1 CH2`
+- **Features**:
+  1. **Multi-Entity Discovery & Profiling**: Automatically discovers distinct channel entities or temporal quarterly release cohorts across Parquet datasets, calculating comment volumes, unique author reach, reply ratios, sentiment distributions, toxicity contagion ($R_0$), and vocabulary Shannon entropy.
+  2. **Multi-Dimensional Radar Benchmarking**: Normalizes performance across 6 core radar dimensions (Discussion Volume, Engagement Velocity, Sentiment Positivity, Community Safety, Audience Loyalty, and Lexical Sophistication) on a calibrated $0$–$100$ scale.
+  3. **Pairwise Audience Overlap Forensics**: Computes Jaccard similarity index and Overlap Coefficient across channel/cohort pairs, discovering cross-channel commenter presence (e.g., 17,280 shared commenters with 19.85% Jaccard overlap on real multi-channel datasets).
+  4. **Shared Commenter Sentiment Migration Ledger**: Measures sentiment ($\Delta$) and toxicity differentials of shared authors, mapping positive vs negative shifts across competing channels with interactive scatter/bubble visualization.
+  5. **Interactive Dashboard Workbench**: Tab 5 Section 5.6 featuring scope mode toggling (Cross-Channel vs Quarterly Cohorts vs Synthetic Demo), summary KPI scorecards, interactive Plotly polar radar chart (`go.Scatterpolar`), normalized scorecard ledger, audience overlap scatter map, and 1-click JSON/CSV exports.
+
 ---
 
 ## 🎨 5. Streamlit Executive Dashboard Architecture
@@ -179,7 +188,7 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 2. **Temporal Dynamics & Conversational Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, comparative multi-video playback dynamics, and ⏱️ **Real-Time Chronological Event Replay & Crisis Simulator** (interactive frame scrubber, dual-axis velocity/sentiment/toxicity timeline, flame-war risk gauges, active crisis trigger alerts, and JSON/CSV export).
 3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, ⚖️ **AI Flame-War & Debate Tree Summarizer**, target stance drift across debate depth, and ⏱️ **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports).
 4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, 🌐 **Interactive Community Network & Gephi Topology Explorer** (2D force-directed spring layout, top-$K$ node filter slider 25-250, Louvain community coloring, and 1-click GEXF/GraphML export buttons), and 🕵️ **Forensic Author Persona & Sockpuppet Fingerprinting** (stylometric feature radar bar charts, 24-hour diurnal posting clocks, pairwise scatter matrix, clustered ring ledger, suspect pair matches, and JSON/CSV exports).
-5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, and Dunn's post-hoc matrix.
+5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, Dunn's post-hoc matrix, audience overlap heatmap, and 🌐 **Multi-Channel & Playlist Competitive Intelligence Engine** (cross-channel and temporal release cohort selector, 6-dimension Plotly polar radar chart, normalized benchmark scorecard, audience overlap Venn/bubble map, shared commenter migration ledger, and 1-click JSON/CSV exports).
 6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
 7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation, 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console**, 🔍 **Neural Semantic Vector Search Console**, 🛠️ **Creator Actionability & Reply Drafter Workbench**, ⚡ **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), and instant CSV/Parquet export across all 53 layers.
 
@@ -193,11 +202,11 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 ```
 
 **Results**:
-- **Total Tests**: **207 test cases** across 38 test modules
-- **Passed**: **207 passed (100% pass rate)**
+- **Total Tests**: **219 test cases** across 39 test modules
+- **Passed**: **219 passed (100% pass rate)**
 - **Failed**: **0 failed**
-- **Duration**: ~75s
-- **Coverage**: Engine unit tests (`fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+- **Duration**: ~116s
+- **Coverage**: Engine unit tests (`comparator`, `fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
 
 
 

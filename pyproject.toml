@@ -71,6 +71,7 @@ ytint-assist = "engine.assistant:main"
 ytint-sql = "engine.sql_engine:main"
 ytint-narrative = "engine.narrative:main"
 ytint-fingerprint = "engine.fingerprint:main"
+ytint-compare = "engine.comparator:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

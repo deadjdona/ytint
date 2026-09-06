@@ -300,5 +300,30 @@ Multi-dimensional stylometric profiling (Shannon vocabulary entropy, punctuation
 .\.venv\Scripts\ytint-fingerprint.exe --min-score 80.0 --export scratch/suspect_pairs.csv
 ```
 
+## Multi-Channel & Playlist Competitive Intelligence
+
+Cross-channel benchmarking, temporal cohort comparison, Jaccard audience overlap, sentiment & toxicity differentials, and shared commenter migration forensics:
+
+```powershell
+# Discover and list all available channels in video corpus:
+.\.venv\Scripts\python.exe -m engine.comparator --list-channels
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-compare.exe --list-channels
+
+# Benchmark specific channels against each other:
+.\.venv\Scripts\ytint-compare.exe --compare UCZdZPZof_1GO9jksCzUqAxw UCj-XcmWS9wZW6w-GtxNnp3A
+
+# Compare quarterly or annual release cohorts:
+.\.venv\Scripts\ytint-compare.exe --cohorts quarter
+.\.venv\Scripts\ytint-compare.exe --cohorts year
+
+# Fast mock benchmark demonstration mode:
+.\.venv\Scripts\ytint-compare.exe --mock
+
+# Export comparative intelligence report to JSON or benchmark profiles to CSV:
+.\.venv\Scripts\ytint-compare.exe --compare UCZdZPZof_1GO9jksCzUqAxw UCj-XcmWS9wZW6w-GtxNnp3A --export scratch/competitive_report.json
+.\.venv\Scripts\ytint-compare.exe --mock --export scratch/mock_profiles.csv
+```
+
 
 

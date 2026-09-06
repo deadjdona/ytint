@@ -2144,6 +2144,269 @@ def main():
             else:
                 st.info("Engagement forecast data not available.")
 
+        # 5.6 Multi-Channel & Playlist Competitive Intelligence (ytint-compare)
+        st.divider()
+        st.subheader("🌐 Multi-Channel & Playlist Competitive Intelligence Engine (`ytint-compare`)")
+        st.markdown(
+            "Cross-channel benchmarking, temporal cohort comparison, Jaccard audience overlap, "
+            "sentiment & toxicity differentials, and shared commenter migration forensics."
+        )
+
+        from engine.comparator import CompetitiveIntelligenceEngine, RADAR_DIMENSIONS
+        comp_engine = CompetitiveIntelligenceEngine(interim_path, output_path)
+
+        comp_mode = st.radio(
+            "Intelligence Scope & Target Mode:",
+            ["Cross-Channel Comparison", "Quarterly Release Cohorts", "Demo / Synthetic Benchmark"],
+            horizontal=True,
+            key="rad_comp_mode"
+        )
+
+        if comp_mode == "Demo / Synthetic Benchmark":
+            comp_report = comp_engine.generate_mock_report()
+        elif comp_mode == "Quarterly Release Cohorts":
+            comp_report = comp_engine.compare_cohorts_by_quarter()
+        else:
+            avail_chans = comp_engine.discover_available_channels()
+            if len(avail_chans) >= 2:
+                chan_opts = [ch["channel_id"] for ch in avail_chans]
+                chan_format = {ch["channel_id"]: f"{ch['name']} ({ch['comment_count']:,} comments)" for ch in avail_chans}
+                selected_cids = st.multiselect(
+                    "Select Channels to Benchmark:",
+                    options=chan_opts,
+                    default=chan_opts[:2],
+                    format_func=lambda x: chan_format.get(x, x),
+                    key="ms_comp_channels"
+                )
+                if len(selected_cids) >= 2:
+                    comp_report = comp_engine.compare_channels(channel_ids=selected_cids)
+                else:
+                    st.info("Please select at least 2 channels to compute cross-channel benchmark comparison.")
+                    comp_report = comp_engine.compare_channels(channel_ids=chan_opts[:2])
+            else:
+                st.info("Fewer than 2 channels detected in video dataset. Falling back to temporal quarterly release cohorts.")
+                comp_report = comp_engine.compare_cohorts_by_quarter()
+
+        # KPI Summary Strip
+        kpi_c1, kpi_c2, kpi_c3, kpi_c4, kpi_c5 = st.columns(5)
+        with kpi_c1:
+            with st.container(border=True):
+                st.metric("Profiled Cohorts", f"{len(comp_report.profiles)}")
+        with kpi_c2:
+            with st.container(border=True):
+                st.metric("Pairwise Overlaps", f"{len(comp_report.pairwise_overlaps)}")
+        with kpi_c3:
+            with st.container(border=True):
+                total_shared = sum(ov.shared_authors for ov in comp_report.pairwise_overlaps)
+                st.metric("Shared Authors", f"{total_shared:,}")
+        with kpi_c4:
+            with st.container(border=True):
+                max_jaccard = max([ov.jaccard_similarity for ov in comp_report.pairwise_overlaps], default=0.0)
+                st.metric("Max Jaccard Overlap", f"{max_jaccard*100:.1f}%")
+        with kpi_c5:
+            with st.container(border=True):
+                avg_r0 = float(np.mean([p.toxicity_r0 for p in comp_report.profiles.values()])) if comp_report.profiles else 1.0
+                st.metric("Avg Toxicity R₀", f"{avg_r0:.2f}", delta="Sub-Critical" if avg_r0 < 1.0 else "Contagion Threat", delta_color="normal" if avg_r0 < 1.0 else "inverse")
+
+        # Two sub-tabs
+        tab_comp_radar, tab_comp_overlap = st.tabs([
+            "🎯 Multi-Dimensional Radar Benchmarks & Profiles",
+            "👥 Audience Overlap, Venn/Bubble Map & Commenter Migration"
+        ])
+
+        with tab_comp_radar:
+            rad_col1, rad_col2 = st.columns([1, 1])
+            with rad_col1:
+                # Plotly Radar Chart (go.Scatterpolar)
+                fig_radar = go.Figure()
+                palette = [COLOR_PRIMARY, COLOR_ACCENT, COLOR_WARNING, COLOR_PURPLE, COLOR_DANGER]
+                dims_closed = comp_report.radar_dimensions + [comp_report.radar_dimensions[0]]
+
+                for idx, (pid, prof) in enumerate(comp_report.profiles.items()):
+                    color = palette[idx % len(palette)]
+                    r_vals = [prof.radar_scores.get(dim, 50.0) for dim in comp_report.radar_dimensions]
+                    r_vals_closed = r_vals + [r_vals[0]]
+
+                    fig_radar.add_trace(go.Scatterpolar(
+                        r=r_vals_closed,
+                        theta=dims_closed,
+                        fill='toself',
+                        name=prof.cohort_name[:24],
+                        line=dict(color=color, width=2.5),
+                        opacity=0.75
+                    ))
+
+                fig_radar.update_layout(
+                    polar=dict(
+                        radialaxis=dict(
+                            visible=True,
+                            range=[0, 100],
+                            gridcolor="rgba(255,255,255,0.15)",
+                            tickfont=dict(size=9, color="rgba(255,255,255,0.6)")
+                        ),
+                        angularaxis=dict(
+                            gridcolor="rgba(255,255,255,0.2)",
+                            tickfont=dict(size=11, color="#ffffff")
+                        )
+                    ),
+                    showlegend=True,
+                    template=PLOTLY_TEMPLATE,
+                    title="Multi-Dimensional Radar Benchmarking (0..100 Scale)",
+                    height=460,
+                    margin=dict(l=40, r=40, t=50, b=40)
+                )
+                st.plotly_chart(fig_radar, width="stretch")
+                st.caption("Normalized cross-cohort radar benchmarking volume, velocity, positivity, safety, loyalty, and lexical depth.")
+
+            with rad_col2:
+                st.markdown("##### 📋 Normalized Benchmark Radar Scorecard")
+                radar_rows = []
+                for dim in comp_report.radar_dimensions:
+                    row = {"Dimension": dim}
+                    for pid, prof in comp_report.profiles.items():
+                        row[prof.cohort_name[:20]] = f"{prof.radar_scores.get(dim, 0.0):.1f} / 100"
+                    radar_rows.append(row)
+                st.dataframe(pd.DataFrame(radar_rows), width="stretch", hide_index=True)
+
+                st.markdown("##### 🛡️ Cohort Forensic Signals & Toxicity Contagion")
+                for pid, prof in comp_report.profiles.items():
+                    with st.expander(f"📌 {prof.cohort_name}", expanded=False):
+                        p_c1, p_c2, p_c3 = st.columns(3)
+                        p_c1.metric("Total Comments", f"{prof.total_comments:,}")
+                        p_c1.metric("Unique Authors", f"{prof.unique_authors:,}")
+                        p_c2.metric("Toxicity R₀", f"{prof.toxicity_r0:.2f}")
+                        p_c2.metric("Mean Toxicity", f"{prof.mean_toxicity:.4f}")
+                        p_c3.metric("Peak Hour (UTC)", f"{prof.diurnal_peak_utc:02d}:00")
+                        p_c3.metric("Vocab Entropy", f"{prof.vocab_entropy:.2f} bits")
+                        if prof.top_emojis:
+                            st.caption(f"Top Emojis: {' '.join(prof.top_emojis)}")
+
+            # Full Profiles Table
+            st.markdown("##### 📊 Comprehensive Cohort Performance Ledger")
+            p_table_rows = []
+            for pid, prof in comp_report.profiles.items():
+                p_table_rows.append({
+                    "Cohort / Channel": prof.cohort_name,
+                    "Type": prof.cohort_type,
+                    "Videos": prof.total_videos,
+                    "Comments": prof.total_comments,
+                    "Unique Authors": prof.unique_authors,
+                    "Comments/Vid": prof.comments_per_video,
+                    "Avg Likes": prof.avg_likes_per_comment,
+                    "Reply%": f"{prof.reply_ratio*100:.1f}%",
+                    "Positive%": f"{prof.sentiment_pos_ratio*100:.1f}%",
+                    "Negative%": f"{prof.sentiment_neg_ratio*100:.1f}%",
+                    "VADER Polarity": prof.avg_vader_compound,
+                    "Mean Toxicity": prof.mean_toxicity,
+                    "Toxicity R₀": prof.toxicity_r0,
+                    "Loyalty (Cmds/Auth)": prof.avg_author_loyalty,
+                    "Champion Ratio": f"{prof.champion_author_ratio*100:.1f}%",
+                    "Entropy": prof.vocab_entropy,
+                    "Top Emojis": " ".join(prof.top_emojis)
+                })
+            st.dataframe(pd.DataFrame(p_table_rows), width="stretch", hide_index=True)
+
+        with tab_comp_overlap:
+            if comp_report.pairwise_overlaps:
+                ov_labels = [f"{ov.cohort_a_name[:24]}  ↔  {ov.cohort_b_name[:24]}" for ov in comp_report.pairwise_overlaps]
+                selected_ov_idx = st.selectbox(
+                    "Select Pairwise Cohort Comparison:",
+                    options=range(len(ov_labels)),
+                    format_func=lambda i: ov_labels[i],
+                    key="sel_comp_pairwise"
+                )
+                active_ov = comp_report.pairwise_overlaps[selected_ov_idx]
+
+                ov_m1, ov_m2, ov_m3, ov_m4, ov_m5 = st.columns(5)
+                with ov_m1:
+                    st.metric("Shared Authors", f"{active_ov.shared_authors:,}")
+                with ov_m2:
+                    st.metric("Jaccard Overlap", f"{active_ov.jaccard_similarity*100:.2f}%")
+                with ov_m3:
+                    st.metric("Overlap Coefficient", f"{active_ov.overlap_coefficient*100:.2f}%")
+                with ov_m4:
+                    st.metric("Δ Sentiment Shift", f"{active_ov.sentiment_differential:+.3f}", delta=f"{active_ov.sentiment_differential:+.3f}")
+                with ov_m5:
+                    st.metric("Δ Toxicity Shift", f"{active_ov.toxicity_differential:+.4f}", delta=f"{active_ov.toxicity_differential:+.4f}", delta_color="inverse")
+
+                # Shared Commenter Sentiment Migration Scatter / Bubble Map
+                if active_ov.top_migrated_commenters:
+                    st.markdown("##### 👥 Shared Commenter Sentiment Migration Map")
+                    df_migrated = pd.DataFrame(active_ov.top_migrated_commenters)
+                    fig_mig = px.scatter(
+                        df_migrated,
+                        x="sentiment_in_a",
+                        y="sentiment_in_b",
+                        size="total_comments",
+                        color="sentiment_delta",
+                        hover_name="author_name",
+                        hover_data={
+                            "comments_in_a": True,
+                            "comments_in_b": True,
+                            "total_comments": True,
+                            "sentiment_in_a": True,
+                            "sentiment_in_b": True,
+                            "sentiment_delta": True,
+                        },
+                        title=f"Shared Author Sentiment Shift: {active_ov.cohort_a_name[:20]} vs {active_ov.cohort_b_name[:20]}",
+                        labels={
+                            "sentiment_in_a": f"Sentiment in {active_ov.cohort_a_name[:18]}",
+                            "sentiment_in_b": f"Sentiment in {active_ov.cohort_b_name[:18]}",
+                            "sentiment_delta": "Sentiment Shift (Δ)",
+                            "total_comments": "Total Comments"
+                        },
+                        template=PLOTLY_TEMPLATE,
+                        color_continuous_scale="RdYlGn",
+                    )
+                    # Add diagonal neutral line
+                    fig_mig.add_shape(
+                        type="line",
+                        x0=-1.0, y0=-1.0, x1=1.0, y1=1.0,
+                        line=dict(color="rgba(255,255,255,0.4)", dash="dot", width=1.5)
+                    )
+                    fig_mig.update_layout(
+                        height=440,
+                        margin=dict(l=40, r=40, t=50, b=40)
+                    )
+                    st.plotly_chart(fig_mig, width="stretch")
+                    st.caption("Points above the dotted diagonal represent authors who expressed more positive sentiment in Channel B than Channel A; points below expressed more negative sentiment.")
+
+                    # Table of Top Migrated Commenters
+                    st.markdown("##### 📝 Top Cross-Channel Commenters & Migration Shift Ledger")
+                    st.dataframe(df_migrated, width="stretch", hide_index=True)
+                else:
+                    st.info("No shared commenters identified between these two selected cohorts.")
+            else:
+                st.info("No pairwise overlaps available for current selection.")
+
+        # 1-Click Export Hub
+        st.markdown("##### 💾 Export Competitive Intelligence Data")
+        exp_c1, exp_c2 = st.columns(2)
+        with exp_c1:
+            st.download_button(
+                label="💾 Export Competitive Intelligence JSON",
+                data=json.dumps(comp_report.to_dict(), indent=2, ensure_ascii=False),
+                file_name="competitive_intelligence_report.json",
+                mime="application/json",
+                key="dl_comp_json"
+            )
+        with exp_c2:
+            profiles_export_data = []
+            for pid, prof in comp_report.profiles.items():
+                p_dict = prof.to_dict()
+                for dim, val in prof.radar_scores.items():
+                    p_dict[f"radar_{dim.lower().replace(' ', '_')}"] = val
+                p_dict["top_emojis"] = " ".join(prof.top_emojis)
+                p_dict.pop("radar_scores", None)
+                profiles_export_data.append(p_dict)
+            st.download_button(
+                label="📊 Export Benchmark Profiles CSV",
+                data=pd.DataFrame(profiles_export_data).to_csv(index=False),
+                file_name="competitive_benchmark_profiles.csv",
+                mime="text/csv",
+                key="dl_comp_csv"
+            )
+
     # ==============================================================================
     # TAB 6: PUBLICATION-READY VISUAL ANALYTICS GALLERY
     # ==============================================================================
