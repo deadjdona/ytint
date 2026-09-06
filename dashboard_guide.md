@@ -29,6 +29,10 @@ graph LR
 ### Tab 1: Executive Briefing & Macro Intelligence
 
 - **Platform KPI Cards**: Immediate metrics for Total Comments Captured, Unique Commenting Authors, Videos Analyzed, and Average Community Sentiment.
+- **🤖 AI Executive Strategy Briefing (src/engine/synthesizer.py)**:
+  - Natural language strategic assessment synthesizing DiD causal lift, Tree SHAP attributions, $R_0$ toxicity contagion, audience Pareto loyalists, and CIB clusters.
+  - Multi-provider support: Google Gemini (REST), local offline Ollama (`http://localhost:11434`), OpenAI-compatible endpoints, or deterministic offline mock mode.
+  - Generates channel health verdicts, loyalty topology assessments, forensic threat audits, and creator action playbooks.
 - **📄 Executive Intelligence Dossier Generator**:
   - One-click compilation of a self-contained, offline-ready HTML dossier synthesizing all 53 analytical stages.
   - Generates comprehensive forensic threat matrices, audience Pareto structures, topic demand intent taxonomies, video controversy radars, and embedded high-resolution publication plots.
@@ -72,6 +76,9 @@ graph LR
 - **Target-Specific Stance Detection & Polarization Drift (Stage 07 / Stage 39)**:
   - Line chart tracing ideological divergence (`favor_pct` vs `against_pct`) across reply tree debate depth.
   - Video target stance breakdown table and high-conflict polarized thread ledger.
+- **⚖️ AI Flame-War & Debate Tree Summarizer**:
+  - Automatically reconstructs threaded discussions from root comments down the entire reply tree.
+  - Extracts the core controversy trigger, segments participants into opposing factions (Camp A vs Camp B), traces toxicity and emotional escalation dynamics, and recommends specific creator mediation actions.
 
 ---
 
@@ -138,6 +145,15 @@ graph LR
   - One-click CSV and Parquet downloads for all 53 generated pipeline artifacts.
 - **📑 Executive Dossier & Intelligence Briefing Exporter**:
   - Direct UI export for the complete multi-layer executive briefing dossier with optional plot embedding toggle.
+- **🔌 Live YouTube Data API Ingest Connector**:
+  - Interactive direct API ingest console to fetch channel uploads by handle (`@creator`), channel ID (`UC...`), or single video ID.
+  - Granular limits for maximum uploads and comments per video to protect API quotas.
+  - Built-in **Mock Mode** for offline simulation and automated testing.
+  - Automatic Parquet materialization and SQLite upsert into `commentsuite.sqlite3`.
+- **💬 Ask ytint // AI Conversational Analyst (RAG)**:
+  - Natural language Q&A interface grounded across all 53 pipeline metric layers.
+  - Ask ad-hoc questions about channel dynamics, Pareto retention curves, bot infection rates, top audience intents, or optimal video posting strategies.
+  - Grounded responses citing exact numerical evidence from the computed pipeline artifacts.
 
 ---
 

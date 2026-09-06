@@ -342,9 +342,37 @@ def main():
                     with st.expander("👁️ Live In-Dashboard Dossier Preview", expanded=False):
                         components.html(st.session_state["executive_dossier_html"], height=700, scrolling=True)
 
+        # 1.3 AI Executive Strategy Briefing
+        with st.container(border=True):
+            ai_s_col1, ai_s_col2 = st.columns([3, 1])
+            with ai_s_col1:
+                st.subheader("🤖 AI Executive Strategy Briefing")
+                st.markdown(
+                    "Synthesize qualitative strategic reasoning from the 53 computational stages using LLM agents. "
+                    "Supports Google Gemini (REST), local Ollama (private/offline), and fast mock simulation."
+                )
+            with ai_s_col2:
+                llm_prov_tab1 = st.selectbox(
+                    "AI Provider:",
+                    options=["gemini", "ollama", "mock"],
+                    index=0,
+                    key="llm_prov_tab1"
+                )
+                if st.button("✨ Generate AI Briefing", key="btn_gen_ai_briefing_tab1"):
+                    with st.spinner("Synthesizing strategic reasoning with AI analyst..."):
+                        from engine.synthesizer import LLMClient, InsightSynthesizer
+                        client = LLMClient(provider=llm_prov_tab1)
+                        synth = InsightSynthesizer(interim_path, output_path, llm_client=client)
+                        st.session_state["ai_briefing_text"] = synth.synthesize_executive_briefing()
+                        st.success("AI Strategic Briefing generated!")
+
+            if "ai_briefing_text" in st.session_state:
+                with st.container(border=True):
+                    st.markdown(st.session_state["ai_briefing_text"])
+
         st.divider()
 
-        # 1.3 Executive Intelligence Synthesis Cards
+        # 1.4 Executive Intelligence Synthesis Cards
         st.subheader("Key Strategic Findings & Channel Diagnostics")
 
         syn_col1, syn_col2 = st.columns(2)
@@ -916,6 +944,48 @@ def main():
                     st.subheader("😀 Emoji Signatures & Profiles")
                     st.dataframe(data_layers["emoji_signatures"].head(25), width="stretch", hide_index=True)
                     st.caption("Dominant emoji distributions mapped across topics and sentiment.")
+
+        # 3.9 AI Flame-War & Thread Debate Summarizer
+        st.divider()
+        st.subheader("⚖️ AI Flame-War & Debate Tree Summarizer")
+        st.markdown(
+            "Select high-depth or polarized discussion trees to extract conflict triggers, opposing viewpoints, "
+            "escalation dynamics, and creator mediation strategies using LLM reasoning."
+        )
+
+        with st.container(border=True):
+            fw_col1, fw_col2 = st.columns([2, 1])
+            with fw_col1:
+                candidate_threads = []
+                if not df_comments.empty:
+                    if "reply_count" in df_comments.columns:
+                        top_roots = df_comments[df_comments.get("is_reply", False) == False].sort_values(by="reply_count", ascending=False).head(20)
+                        for _, r in top_roots.iterrows():
+                            txt_prev = (str(r.get("text_original") or r.get("text", "")))[:60].replace("\n", " ")
+                            candidate_threads.append((r["comment_id"], f"{r['comment_id']} ({r.get('reply_count', 0)} replies) — \"{txt_prev}...\""))
+
+                thread_choices = [c[1] for c in candidate_threads] if candidate_threads else ["No active threads"]
+                selected_thread_label = st.selectbox("Select Debate Thread to Analyze:", options=thread_choices, key="ai_deb_thread_sel")
+                selected_thread_id = None
+                if candidate_threads and selected_thread_label != "No active threads":
+                    selected_thread_id = candidate_threads[thread_choices.index(selected_thread_label)][0]
+
+            with fw_col2:
+                ai_deb_prov = st.selectbox("AI Provider:", options=["gemini", "ollama", "mock"], index=0, key="ai_deb_prov")
+                if st.button("✨ Summarize Debate", key="btn_summarize_debate"):
+                    if selected_thread_id:
+                        with st.spinner("Analyzing thread debate and opposing arguments..."):
+                            from engine.synthesizer import LLMClient, InsightSynthesizer
+                            client = LLMClient(provider=ai_deb_prov)
+                            synth = InsightSynthesizer(interim_path, output_path, llm_client=client)
+                            st.session_state["thread_summary_res"] = synth.summarize_thread_debate(selected_thread_id)
+                            st.success("Debate analyzed!")
+                    else:
+                        st.info("Please select a valid thread.")
+
+            if "thread_summary_res" in st.session_state:
+                with st.container(border=True):
+                    st.markdown(st.session_state["thread_summary_res"])
 
     # ==============================================================================
     # TAB 4: AUDIENCE LOYALTY & FORENSICS
@@ -1596,6 +1666,108 @@ def main():
                     mime="text/html"
                 )
 
+        st.divider()
+        st.subheader("🔌 Live YouTube Data API Ingest Connector")
+        st.markdown(
+            "Fetch and ingest videos, rich metadata, top-level comment threads, and replies directly "
+            "from the YouTube Data API v3 into the local analytical pipeline."
+        )
+
+        with st.container(border=True):
+            ingest_col1, ingest_col2 = st.columns([2, 1])
+
+            with ingest_col1:
+                ingest_target_type = st.radio(
+                    "Target Identifier Type:",
+                    options=["Channel Handle (e.g. @mkbhd)", "Channel ID (UC...)", "Single Video ID"],
+                    horizontal=True,
+                    key="ingest_target_type"
+                )
+                target_value = st.text_input(
+                    "Channel Handle, Channel ID, or Video ID:",
+                    value="@3blue1brown" if "Handle" in ingest_target_type else "",
+                    key="ingest_target_val"
+                )
+                api_key_input = st.text_input(
+                    "YouTube Data API v3 Key (optional if YOUTUBE_API_KEY env is set):",
+                    value=os.environ.get("YOUTUBE_API_KEY", ""),
+                    type="password",
+                    key="ingest_api_key_val"
+                )
+
+            with ingest_col2:
+                max_vids_val = st.slider("Max Videos to Ingest:", min_value=1, max_value=50, value=5, step=1, key="ingest_max_vids")
+                max_comm_val = st.slider("Max Comments per Video:", min_value=50, max_value=2000, value=500, step=50, key="ingest_max_comm")
+                use_mock_api = st.checkbox("Mock Mode (Offline Simulation)", value=False, key="ingest_mock_cb")
+                auto_run_s00 = st.checkbox("Auto-Materialize Parquet", value=True, key="ingest_auto_s00")
+
+            if st.button("⚡ Start YouTube Ingestion", key="btn_start_youtube_ingest"):
+                target_str = target_value.strip()
+                if not target_str and not use_mock_api:
+                    st.error("Please provide a valid Channel Handle, Channel ID, or Video ID.")
+                else:
+                    with st.spinner("Connecting to YouTube Data API and ingesting data layers..."):
+                        try:
+                            from engine.youtube_api import ingest_youtube_data
+
+                            ch_id = target_str if "Channel ID" in ingest_target_type else None
+                            handle = target_str if "Handle" in ingest_target_type else None
+                            vid_id = target_str if "Video" in ingest_target_type else None
+
+                            res = ingest_youtube_data(
+                                channel_id=ch_id,
+                                handle=handle,
+                                video_id=vid_id,
+                                api_key=api_key_input.strip() or None,
+                                max_videos=max_vids_val,
+                                max_comments_per_video=max_comm_val,
+                                use_mock=use_mock_api,
+                                run_migration=auto_run_s00
+                            )
+                            st.success(
+                                f"🎉 Successfully ingested {res['comments_ingested']:,} comments "
+                                f"across {res['videos_ingested']} videos into `{res['raw_db_path']}`!"
+                            )
+                            st.info("Reload the dashboard or run the pipeline runner to analyze the fresh corpus.")
+                        except Exception as ingest_err:
+                            st.error(f"Ingestion failed: {ingest_err}")
+
+        st.divider()
+        st.subheader("💬 Ask ytint // AI Conversational Analyst")
+        st.markdown(
+            "Query your entire channel corpus using grounded Retrieval-Augmented Generation (RAG). "
+            "The AI agent answers questions by synthesizing metrics across all 53 computational stages."
+        )
+
+        with st.container(border=True):
+            rag_col1, rag_col2 = st.columns([3, 1])
+            with rag_col1:
+                user_rag_query = st.text_input(
+                    "Ask a strategic question about this channel's comments and metrics:",
+                    placeholder="e.g. Why did our latest upload see high like inflation? Or: What do viewers request most?",
+                    key="rag_query_input"
+                )
+            with rag_col2:
+                rag_prov = st.selectbox("AI Provider:", options=["gemini", "ollama", "mock"], index=0, key="rag_prov_sel")
+                btn_ask_rag = st.button("💡 Ask ytint", key="btn_ask_rag_action")
+
+            if btn_ask_rag:
+                q_text = user_rag_query.strip()
+                if not q_text:
+                    st.warning("Please enter a question to analyze.")
+                else:
+                    with st.spinner("Consulting intelligence layers and synthesizing answer..."):
+                        from engine.synthesizer import LLMClient, InsightSynthesizer
+                        client = LLMClient(provider=rag_prov)
+                        synth = InsightSynthesizer(interim_path, output_path, llm_client=client)
+                        st.session_state["rag_answer_text"] = synth.answer_query(q_text)
+
+            if "rag_answer_text" in st.session_state:
+                with st.container(border=True):
+                    st.markdown(st.session_state["rag_answer_text"])
+
 if __name__ == "__main__":
     main()
+
+
 

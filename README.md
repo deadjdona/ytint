@@ -60,7 +60,19 @@ uv venv .venv --python 3.11
 uv pip install -e .
 ```
 
-### 2. Run the Intelligence Pipeline
+### 2. Ingest Data (Live YouTube API or Commentsuite SQLite)
+
+```powershell
+# Ingest live channel uploads directly from YouTube Data API v3:
+.\.venv\Scripts\ytint-ingest.exe --handle '@channel_handle' --max-videos 10 --max-comments 1000
+
+# Or simulate offline without an API key:
+.\.venv\Scripts\ytint-ingest.exe --mock --handle '@test_demo'
+
+# Or simply place your existing 'commentsuite.sqlite3' database in 'data/raw/'
+```
+
+### 3. Run the Intelligence Pipeline
 
 ```powershell
 # Execute the full 53-stage end-to-end pipeline sweep
@@ -73,7 +85,7 @@ uv pip install -e .
 .\.venv\Scripts\python.exe -m pipeline.runner --stage s25
 ```
 
-### 3. Launch the Interactive Dashboard
+### 4. Launch the Interactive Dashboard
 
 ```powershell
 # Start the Streamlit application
@@ -84,7 +96,7 @@ uv pip install -e .
 
 Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 
-### 4. Generate Executive Intelligence Dossier
+### 5. Generate Executive Intelligence Dossier
 
 ```powershell
 # Generate standalone, offline-portable HTML briefing dossier (with print-to-PDF support):
@@ -95,17 +107,33 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 .\.venv\Scripts\ytint-runner.exe --report
 ```
 
+### 6. Generate AI Natural Language Briefings & RAG Q&A
+
+```powershell
+# Synthesize executive strategy briefing (Gemini REST / Ollama / OpenAI / Mock):
+.\.venv\Scripts\ytint-ai.exe --summary
+
+# Offline simulation without an API key:
+.\.venv\Scripts\ytint-ai.exe --mock --summary
+
+# Summarize controversy and debate camps for a comment thread:
+.\.venv\Scripts\ytint-ai.exe --thread <ROOT_COMMENT_ID>
+
+# Conversational RAG Q&A grounded across all 53 pipeline layers:
+.\.venv\Scripts\ytint-ai.exe --ask "What is the ratio of loyalists to drive-by commenters?"
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
 
-1. **Executive Briefing**: High-level KPI scorecards, one-click Executive Dossier generator & PDF export, community loyalty summaries, and interactive video performance quadrant matrix. ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
+1. **Executive Briefing**: High-level KPI scorecards, AI Executive Strategy Briefing generator, one-click Executive Dossier generator & PDF export, community loyalty summaries, and interactive video performance quadrant matrix. ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
 2. **Temporal Dynamics & Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, and multi-video playback comparisons.
-3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, target stance drift across debate depth, and multilingual code-switching lift.
+3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, AI Flame-War & Debate Tree Summarizer, target stance drift across debate depth, and multilingual code-switching lift.
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), and troll catalyst rankings.
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, and audience overlap heatmap.
 6. **Publication-Ready Visual Analytics Gallery**: Comprehensive catalog of 68+ high-resolution statistical plots with analytical guides and strategic takeaways.
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer (instant Bar, Histogram, Scatter, or Line charts), and instant CSV/Parquet dataset export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex filtering, interactive query sandbox & dynamic visualizer (instant Bar, Histogram, Scatter, or Line charts), Live YouTube API Ingest console, "Ask ytint" conversational AI analyst, and instant CSV/Parquet dataset export across all 53 layers.
 
 ---
 

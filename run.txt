@@ -61,4 +61,41 @@ Compile a standalone, offline-ready HTML dossier (and print-ready PDF) synthesiz
 .\.venv\Scripts\ytint-runner.exe --report
 ```
 
+## Ingest Live YouTube Data
 
+Fetch videos, rich metadata, and comment threads directly from the official YouTube Data API v3:
+
+```powershell
+# Ingest channel uploads by handle:
+.\.venv\Scripts\ytint-ingest.exe --handle '@channel_handle' --max-videos 5 --max-comments 500
+
+# Ingest channel uploads by channel ID:
+.\.venv\Scripts\ytint-ingest.exe --channel-id UCxxxxxxxxxxxxxxxxxxxxxx
+
+# Ingest a single video ID:
+.\.venv\Scripts\ytint-ingest.exe --video-id dQw4w9WgXcQ
+
+# Offline simulation / testing without an API key:
+.\.venv\Scripts\ytint-ingest.exe --mock --handle '@test_demo'
+```
+
+## Generate AI Natural Language Strategic Briefings & RAG Q&A
+
+Synthesize deep pipeline metrics into executive strategic briefings, analyze flame-war debate threads, or query the corpus conversationally:
+
+```powershell
+# High-level AI Executive Strategy Briefing (Gemini REST / Ollama / OpenAI / Mock):
+.\.venv\Scripts\ytint-ai.exe --summary
+
+# Offline simulation / testing without an API key:
+.\.venv\Scripts\ytint-ai.exe --mock --summary
+
+# Analyze controversy triggers & opposing viewpoints for a comment thread:
+.\.venv\Scripts\ytint-ai.exe --thread <ROOT_COMMENT_ID>
+
+# Conversational RAG Q&A ("Ask ytint") grounded in all 53 pipeline metric layers:
+.\.venv\Scripts\ytint-ai.exe --ask "What is the ratio of loyalists to drive-by commenters?"
+
+# Specify alternative providers (ollama, openai, gemini):
+.\.venv\Scripts\ytint-ai.exe --provider ollama --model llama3 --summary
+```

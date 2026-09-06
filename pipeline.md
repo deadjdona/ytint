@@ -95,6 +95,7 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
 - **Purpose**: Ingests raw data from SQLite databases, cleans text, standardizes column formats, and writes high-efficiency compressed Parquet tables.
 - **Inputs**: `data/raw/commentsuite.sqlite3`
 - **Outputs**: `data/interim/comments_clean.parquet`, `data/interim/videos_clean.parquet`
+- **Live Ingestion Companion**: [`src/engine/youtube_api.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/youtube_api.py) provides the `ytint-ingest` CLI command to fetch live channel uploads, video statistics, and comment threads directly from the official YouTube Data API v3 and upsert them into `commentsuite.sqlite3`.
 
 #### `s01`: Deep Sentiment & Linguistic Enrichment ([s01_enrich.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s01_enrich.py))
 

@@ -125,3 +125,12 @@ ui:
     accent: "#00f0ff"          # Cyber cyan highlight tracking
     sentiment_pos: "#00ff66"   # Viridian positive metric accent
     sentiment_neg: "#ff3366"   # Crimson negative metric accent
+
+# === LLM & Natural Language Insight Synthesis ===
+llm_analysis:
+  default_provider: "gemini"      # gemini | ollama | openai | mock
+  default_model: "gemini-2.0-flash"
+  ollama_base_url: "http://localhost:11434"
+  ollama_model: "llama3"
+  max_tokens: 1024
+  temperature: 0.3

@@ -29,6 +29,8 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-runner`**: Direct CLI entrypoint for `pipeline.runner:main`
 - **`ytint-app`**: Direct CLI entrypoint for `ui.app:main`
 - **`ytint-report`**: Direct CLI entrypoint for `engine.reporter:main` (Executive Dossier generator)
+- **`ytint-ingest`**: Direct CLI entrypoint for `engine.youtube_api:main` (YouTube Data API v3 connector)
+- **`ytint-ai`**: Direct CLI entrypoint for `engine.synthesizer:main` (LLM & Gemini Insight Synthesizer & RAG agent)
 
 Validate the active environment:
 

@@ -108,29 +108,47 @@ graph TD
 
 ---
 
-## 🎨 3. Streamlit Executive Dashboard Architecture
+## 🤖 4. Native Intelligence Engines & CLI Extensions
 
-The dashboard is structured into **7 comprehensive analytical perspectives** in [`src/ui/app.py`](file:///c:/Users/deadj/Sources/ytint/src/ui/app.py):
+### 📄 Executive Intelligence Dossier Generator ([`src/engine/reporter.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/reporter.py))
+- **Command**: `ytint-report` or `ytint-runner --report`
+- **Features**: Compiles a standalone, offline-portable HTML report synthesizing forensic threat levels, audience Pareto ratios, topic demand distributions, video performance rankings, and base64-embedded high-resolution publication charts. Includes `@media print` rules for instant 1-click **Save as PDF**.
 
-1. **Executive Briefing & Macro Intelligence**: High-level channel KPIs, video performance leaderboard, and dynamic Plotly bubble quadrant matrix ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
-2. **Temporal Dynamics & Conversational Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, and comparative multi-video playback dynamics.
-3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, and target stance drift across debate depth.
-4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), and troll catalyst rankings.
-5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, and Dunn's post-hoc matrix.
-6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation (Bar, Histogram, Scatter, Line), and instant CSV/Parquet export across all 53 layers.
+### 🔌 Live YouTube Data API v3 Ingestion ([`src/engine/youtube_api.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/youtube_api.py))
+- **Command**: `ytint-ingest --handle '@channel' --max-videos 10 --max-comments 1000`
+- **Features**: Fetches channel uploads, metadata, view/like statistics, and complete comment trees directly via Google YouTube Data API v3. Upserts safely into `commentsuite.sqlite3` and automatically updates Parquet tables. Supports deterministic `--mock` mode for offline testing.
+
+### 🧠 LLM & Gemini Strategic Insight Synthesizer & RAG Agent ([`src/engine/synthesizer.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/synthesizer.py))
+- **Command**: `ytint-ai --summary`, `ytint-ai --thread <ID>`, `ytint-ai --ask "..."`
+- **Features**: Multi-provider LLM reasoning engine (Google Gemini REST, local offline Ollama, OpenAI-compatible, or mock simulation). Synthesizes deep mathematical pipeline statistics (DiD causal lift, Tree SHAP attributions, $R_0$ toxicity contagion, BERTopic clusters, CIB astroturfing rings) into natural language executive strategy briefings, flame-war debate summaries, and conversational Q&A.
 
 ---
 
-## 🧪 4. Test Suite Validation
+## 🎨 5. Streamlit Executive Dashboard Architecture
+
+The dashboard is structured into **7 comprehensive analytical perspectives** in [`src/ui/app.py`](file:///c:/Users/deadj/Sources/ytint/src/ui/app.py):
+
+1. **Executive Briefing & Macro Intelligence**: High-level channel KPIs, 🤖 **AI Executive Strategy Briefing** live container, 📄 one-click Executive Dossier generator & PDF export, community loyalty summaries, and dynamic Plotly bubble quadrant matrix ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
+2. **Temporal Dynamics & Conversational Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, and comparative multi-video playback dynamics.
+3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, ⚖️ **AI Flame-War & Debate Tree Summarizer**, and target stance drift across debate depth.
+4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), and troll catalyst rankings.
+5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, and Dunn's post-hoc matrix.
+6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation (Bar, Histogram, Scatter, Line), 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, and instant CSV/Parquet export across all 53 layers.
+
+---
+
+## 🧪 6. Test Suite Validation
 
 ```powershell
 # Run the complete test suite
-.\.venv\Scripts\pytest.exe -v
+.\.venv\Scripts\python.exe -m pytest -v
 ```
 
 **Results**:
-- **Total Tests**: 108 test cases
-- **Passed**: 108 passed
-- **Failed**: 0 failed
-- **Coverage**: Engine unit tests, pipeline stage unit tests, AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+- **Total Tests**: **134 test cases**
+- **Passed**: **134 passed (100% pass rate)**
+- **Failed**: **0 failed**
+- **Duration**: ~57.00s
+- **Coverage**: Engine unit tests (reporter, YouTube API, LLM synthesizer), pipeline stage unit tests, AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+

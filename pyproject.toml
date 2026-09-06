@@ -60,6 +60,8 @@ dependencies = [
 ytint-runner = "pipeline.runner:main"
 ytint-app = "ui.app:main"
 ytint-report = "engine.reporter:main"
+ytint-ingest = "engine.youtube_api:main"
+ytint-ai = "engine.synthesizer:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
