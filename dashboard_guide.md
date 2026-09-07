@@ -94,6 +94,15 @@ graph LR
   - **Dual-Axis Interactive Plotly Timeline**: Combines a reaction density bar chart colored by dominant reaction taxonomy (`humor_laughter` amber, `shock_surprise` crimson, `emotional_touching` emerald, `critique_analytical` royal blue, `chapter_navigation` purple, `general_reaction` slate) with confusion hotspot triangle badges and a smoothed rolling VADER sentiment trajectory.
   - **Interactive Scene Scrubber & Quote Montage**: Scrub smoothly through playback time to inspect the active scene spotlight card and verbatim quotes from viewers at that exact moment.
   - **1-Click Export Hub**: Download complete narrative forensics reports as structured JSON or scene clusters CSV.
+- **🎬 Multimodal Video Transcript & Scene Alignment Engine (Section 3.11 / src/engine/multimodal.py)**:
+  - **Video Selector & Resolution Configuration**: Choose any uploaded video and adjust temporal window resolution slider (5s to 60s windows) with live transcript segment and visual keyframe counts.
+  - **Summary Scorecard KPIs**: Real-time metrics for Video Duration, Total Aligned Windows, Cognitive Overload Alerts, Mean Cross-Modal Coherence Score ($0-1.0$), and Synthesized YouTube Chapters.
+  - **Cognitive Overload Hotspots Callout Banner**: Proactively isolates timestamps where high visual complexity ($>0.75$) intersects with audience confusion spikes ($>0.50$), diagnosing cognitive overload and suggesting visual pacing or caption simplification.
+  - **Dual-Axis Interactive Plotly Alignment Stream**: Synchronizes visual complexity bar chart with crimson cognitive overload markers, continuous cyan cross-modal coherence trajectory, and purple viewer confusion density.
+  - **Copy-Ready YouTube Chapter Generator**: Automatically synthesizes structured YouTube chapter timestamps (`00:00 - Introduction`) with 1-click copy-to-clipboard code block and detailed chapter cards showcasing summaries and top keywords.
+  - **Spoken Root-Cause & Narrative Scene Cards**: Deep-dives into active scenes, linking verbatim spoken transcript excerpts, visual keyframe OCR descriptions, cognitive overload status, reaction taxonomy distributions, and matched viewer comments.
+  - **Interactive Playback Scrubber**: Temporal slider to inspect any point in the video with real-time cross-modal synchronization.
+  - **1-Click Export Hub**: Direct download buttons for complete multimodal alignment JSON dossiers and aligned scene windows CSV.
 
 ---
 

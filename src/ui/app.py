@@ -1435,6 +1435,319 @@ def main():
         else:
             st.info("No videos available with timestamp reaction data. Ensure stage 28 / comments clean pipeline has run.")
 
+        # ==============================================================================
+        # 3.11 Multimodal Video Transcript & Content Alignment Hub
+        # ==============================================================================
+        st.divider()
+        st.subheader("🎙️ Multimodal Video Transcript & Scene Alignment Engine")
+        st.markdown(
+            "Synchronize timestamped spoken video transcripts, visual keyframes, and audience comment reactions. "
+            "Detect cognitive overload episodes, pinpoint spoken root causes of viewer confusion, "
+            "calculate cross-modal coherence, and synthesize copy-ready YouTube chapter markers."
+        )
+
+        from dataclasses import asdict
+        from engine.multimodal import MultimodalEngine, MultimodalReport, SCENE_TYPES, format_seconds
+        from plotly.subplots import make_subplots
+
+        mm_engine = MultimodalEngine(config)
+        available_mm_vids = mm_engine.get_available_videos()
+
+        if available_mm_vids:
+            mm_vid_ids = [v["video_id"] for v in available_mm_vids]
+            mm_vid_titles = {
+                v["video_id"]: f"{v.get('title', v['video_id'])} ({v.get('comment_count', 0):,} comments, {format_seconds(v.get('duration', 0))})"
+                for v in available_mm_vids
+            }
+        else:
+            mm_vid_ids = ["WpbN3D5oQBo"]
+            mm_vid_titles = {"WpbN3D5oQBo": "Demonstration Video (WpbN3D5oQBo)"}
+
+        # Multi-Column Controls
+        ctrl_c1, ctrl_c2, ctrl_c3 = st.columns([3, 1, 1])
+        with ctrl_c1:
+            selected_mm_vid = st.selectbox(
+                "Select Target Video:",
+                options=mm_vid_ids,
+                format_func=lambda vid: mm_vid_titles.get(vid, vid),
+                key="sel_mm_video"
+            )
+        with ctrl_c2:
+            step_secs_mm = st.slider(
+                "Window Step (sec):",
+                min_value=15,
+                max_value=60,
+                value=30,
+                step=5,
+                key="slider_mm_step"
+            )
+        with ctrl_c3:
+            use_mm_mock = st.checkbox("Demo / Mock Mode", value=False, key="chk_mm_mock")
+
+        # Optional Subtitle / Transcript File Uploader
+        with st.expander("📂 Optional: Upload Custom Subtitle / Keyframes File (.vtt, .srt, .json)", expanded=False):
+            up_col1, up_col2 = st.columns(2)
+            with up_col1:
+                uploaded_transcript_file = st.file_uploader(
+                    "Upload Subtitles / Transcript (.vtt, .srt, .json):",
+                    type=["vtt", "srt", "json"],
+                    key="upload_mm_transcript"
+                )
+            with up_col2:
+                uploaded_keyframes_file = st.file_uploader(
+                    "Upload Visual Keyframes (.json):",
+                    type=["json"],
+                    key="upload_mm_keyframes"
+                )
+
+        uploaded_transcript_path = None
+        if uploaded_transcript_file is not None:
+            t_path = interim_path / f"uploaded_{selected_mm_vid}_{uploaded_transcript_file.name}"
+            try:
+                t_path.write_bytes(uploaded_transcript_file.getvalue())
+                uploaded_transcript_path = str(t_path)
+                st.success(f"Loaded custom transcript: {uploaded_transcript_file.name}")
+            except Exception as e:
+                st.warning(f"Failed staging transcript: {e}")
+
+        uploaded_keyframes_path = None
+        if uploaded_keyframes_file is not None:
+            k_path = interim_path / f"uploaded_kf_{selected_mm_vid}_{uploaded_keyframes_file.name}"
+            try:
+                k_path.write_bytes(uploaded_keyframes_file.getvalue())
+                uploaded_keyframes_path = str(k_path)
+                st.success(f"Loaded custom keyframes: {uploaded_keyframes_file.name}")
+            except Exception as e:
+                st.warning(f"Failed staging keyframes: {e}")
+
+        # Run Analysis
+        try:
+            mm_report: MultimodalReport = mm_engine.analyze_video(
+                video_id=selected_mm_vid,
+                step_secs=step_secs_mm,
+                transcript_path=uploaded_transcript_path,
+                keyframes_path=uploaded_keyframes_path,
+                force_mock=use_mm_mock
+            )
+
+            # 1. Summary KPI Cards
+            kpi_m1, kpi_m2, kpi_m3, kpi_m4, kpi_m5 = st.columns(5)
+            with kpi_m1:
+                with st.container(border=True):
+                    st.metric("Total Video Runtime", format_seconds(mm_report.duration_secs), delta=f"{mm_report.total_windows} windows")
+            with kpi_m2:
+                with st.container(border=True):
+                    st.metric("Spoken Words", f"{mm_report.total_transcript_words:,}", delta=f"{round(mm_report.total_transcript_words / max(0.1, mm_report.duration_secs / 60.0), 1)} WPM")
+            with kpi_m3:
+                with st.container(border=True):
+                    coh_val = mm_report.overall_coherence_score * 100.0
+                    coh_color = "normal" if coh_val >= 70 else "inverse"
+                    st.metric("Cross-Modal Coherence", f"{coh_val:.1f}%", delta="Synchronized" if coh_val >= 70 else "Desynced", delta_color=coh_color)
+            with kpi_m4:
+                with st.container(border=True):
+                    st.metric("Cognitive Overloads", f"{mm_report.cognitive_overload_count:,}", delta="⚠️ Actionable" if mm_report.cognitive_overload_count > 0 else "Optimal", delta_color="inverse" if mm_report.cognitive_overload_count > 0 else "normal")
+            with kpi_m5:
+                with st.container(border=True):
+                    st.metric("Confusion Hotspots", f"{mm_report.confusion_hotspots_count:,}", delta=f"{len(mm_report.chapters)} chapters")
+
+            # 2. Dual Playback Coherence & Reaction Stream (Plotly Subplots)
+            st.markdown("#### 📊 Cross-Modal Synchronization & Cognitive Load Stream")
+
+            df_win = pd.DataFrame([asdict(w) for w in mm_report.aligned_windows])
+
+            fig_mm = make_subplots(
+                rows=2, cols=1,
+                shared_xaxes=True,
+                vertical_spacing=0.08,
+                subplot_titles=(
+                    "Visual Scene Complexity & Cognitive Overload Risk Across Playback",
+                    "Cross-Modal Coherence Score & Audience Confusion Rate"
+                ),
+                row_heights=[0.55, 0.45]
+            )
+
+            # Subplot 1: Bar chart of visual complexity colored by scene type
+            bar_colors = [SCENE_TYPES.get(w.visual_scene_type, {}).get("color", "#3b82f6") for w in mm_report.aligned_windows]
+            hover_s1 = [
+                f"<b>[{w.formatted_time}]</b><br>{SCENE_TYPES.get(w.visual_scene_type, {}).get('label', w.visual_scene_type)}<br>Complexity: {w.visual_complexity * 100:.0f}%<br>OCR: {w.screen_ocr[:50]}..."
+                for w in mm_report.aligned_windows
+            ]
+
+            fig_mm.add_trace(
+                go.Bar(
+                    x=df_win["start_sec"],
+                    y=df_win["visual_complexity"] * 100.0,
+                    marker_color=bar_colors,
+                    name="Visual Complexity (%)",
+                    hovertext=hover_s1,
+                    hoverinfo="text",
+                ),
+                row=1, col=1
+            )
+
+            # Overlay Cognitive Overload Flag markers
+            overload_wins = [w for w in mm_report.aligned_windows if w.cognitive_overload_flag]
+            if overload_wins:
+                ov_starts = [w.start_sec for w in overload_wins]
+                ov_y = [w.visual_complexity * 100.0 + 5 for w in overload_wins]
+                ov_texts = [f"⚠️ OVERLOAD [{w.formatted_time}]" for w in overload_wins]
+                fig_mm.add_trace(
+                    go.Scatter(
+                        x=ov_starts,
+                        y=ov_y,
+                        mode="markers+text",
+                        marker=dict(symbol="triangle-up", size=14, color="#ff3366", line=dict(width=1.5, color="#ffffff")),
+                        text=["⚠️" for _ in overload_wins],
+                        textposition="top center",
+                        name="Cognitive Overload",
+                        hovertext=ov_texts,
+                        hoverinfo="text",
+                    ),
+                    row=1, col=1
+                )
+
+            # Subplot 2: Coherence line & Confusion score scatter/line
+            fig_mm.add_trace(
+                go.Scatter(
+                    x=df_win["start_sec"],
+                    y=df_win["coherence_score"] * 100.0,
+                    mode="lines+markers",
+                    line=dict(color="#00e599", width=2.5),
+                    marker=dict(size=6),
+                    name="Coherence Score (%)",
+                    hovertemplate="Time: %{x}s<br>Coherence: %{y:.1f}%<extra></extra>",
+                ),
+                row=2, col=1
+            )
+
+            fig_mm.add_trace(
+                go.Scatter(
+                    x=df_win["start_sec"],
+                    y=df_win["confusion_score"] * 100.0,
+                    mode="lines",
+                    line=dict(color="#ffaa00", width=2, dash="dash"),
+                    name="Confusion Score (%)",
+                    hovertemplate="Time: %{x}s<br>Confusion: %{y:.1f}%<extra></extra>",
+                ),
+                row=2, col=1
+            )
+
+            fig_mm.update_layout(
+                template=PLOTLY_TEMPLATE,
+                height=560,
+                margin=dict(l=40, r=40, t=50, b=40),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+            fig_mm.update_xaxes(title_text="Playback Elapsed (Seconds)", row=2, col=1)
+            fig_mm.update_yaxes(title_text="Visual Complexity (%)", row=1, col=1, range=[0, 115])
+            fig_mm.update_yaxes(title_text="Score (%)", row=2, col=1, range=[0, 105])
+
+            st.plotly_chart(fig_mm, width="stretch")
+
+            # 3. Synthesized YouTube Chapters
+            st.markdown("#### 🔖 Synthesized YouTube Chapter Markers")
+            st.caption("Auto-generated YouTube chapter timestamps derived from visual scene boundaries, OCR slide headings, and spoken topic transitions.")
+            
+            if mm_report.chapters:
+                chap_col1, chap_col2 = st.columns([1, 1])
+                with chap_col1:
+                    raw_chapters_text = "\n".join(f"{ch.formatted_timestamp} {ch.title}" for ch in mm_report.chapters)
+                    st.text_area("Copy-Ready YouTube Chapters Description:", value=raw_chapters_text, height=180, key="txt_chapters_raw")
+                with chap_col2:
+                    df_chaps = pd.DataFrame([
+                        {
+                            "Timestamp": ch.formatted_timestamp,
+                            "Chapter Title": ch.title,
+                            "Scene Transition": ch.rationale,
+                            "Coherence": f"{ch.coherence_score * 100:.0f}%",
+                            "Confusion Risk": ch.confusion_level
+                        }
+                        for ch in mm_report.chapters
+                    ])
+                    st.dataframe(df_chaps, width="stretch", hide_index=True)
+
+            # 4. Viewer Confusion Hotspots & Spoken Root-Cause Attribution
+            hotspot_windows = [w for w in mm_report.aligned_windows if w.confusion_score > 0.3 or w.cognitive_overload_flag]
+            if hotspot_windows:
+                st.markdown("#### ❓ Audience Confusion Hotspots & Spoken Root Causes")
+                for hw in hotspot_windows[:5]:
+                    with st.container(border=True):
+                        hc1, hc2, hc3 = st.columns([1, 1, 3])
+                        with hc1:
+                            st.metric("Window", hw.formatted_time, delta=f"{hw.start_sec}s–{hw.end_sec}s")
+                        with hc2:
+                            c_badge = "🔴 High Confusion" if hw.confusion_score >= 0.5 else "🟡 Moderate"
+                            st.metric("Confusion Index", f"{hw.confusion_score * 100:.0f}%", delta=c_badge)
+                        with hc3:
+                            st.markdown(f"**Scene Type:** `{SCENE_TYPES.get(hw.visual_scene_type, {}).get('label', hw.visual_scene_type)}`")
+                            if hw.root_cause_phrase:
+                                st.markdown(f"🔍 **Spoken Trigger Phrase:** \"_{hw.root_cause_phrase}_\"")
+
+                        st.caption(f"**Spoken Transcript Context:** \"{hw.transcript_text}\"")
+
+                        if hw.sample_comments:
+                            st.markdown("##### 💬 Viewer Reactions at This Moment:")
+                            for sc in hw.sample_comments[:3]:
+                                st.markdown(f"- _{sc}_")
+
+            # 5. Interactive Scene Window Inspector (Time Scrubber)
+            st.markdown("#### 🎛️ Interactive Scene Window Inspector")
+            if mm_report.aligned_windows:
+                scrub_idx = st.slider(
+                    "Select Playback Window to Inspect:",
+                    min_value=0,
+                    max_value=len(mm_report.aligned_windows) - 1,
+                    value=0,
+                    format_func=lambda i: f"[{mm_report.aligned_windows[i].formatted_time}] {SCENE_TYPES.get(mm_report.aligned_windows[i].visual_scene_type, {}).get('label', mm_report.aligned_windows[i].visual_scene_type)} ({mm_report.aligned_windows[i].comment_count} comments)",
+                    key="slider_mm_scene_scrub"
+                )
+
+                active_w = mm_report.aligned_windows[scrub_idx]
+
+                with st.container(border=True):
+                    sc_c1, sc_c2 = st.columns([1, 1])
+                    with sc_c1:
+                        st.markdown(f"##### 🎙️ Spoken Transcript [{active_w.formatted_time}]")
+                        st.markdown(f"> \"{active_w.transcript_text}\"")
+                        if active_w.spoken_keywords:
+                            st.caption(f"Spoken Keywords: `{'`, `'.join(active_w.spoken_keywords)}`")
+                    with sc_c2:
+                        st.markdown(f"##### 🖼️ Visual Scene Context")
+                        st.markdown(f"**Scene Type:** `{SCENE_TYPES.get(active_w.visual_scene_type, {}).get('label', active_w.visual_scene_type)}`")
+                        st.markdown(f"**Visual Complexity:** `{active_w.visual_complexity * 100:.0f}%` | **Coherence:** `{active_w.coherence_score * 100:.0f}%`")
+                        if active_w.screen_ocr:
+                            st.caption(f"Screen OCR Text: _{active_w.screen_ocr}_")
+
+                    if active_w.sample_comments:
+                        st.markdown("##### 💬 Comments Arrived at This Scene:")
+                        for c_txt in active_w.sample_comments:
+                            st.markdown(f"- _{c_txt}_")
+                    else:
+                        st.caption("No timestamped audience comments in this exact window.")
+
+            # 6. Export Hub
+            st.markdown("##### 💾 Export Multimodal Alignment Dossier")
+            exp_mm1, exp_mm2 = st.columns(2)
+            with exp_mm1:
+                st.download_button(
+                    label="💾 Export Multimodal Dossier JSON",
+                    data=json.dumps(asdict(mm_report), indent=2, ensure_ascii=False),
+                    file_name=f"multimodal_dossier_{selected_mm_vid}.json",
+                    mime="application/json",
+                    key="dl_mm_report_json"
+                )
+            with exp_mm2:
+                st.download_button(
+                    label="📊 Export Aligned Windows CSV",
+                    data=df_win.to_csv(index=False),
+                    file_name=f"multimodal_windows_{selected_mm_vid}.csv",
+                    mime="text/csv",
+                    key="dl_mm_windows_csv"
+                )
+        except Exception as e:
+            st.error(f"Multimodal alignment failed: {e}")
+
+
     # ==============================================================================
     # TAB 4: AUDIENCE LOYALTY & FORENSICS
     # ==============================================================================

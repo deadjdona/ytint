@@ -43,6 +43,7 @@ Installing in editable mode (`uv pip install -e .`) registers the package consol
 - **`ytint-cohort`**: Direct CLI entrypoint for `engine.cohort_survival:main` (Audience Churn & Longitudinal Cohort Survival Engine)
 - **`ytint-watch`**: Direct CLI entrypoint for `engine.watcher:main` (Continuous Live Streaming Watcher & Auto-Poller Daemon)
 - **`ytint-moderate`**: Direct CLI entrypoint for `engine.moderator:main` (Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub)
+- **`ytint-multimodal`**: Direct CLI entrypoint for `engine.multimodal:main` (Multimodal Transcript & Vision Alignment Engine)
 
 Validate the active environment:
 

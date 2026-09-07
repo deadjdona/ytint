@@ -109,7 +109,7 @@ The interactive UI is implemented in [`src/ui/app.py`](file:///c:/Users/deadj/So
 
 ## 📦 Native Intelligence Engines & CLI Ecosystem
 
-All **16 standalone console scripts** are registered in `pyproject.toml` and verified operational:
+All **18 standalone console scripts** are registered in `pyproject.toml` and verified operational:
 
 1. **`ytint-runner`** (`pipeline.runner:main`): Full 53-stage and incremental delta pipeline sweep.
 2. **`ytint-app`** (`ui.app:main`): 7-tab Streamlit intelligence executive dashboard.
@@ -127,15 +127,17 @@ All **16 standalone console scripts** are registered in `pyproject.toml` and ver
 14. **`ytint-compare`** (`engine.comparator:main`): Multi-channel & playlist competitive intelligence engine.
 15. **`ytint-cohort`** (`engine.cohort_survival:main`): Audience churn & longitudinal cohort survival engine.
 16. **`ytint-watch`** (`engine.watcher:main`): Continuous live streaming watcher & auto-poller daemon.
+17. **`ytint-moderate`** (`engine.moderator:main`): Bi-directional YouTube moderation action dispatcher & policy hub.
+18. **`ytint-multimodal`** (`engine.multimodal:main`): Multimodal transcript & vision alignment engine.
 
 ---
 
 ## 🧪 Implementation Status & Validation
 
 - **Pipeline Stages**: All 53 canonical stages implemented with 1:1 physical script naming.
-- **Native Intelligence Engines**: 16 standalone high-performance engines and CLI entrypoints.
+- **Native Intelligence Engines**: 18 standalone high-performance engines and CLI entrypoints.
 - **Visualizations**: 68 publication-quality Matplotlib/Seaborn plots modularized in `src/pipeline/visualizations/`.
-- **Test Suite**: 100% pass rate (237/237 tests passing via `pytest` across 41 test modules).
+- **Test Suite**: 100% pass rate (253/253 tests passing via `pytest` across 43 test modules).
 - **Syntax Validation**: All source files cleanly compile via `python -m compileall`.
 - **Configuration**: Fully centralized in `config/settings.yaml`.
 

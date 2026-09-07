@@ -412,11 +412,27 @@ The **ytint** pipeline is a high-performance, multi-stage analytical intelligenc
   - Pipeline Flag: `ytint-runner --report` or `python -m pipeline.runner --report`
   - Streamlit UI: Download button in Tab 1 (Executive Briefing) & Tab 7 (Export Hub) with live preview.
 
+#### Multimodal Video Transcript & Vision Alignment Engine ([multimodal.py](file:///c:/Users/deadj/Sources/ytint/src/engine/multimodal.py))
+
+- **Purpose**: Synchronizes external or extracted speech-to-text transcripts (Whisper JSON, WebVTT, SRT, YouTube TimedText) and visual keyframe complexity directly with second-by-second viewer comment reactions, detecting cognitive overload episodes, isolating spoken root causes behind audience confusion spikes, and automatically synthesizing ready-to-paste YouTube video chapters.
+- **Inputs**:
+  - `comments_clean.parquet`, `videos_clean.parquet`
+  - Upstream stage artifacts: `cross_modal_scene_reactions.parquet` (`s50`)
+  - External transcripts: Whisper JSON, WebVTT (`.vtt`), SubRip (`.srt`), or auto-generated mock simulation.
+  - External visual keyframes: JSON visual keyframes or deterministic scene complexity simulator.
+- **Outputs**:
+  - `data/output/multimodal_alignment.parquet`: Temporal aligned scene windows ($t_{\text{start}}, t_{\text{end}}$) with visual complexity ($0-1.0$), cross-modal coherence score ($0-1.0$), cognitive overload flags, spoken root cause phrases, reaction taxonomy breakdowns, and exemplar comments.
+  - `data/output/multimodal_chapters.parquet`: Synthesized video chapters with timestamps, titles, descriptions, and topical keywords.
+  - `data/output/multimodal_report_<video_id>.json`: Comprehensive serializable multimodal intelligence report.
+- **Execution Modes**:
+  - Direct CLI: `ytint-multimodal` or `python -m engine.multimodal`
+  - Streamlit UI: Section 3.11 in Tab 3 (Topic Resonance & Demand Intent) featuring KPI cards, dual-axis Plotly timeline, copy-ready chapter generator, spoken root-cause cards, and interactive playback scrubber.
+
 ---
 
 ## 📦 Native Intelligence Engines & CLI Extensions
 
-Beyond the 53 core analytical pipeline stages, `ytint` includes **17 standalone, high-performance CLI engines** registered in `pyproject.toml` and installed as direct executable console commands:
+Beyond the 53 core analytical pipeline stages, `ytint` includes **18 standalone, high-performance CLI engines** registered in `pyproject.toml` and installed as direct executable console commands:
 
 | Command | Module Entrypoint | Core Intelligence Functionality |
 | :--- | :--- | :--- |
@@ -437,5 +453,6 @@ Beyond the 53 core analytical pipeline stages, `ytint` includes **17 standalone,
 | **`ytint-cohort`** | `engine.cohort_survival:main` | Longitudinal cohort survival modeling, Kaplan-Meier curves & Quick Ratio |
 | **`ytint-watch`** | `engine.watcher:main` | Continuous live streaming watcher & auto-poller daemon with adaptive velocity scaling |
 | **`ytint-moderate`** | `engine.moderator:main` | Bi-directional YouTube moderation action dispatcher, dry-run safety & policy hub |
+| **`ytint-multimodal`** | `engine.multimodal:main` | Multimodal transcript & vision alignment engine with smart chapter synthesis |
 
 

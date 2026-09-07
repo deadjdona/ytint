@@ -413,3 +413,29 @@ Execute or stage bi-directional creator moderation actions (pin comments, mark s
 .\.venv\Scripts\ytint-moderate.exe --export-audit scratch/audit_log.json
 ```
 
+## Multimodal Transcript & Vision Alignment Engine
+
+Synchronize speech-to-text transcripts (Whisper, VTT, SRT, YouTube TimedText) and visual keyframes with audience comments, confusion hotspots, and YouTube chapter generation:
+
+```powershell
+# Inspect available videos and multimodal alignment status:
+.\.venv\Scripts\python.exe -m engine.multimodal --status
+# Or via registered console script shortcut:
+.\.venv\Scripts\ytint-multimodal.exe --status
+
+# Run cross-modal alignment for a specific video in mock/simulation mode:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --align
+
+# Synthesize ready-to-paste YouTube chapter markers:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --chapters
+
+# Display cross-modal coherence scorecard and cognitive overload episodes:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --coherence
+
+# Extract viewer confusion hotspots and spoken root-cause spark phrases:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --hotspots
+
+# Export complete multimodal intelligence dossier to JSON:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --export scratch/multimodal_dossier.json
+```
+

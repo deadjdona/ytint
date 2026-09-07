@@ -59,3 +59,6 @@ Desktop.ini
 # Streamlit agent skills (environment-specific symlinks)
 .agents\skills/developing-with-streamlit/
 .claude\skills/developing-with-streamlit/
+
+# Temporary scratch folder
+scratch/

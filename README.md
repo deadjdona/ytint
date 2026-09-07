@@ -320,13 +320,37 @@ Open **[http://localhost:8501](http://localhost:8501)** to access the dashboard.
 .\.venv\Scripts\ytint-moderate.exe --export-audit scratch/audit_log.json
 ```
 
+### 19. Multimodal Transcript & Vision Alignment Engine (`ytint-multimodal`)
+
+Synchronize speech-to-text transcripts (Whisper, VTT, SRT, YouTube TimedText) and visual keyframes with audience comments, confusion hotspots, and YouTube chapter generation:
+
+```powershell
+# Inspect available videos and multimodal alignment status:
+.\.venv\Scripts\ytint-multimodal.exe --status
+
+# Run cross-modal alignment for a specific video in mock/simulation mode:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --align
+
+# Synthesize ready-to-paste YouTube chapter markers:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --chapters
+
+# Display cross-modal coherence scorecard and cognitive overload episodes:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --coherence
+
+# Extract viewer confusion hotspots and spoken root-cause spark phrases:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --hotspots
+
+# Export complete multimodal intelligence dossier to JSON:
+.\.venv\Scripts\ytint-multimodal.exe --mock --video-id WpbN3D5oQBo --export scratch/multimodal_dossier.json
+```
+
 ---
 
 ## 📊 Dashboard Perspectives (7 Tabs)
 
 1. **Executive Briefing**: High-level KPI scorecards, AI Executive Strategy Briefing generator, one-click Executive Dossier generator & PDF export, community loyalty summaries, and interactive video performance quadrant matrix. ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
 2. **Temporal Dynamics & Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, multi-video playback comparisons, and **Real-Time Chronological Event Replay & Crisis Simulator** (interactive frame scrubber, dual-axis velocity/sentiment/toxicity timeline, flame-war risk gauges, active crisis trigger alerts, and JSON/CSV export).
-3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, AI Flame-War & Debate Tree Summarizer, target stance drift across debate depth, multilingual code-switching lift, and **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports).
+3. **NLP, Semantics & Demand Intent**: Dynamic topic resonance matrix with customizable axes, audience demand intent classification, Plutchik emotions, AI Flame-War & Debate Tree Summarizer, target stance drift across debate depth, multilingual code-switching lift, **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports), and **Multimodal Video Transcript & Spoken Content Alignment Hub** (triple-stream inspector, multi-track playback visualizer, spoken claims and controversy ledger, confusion hotspots coaching hub, and 1-click chapter/dossier exports).
 4. **Audience Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) astroturfing ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, **Interactive Community Network & Gephi Topology Explorer** (2D force-directed layout, top-$K$ node filtering, Louvain community coloring, and 1-click GEXF/GraphML exports), and **Forensic Author Persona & Sockpuppet Fingerprinting** (stylometric feature radar bar charts, 24-hour diurnal posting clocks, pairwise scatter matrix, clustered ring ledger, and suspect pair matches).
 5. **Predictive Modeling & Causal Interventions**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall breakdown, Tree SHAP feature attribution, Dunn's post-hoc matrix, audience overlap heatmap, **Multi-Channel & Playlist Competitive Intelligence Engine** (cross-channel and temporal release cohort selector, 6-dimension Plotly polar radar chart, normalized benchmark scorecard, audience overlap Venn/bubble map, shared commenter migration ledger), and **Audience Churn & Longitudinal Cohort Survival Engine** (monthly/quarterly cohort retention triangle heatmap, continuous-time Kaplan-Meier survival curves with right-censoring, community state dynamics & Quick Ratio trajectory, and empirical social validation uplift).
 6. **Publication-Ready Visual Analytics Gallery**: Comprehensive catalog of 68+ high-resolution statistical plots with analytical guides and strategic takeaways.

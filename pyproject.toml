@@ -75,6 +75,7 @@ ytint-compare = "engine.comparator:main"
 ytint-cohort = "engine.cohort_survival:main"
 ytint-watch = "engine.watcher:main"
 ytint-moderate = "engine.moderator:main"
+ytint-multimodal = "engine.multimodal:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

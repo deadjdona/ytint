@@ -219,6 +219,25 @@ graph TD
   4. **Interactive Dashboard Console**: Tab 7 Section 7.9 featuring real-time daemon status KPIs, target ledger with comment velocities and polling intervals, on-demand poll cycle trigger, target adder form, recent event stream, and 1-click state JSON export.
   5. **Standalone CLI Runner**: Registered `ytint-watch` console script supporting `--status`, `--interval`, `--auto-pipeline`, `--alert`, `--add-channel`, `--add-video`, `--remove-target`, `--once`, `--mock`, and `--reset`.
 
+### 17. Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub ([`src/engine/moderator.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/moderator.py))
+- **Command**: `ytint-moderate`
+- **Capabilities**:
+  1. **Automated Forensic Policy Engine**: Scans incoming comments across customizable rule profiles (Toxicity/Slurs $\ge 0.85$, Impersonation Levenshtein $\ge 0.88$, CIB coordinated bursts $\Delta t \le 120\text{s}$, Spam/Phishing regex patterns, and Troll Catalyst contagion scores).
+  2. **Staged Moderation Action Queue**: Stages recommended remediation actions (`holdForReview`, `reject`, `banAuthor`, `pinComment`, `heartComment`) into an immutable state ledger `data/output/moderator_state.json`.
+  3. **Dry-Run Simulation & Safety Guardrails**: Supports non-destructive dry-run execution by default, preventing accidental deletions or channel bans without explicit operator confirmation.
+  4. **YouTube Data API v3 Dispatcher**: Dispatches verified moderation mutations (`comments.setModerationStatus`, `comments.markAsSpam`, `liveChatMessages.delete`) via authenticated OAuth 2.0 client credentials with full rollback logs.
+  5. **Interactive Dashboard Workbench**: Tab 7 Section 7.10 featuring moderation telemetry KPIs, policy configuration sliders, staged action ledger with bulk approval/rejection, dry-run simulation mode, OAuth dispatching, and audit trail.
+
+### 18. Multimodal Video Transcript & Vision Alignment Engine ([`src/engine/multimodal.py`](file:///c:/Users/deadj/Sources/ytint/src/engine/multimodal.py))
+- **Command**: `ytint-multimodal`
+- **Capabilities**:
+  1. **Multi-Format Ingestion**: Parses WebVTT (`.vtt`), SubRip (`.srt`), OpenAI/faster-whisper JSON (`whisper.json`), and YouTube TimedText transcripts with fallback deterministic mock synthesizer.
+  2. **Keyframe Vision Classification & OCR**: Maps video playback into discrete temporal scenes (`talking_head`, `screen_code`, `slide_presentation`, `chart_diagram`, `b_roll_demo`, `meme_overlay`), calculating visual complexity ($0$–$100\%$) and on-screen OCR text.
+  3. **Cross-Modal Coherence & Cognitive Overload Detection**: Computes semantic overlap between spoken dialogue keywords and visual scene cues ($0.0$–$1.0$), flagging moments of high visual complexity paired with rapid speech as cognitive overload risks.
+  4. **Viewer Confusion Hotspot Attribution**: Correlates spikes in viewer questioning comments to exact spoken phrases and visual scenes, isolating root-cause explanatory deficiencies.
+  5. **Automated YouTube Chapter Synthesizer**: Generates copy-ready formatted chapter timestamps (`MM:SS Chapter Title`) derived from visual scene boundaries and spoken topic shifts.
+  6. **Interactive Dashboard Workbench**: Tab 3 Section 3.11 featuring dual-axis Plotly timeline (Visual Complexity vs Coherence & Confusion), synthesized chapter table with copy-ready description text area, confusion hotspot cards with verbatim quotes, interactive scene window inspector (time scrubber), and 1-click JSON/CSV exports.
+
 ### 🖥️ Streamlit Intelligence Dashboard Console ([`src/ui/app.py`](file:///c:/Users/deadj/Sources/ytint/src/ui/app.py))
 - **Command**: `ytint-app` or `streamlit run src/app.py`
 - **Features**:
@@ -234,11 +253,11 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 
 1. **Executive Briefing & Macro Intelligence**: High-level channel KPIs, 🤖 **AI Executive Strategy Briefing** live container, 📄 one-click Executive Dossier generator & PDF export, community loyalty summaries, and dynamic Plotly bubble quadrant matrix ($X$=Volume, $Y$=Sentiment, Size=Likes, Color=Gini).
 2. **Temporal Dynamics & Conversational Flashpoints**: Dynamic Anomaly Sensitivity Scanner ($Z$-score $1.5\sigma$–$4.5\sigma$, rolling baseline window 3–30 days), zoom range-slider, second-by-second reaction trajectories, comparative multi-video playback dynamics, and ⏱️ **Real-Time Chronological Event Replay & Crisis Simulator** (interactive frame scrubber, dual-axis velocity/sentiment/toxicity timeline, flame-war risk gauges, active crisis trigger alerts, and JSON/CSV export).
-3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, ⚖️ **AI Flame-War & Debate Tree Summarizer**, target stance drift across debate depth, and ⏱️ **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports).
+3. **Conversational Topic Modeling & Audience Demand Intent**: Dynamic topic resonance explorer, 6-class audience demand intent donut, Plutchik emotion wheel, ⚖️ **AI Flame-War & Debate Tree Summarizer**, target stance drift across debate depth, ⏱️ **Narrative Scene Reaction & Timestamp Scrubbing Forensics** (video selector, scene resolution slider, dual-axis reaction taxonomy and confusion hotspot timeline, interactive playback scrubber, active scene spotlight card with verbatim quote montage, and 1-click JSON/CSV exports), and 🎬 **Multimodal Video Transcript & Scene Alignment Engine (Section 3.11)** (synchronized dialogue transcripts, visual keyframe complexity, cross-modal coherence scoring, cognitive overload detection, spoken root-cause attribution, copy-ready YouTube chapter generator, and interactive triple-stream playback scrubber).
 4. **Audience Segmentation, Loyalty & Forensic Diagnostics**: Interactive 3D RFM community space, Coordinated Inauthentic Behavior (CIB) ring severity map, toxicity contagion ($R_0$), troll catalyst rankings, 🌐 **Interactive Community Network & Gephi Topology Explorer** (2D force-directed spring layout, top-$K$ node filter slider 25-250, Louvain community coloring, and 1-click GEXF/GraphML export buttons), and 🕵️ **Forensic Author Persona & Sockpuppet Fingerprinting** (stylometric feature radar bar charts, 24-hour diurnal posting clocks, pairwise scatter matrix, clustered ring ledger, suspect pair matches, and JSON/CSV exports).
 5. **Cross-Video Relations, Counterfactuals & Modeling**: Quasi-experimental Difference-in-Differences (DiD) creator intervention lift chart, interactive "What-If" comment virality simulator with attribution waterfall chart, Tree SHAP feature attribution, Dunn's post-hoc matrix, audience overlap heatmap, 🌐 **Multi-Channel & Playlist Competitive Intelligence Engine** (cross-channel and temporal release cohort selector, 6-dimension Plotly polar radar chart, normalized benchmark scorecard, audience overlap Venn/bubble map, shared commenter migration ledger), and ⏳ **Audience Churn & Longitudinal Cohort Survival Engine** (monthly/quarterly cohort retention triangle heatmap, continuous-time Kaplan-Meier survival curves with right-censoring, community state dynamics & Quick Ratio trajectory, and empirical social validation uplift).
 6. **Publication-Ready Visual Analytics Gallery**: 68+ high-resolution statistical plots with structured analytical expanders (**Methodology & Model**, **How to Read**, **Strategic Takeaway**).
-7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation, 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console**, 🔍 **Neural Semantic Vector Search Console**, 🛠️ **Creator Actionability & Reply Drafter Workbench**, ⚡ **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), 📡 **Continuous Live Streaming Watcher & Auto-Poller Console** (real-time telemetry KPIs, multi-target adaptive velocity ledger, target registration form, manual poll runner, event stream, and JSON state export), and instant CSV/Parquet export across all 53 layers.
+7. **Interactive Data Explorer & Export Hub**: Full corpus regex search, multi-layer query sandbox with dynamic chart generation, 🔌 Live YouTube Ingest console, 💬 **"Ask ytint" Conversational AI Analyst (RAG)**, 🔄 **Quick-Sync Incremental Pipeline Runner**, 🚨 **Automated Anomaly & Threat Alerting Console**, 🔍 **Neural Semantic Vector Search Console**, 🛠️ **Creator Actionability & Reply Drafter Workbench**, ⚡ **Zero-Copy Analytical SQL Studio & Query Workbench** (DuckDB-powered out-of-core SQL engine, table schema browser, 8 analytical presets, live telemetry, and Plotly visual chart builder), 📡 **Continuous Live Streaming Watcher & Auto-Poller Console** (real-time telemetry KPIs, multi-target adaptive velocity ledger, target registration form, manual poll runner, event stream, and JSON state export), 🛡️ **Bi-Directional YouTube Moderation Action Dispatcher & Policy Hub (Section 7.10)** (moderation telemetry KPIs, automated policy scanner, staged action queue ledger, dry-run safety simulation, OAuth dispatching, and audit trail), and instant CSV/Parquet export across all 53 layers.
 
 ---
 
@@ -250,17 +269,17 @@ The dashboard is structured into **7 comprehensive analytical perspectives** in 
 ```
 
 **Results**:
-- **Total Tests**: **237 test cases** across 41 test modules
-- **Passed**: **237 passed (100% pass rate)**
+- **Total Tests**: **253 test cases** across 43 test modules
+- **Passed**: **253 passed (100% pass rate)**
 - **Failed**: **0 failed**
-- **Duration**: ~87s
-- **Coverage**: Engine unit tests (`watcher`, `cohort_survival`, `comparator`, `fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
+- **Duration**: ~136s
+- **Coverage**: Engine unit tests (`multimodal`, `moderator`, `watcher`, `cohort_survival`, `comparator`, `fingerprint`, `narrative`, `sql_engine`, `assistant`, `event_replay`, `semantic_search`, `alerting`, `network_exporter`, `delta`, `reporter`, `youtube_api`, `synthesizer`), pipeline stage unit tests (`s00` through `s51`), AST syntax & dashboard compatibility, modular visualization rendering, and forensic configuration checks.
 
 ---
 
 ## 📦 7. Complete CLI Command Ecosystem
 
-All **16 standalone console scripts** are registered in `pyproject.toml` and operational:
+All **18 standalone console scripts** are registered in `pyproject.toml` and operational:
 
 | Command | Module | Functionality |
 | :--- | :--- | :--- |
@@ -280,3 +299,5 @@ All **16 standalone console scripts** are registered in `pyproject.toml` and ope
 | `ytint-compare` | `engine.comparator:main` | Multi-channel & playlist competitive intelligence engine |
 | `ytint-cohort` | `engine.cohort_survival:main` | Audience churn & longitudinal cohort survival engine |
 | `ytint-watch` | `engine.watcher:main` | Continuous live streaming watcher & auto-poller daemon |
+| `ytint-moderate` | `engine.moderator:main` | Bi-directional moderation action dispatcher & policy hub |
+| `ytint-multimodal` | `engine.multimodal:main` | Multimodal transcript & vision alignment engine with smart chapters |
