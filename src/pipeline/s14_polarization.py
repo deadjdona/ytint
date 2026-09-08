@@ -24,22 +24,59 @@ from engine.config_loader import load_config
 from scipy.stats import linregress
 
 def run_polarization_dynamics():
-    print("📉 Starting Thread Polarization Dynamics (s09)...")
+    print("📉 Starting Thread Polarization Dynamics (s14)...")
     config = load_config()
     interim_dir = Path(config["paths"]["interim_dir"])
     out_dir = Path(config["paths"]["output_dir"])
     
     comments_file = interim_dir / "comments_clean.parquet"
     if not comments_file.exists():
-        print("⚠️ No comments_clean.parquet found. Skipping s09.")
+        print("⚠️ No comments_clean.parquet found. Skipping s14.")
         return
         
     print("  -> Loading comments data...")
     df = pd.read_parquet(comments_file)
-    
-    if 'vader_compound' not in df.columns or 'comment_depth' not in df.columns:
-        print("⚠️ Missing 'vader_compound' or 'comment_depth'. Cannot run polarization analysis.")
+    if df.empty:
+        print("⚠️ comments_clean.parquet is empty. Skipping s14.")
         return
+
+    # Ensure sentiment compound metric exists
+    if 'vader_compound' not in df.columns:
+        if 'sentiment_compound' in df.columns:
+            df['vader_compound'] = df['sentiment_compound']
+        elif 'sentiment_score' in df.columns:
+            df['vader_compound'] = df['sentiment_score']
+        else:
+            df['vader_compound'] = 0.0
+
+    # Ensure comment_depth exists (self-healing DAG walk if running before s16)
+    if 'comment_depth' not in df.columns:
+        print("  -> 'comment_depth' not precomputed. Deriving thread tree depth dynamically...")
+        if 'parent_id' in df.columns and 'comment_id' in df.columns:
+            import networkx as nx
+            valid_cids = set(df['comment_id'].dropna())
+            G = nx.DiGraph()
+            G.add_nodes_from(df['comment_id'])
+            edges = [
+                (row.parent_id, row.comment_id)
+                for row in df.itertuples()
+                if pd.notna(row.parent_id) and row.parent_id in valid_cids and row.parent_id != row.comment_id
+            ]
+            G.add_edges_from(edges)
+            node_depth = {}
+            try:
+                for node in nx.topological_sort(G):
+                    in_edges = list(G.in_edges(node))
+                    if not in_edges:
+                        node_depth[node] = 0
+                    else:
+                        parent = in_edges[0][0]
+                        node_depth[node] = node_depth.get(parent, 0) + 1
+            except nx.NetworkXUnfeasible:
+                node_depth = {n: 0 for n in G.nodes()}
+            df['comment_depth'] = df['comment_id'].map(node_depth).fillna(0).astype(int)
+        else:
+            df['comment_depth'] = 0
 
     # 1. Overall Corpus Sentiment by Depth
     print("  -> Calculating corpus-level sentiment by depth...")

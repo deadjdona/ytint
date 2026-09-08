@@ -335,7 +335,22 @@ class PipelineRunner:
                 "module": "pipeline.s38_modeling",
                 "entry_func": "run_modeling",
                 "inputs": [self.interim / "comments_clean.parquet", self.output / "authors_final.parquet"],
-                "outputs": [self.output / "xgboost_like_predictor.pkl", self.output / "kaplan_meier_survival.parquet"]
+                "outputs": [
+                    self.output / "xgboost_like_predictor.pkl",
+                    self.output / "shap_values.npy",
+                    self.output / "shap_features.parquet",
+                    self.output / "kaplan_meier_survival.parquet",
+                    self.output / "stl_decomposition.parquet",
+                    self.output / "diurnal_heatmap.parquet",
+                    self.output / "poisson_bursts.parquet",
+                    self.output / "engagement_forecast.parquet",
+                    self.output / "power_law_fit.parquet",
+                    self.output / "kruskal_wallis_results.parquet",
+                    self.output / "dunn_posthoc_matrix.parquet",
+                    self.output / "toxicity_predictor.pkl",
+                    self.output / "return_propensity.pkl",
+                    self.output / "viral_comment_predictor.pkl"
+                ]
             },
             "s39": {
                 "desc": "Creator Interaction Causal Uplift Analysis (DiD)",
@@ -413,7 +428,7 @@ class PipelineRunner:
                 "desc": "Series vs Standalone & Creator Sentiment Polarity",
                 "module": "pipeline.s49_series_creator_sentiment",
                 "entry_func": "run_series_creator_sentiment",
-                "inputs": [self.interim / "comments_clean.parquet"],
+                "inputs": [self.interim / "comments_clean.parquet", self.interim / "videos_clean.parquet"],
                 "outputs": [self.output / "series_vs_standalone.parquet", self.output / "creator_sentiment_polarity.parquet"]
             },
             "s50": {
@@ -628,10 +643,12 @@ class PipelineRunner:
             # Now run downstream stages from s02 onward
             start_s02_idx = self.ordered_stages.index("s02") if "s02" in self.ordered_stages else 2
             downstream = self.ordered_stages[start_s02_idx:]
-            cascade = bool(force)
+            cascade = bool(force) or delta.has_delta
             for s in downstream:
                 if cascade or self.stage_requires_execution(s):
                     self.execute_stage(s)
+                    # Lock cascade open: Once an upstream script transforms data, force update downstream layers
+                    cascade = True
                 else:
                     logger.info(f"✓ Skipping Stage [{s}] ({self.registry[s]['desc']}) - Artifacts Valid.")
             
