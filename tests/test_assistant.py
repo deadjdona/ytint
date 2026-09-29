@@ -258,3 +258,28 @@ def test_cli_main_mock_and_export(tmp_path: Path) -> None:
     assert len(doc["recommendations"]) == 4
     for r in doc["recommendations"]:
         assert r["draft_reply"] is not None
+
+
+def test_cli_main_persona_and_lora_flags(tmp_path: Path) -> None:
+    persona_file = tmp_path / "cli_persona.json"
+    code_persona = main([
+        "--mock",
+        "--extract-persona",
+        "--persona-file", str(persona_file),
+    ])
+    assert code_persona == 0
+    assert persona_file.exists()
+    with open(persona_file, "r", encoding="utf-8") as f:
+        p_data = json.load(f)
+    assert "creator_name" in p_data
+    assert "top_emojis" in p_data
+
+    lora_dir = tmp_path / "cli_lora"
+    lora_dir.mkdir(parents=True, exist_ok=True)
+    # Test export lora data CLI flag
+    code_lora = main([
+        "--mock",
+        "--export-lora-data",
+    ])
+    assert code_lora == 0
+

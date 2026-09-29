@@ -13,6 +13,18 @@ import logging
 import os
 import re
 import sys
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +32,13 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
+
+# Ensure src directory is in sys.path
+_src_dir = str(Path(__file__).resolve().parent.parent)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
+from engine.persona import CreatorPersonaProfile, LoRADatasetBuilder, PersonaExtractor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -121,11 +140,19 @@ class CreatorAssistantEngine:
         authors_path: str = "data/output/authors_final.parquet",
         uplift_path: str = "data/output/creator_causal_uplift.parquet",
         videos_path: str = "data/interim/videos_clean.parquet",
+        persona_path: Optional[str] = "data/output/creator_persona.json",
+        persona_profile: Optional[CreatorPersonaProfile] = None,
     ) -> None:
         self.comments_path = Path(comments_path)
         self.authors_path = Path(authors_path)
         self.uplift_path = Path(uplift_path)
         self.videos_path = Path(videos_path)
+        self.persona_path = Path(persona_path) if persona_path else None
+        self.persona_profile = persona_profile or self._load_persona_profile()
+        self.persona_extractor = PersonaExtractor(
+            comments_path=self.comments_path,
+            videos_path=self.videos_path,
+        )
 
         # Preloaded DiD causal benchmarks (Stage 39 defaults)
         self.causal_benchmarks = {
@@ -135,6 +162,60 @@ class CreatorAssistantEngine:
             "upvote_multiplier": "+3.8x visibility amplification",
         }
         self._load_causal_benchmarks()
+
+    def _load_persona_profile(self) -> Optional[CreatorPersonaProfile]:
+        """Attempts to load a precomputed creator persona profile from disk."""
+        if self.persona_path and self.persona_path.exists():
+            return CreatorPersonaProfile.load(self.persona_path)
+        return None
+
+    def get_or_extract_persona(
+        self,
+        creator_channel_id: Optional[str] = None,
+        creator_name: Optional[str] = None,
+        mock: bool = False,
+    ) -> CreatorPersonaProfile:
+        """Retrieves existing persona or extracts a fresh profile from data."""
+        if self.persona_profile is not None and not mock:
+            return self.persona_profile
+        profile = self.persona_extractor.extract_profile(
+            creator_channel_id=creator_channel_id,
+            creator_name=creator_name,
+            mock=mock,
+        )
+        self.persona_profile = profile
+        if self.persona_path:
+            profile.save(self.persona_path)
+        return profile
+
+    def export_lora_tuning_dataset(
+        self,
+        output_dir: str = "data/output/lora",
+        creator_channel_id: Optional[str] = None,
+        creator_name: Optional[str] = None,
+        mock: bool = False,
+        limit: int = 500,
+    ) -> Dict[str, str]:
+        """Extracts paired dialogues and exports LoRA instruction-tuning datasets."""
+        builder = LoRADatasetBuilder(
+            comments_path=self.comments_path,
+            videos_path=self.videos_path,
+        )
+        pairs = builder.extract_conversation_pairs(
+            creator_channel_id=creator_channel_id,
+            creator_name=creator_name,
+            mock=mock,
+            limit=limit,
+        )
+        resolved_name = creator_name or (self.persona_profile.creator_name if self.persona_profile else "Creator")
+        res = builder.export_lora_dataset(
+            pairs=pairs,
+            output_dir=output_dir,
+            creator_name=resolved_name,
+        )
+        builder.generate_training_script(output_dir=output_dir)
+        return res
+
 
     def _load_causal_benchmarks(self) -> None:
         """Loads empirical causal parameters from Stage 39 if available."""
@@ -369,57 +450,76 @@ class CreatorAssistantEngine:
         self,
         comment: ActionRecommendation,
         tone: str = "warm",
-        creator_name: str = "Creator",
+        creator_name: Optional[str] = None,
     ) -> str:
         """Generates a context-aware, voice-aligned reply draft for the comment."""
+        profile = self.persona_profile
+        resolved_creator = creator_name or (profile.creator_name if profile else "Creator")
         tone_lower = tone.lower()
 
-        # Check if InsightSynthesizer LLM is available with live provider (not mock)
+        # 1. Check if InsightSynthesizer LLM is available with live provider (not mock)
         try:
             from engine.synthesizer import LLMClient
             client = LLMClient()
             if client.provider not in ("mock", "offline") and getattr(client, "api_key", None):
-                prompt = (
-                    f"You are the YouTube creator {creator_name}. Draft a concise, engaging YouTube reply (1-3 sentences) "
-                    f"to this viewer comment in a {tone} tone.\n"
+                system_prompt = (
+                    f"You are the YouTube creator {resolved_creator}. Draft a concise, engaging YouTube reply (1-3 sentences) "
+                    f"to this viewer comment in an authentic {tone} tone.\n"
+                )
+                if profile:
+                    system_prompt += "\n" + profile.format_stylometric_prompt(tone=tone) + "\n"
+                    similar_samples = self.persona_extractor.find_similar_replies(
+                        query_text=comment.text,
+                        profile=profile,
+                        top_k=2,
+                    )
+                    if similar_samples:
+                        system_prompt += "\n=== AUTHENTIC HISTORICAL CREATOR REPLIES (VOICE EXAMPLES) ===\n"
+                        for s in similar_samples:
+                            system_prompt += f'- "{s.get("text", "")}"\n'
+
+                user_prompt = (
                     f"Viewer: {comment.author_name} (Cohort: {comment.author_cohort})\n"
                     f"Comment: \"{comment.text}\"\n"
                     f"Action Context: {comment.action_rationale}\n"
                     f"Reply:"
                 )
-                llm_response = client.generate(prompt)
+                llm_response = client.generate(user_prompt, system_prompt=system_prompt)
                 if llm_response and len(llm_response.strip()) > 10 and not llm_response.strip().startswith("###"):
                     return llm_response.strip().strip('"')
         except Exception:
             pass
 
-        # High-quality templated voice synthesizer fallback
+        # 2. Stylometrically-conditioned voice synthesizer fallback
         author = comment.author_name if comment.author_name != "Anonymous" else "there"
+        top_emoji = profile.top_emojis[0] if (profile and profile.top_emojis) else ("🔥" if "playful" in tone_lower else "🙏")
+        second_emoji = profile.top_emojis[1] if (profile and len(profile.top_emojis) > 1) else "✨"
+
         if comment.action_type == "PIN":
             if "playful" in tone_lower:
-                return f"Spot on! Pinning this to the top because you explained it better than I did. Appreciate you, {author}!"
+                return f"Spot on! Pinning this to the top because you explained it better than I did. Appreciate you, {author}! {top_emoji}"
             elif "clarifying" in tone_lower:
-                return f"Pinned for visibility. This provides great context that everyone watching should keep in mind. Thank you, {author}."
+                return f"Pinned for visibility. This provides great context that everyone watching should keep in mind. Thank you, {author}. {second_emoji}"
             else:
-                return f"Such a fantastic and thoughtful point! Pinning this so everyone in the community can see it. Thanks so much, {author}!"
+                return f"Such a fantastic and thoughtful point! Pinning this so everyone in the community can see it. Thanks so much, {author}! {top_emoji}"
 
         elif comment.action_type == "HEART":
             if "warm" in tone_lower or "grateful" in tone_lower:
-                return f"Thank you so much for the love and support, {author}! Comments like yours genuinely make all the work worthwhile."
+                return f"Thank you so much for the love and support, {author}! Comments like yours genuinely make all the research and late nights worthwhile. {second_emoji}"
             elif "playful" in tone_lower:
-                return f"Sending massive love right back! Glad you enjoyed this one, {author}!"
+                return f"Sending massive love right back! Glad you enjoyed this one, {author}! {top_emoji}"
             else:
-                return f"Appreciate the kind words and for being part of the journey, {author}!"
+                return f"Appreciate the kind words and for being part of the journey, {author}! {top_emoji}"
 
         elif comment.action_type == "REPLY_QUESTION":
             if "clarifying" in tone_lower:
-                return f"Great question, {author}! In short, the main reason comes down to the configuration shown at the timestamp. Let me know if you'd like a follow-up deep dive on this!"
+                return f"Great question, {author}! In short, the main reason comes down to the configuration shown at the timestamp. Let me know if you'd like a follow-up deep dive on this! {top_emoji}"
             elif "warm" in tone_lower:
-                return f"Thanks for asking, {author}! I'm really glad you noticed that detail. We'll actually be expanding on this exact topic in the upcoming video!"
+                return f"Thanks for asking, {author}! I'm really glad you noticed that detail. We'll actually be expanding on this exact topic in the upcoming video! {second_emoji}"
             elif "playful" in tone_lower:
-                return f"Aha, sharp eyes, {author}! That's definitely one of the trickiest parts. The quick answer is yes, absolutely."
+                return f"Aha, sharp eyes, {author}! That's definitely one of the trickiest parts. The quick answer is yes, absolutely. {top_emoji}"
             else:
-                return f"Appreciate the question, {author}! Yes, that's completely correct. Thanks for watching and checking in!"
+                return f"Appreciate the question, {author}! Yes, that's completely correct. Thanks for watching and checking in! {top_emoji}"
 
         elif comment.action_type == "DEESCALATE":
             if "empathetic" in tone_lower:
@@ -429,7 +529,8 @@ class CreatorAssistantEngine:
             else:
                 return f"Fair pushback, {author}! Everyone brings different experiences to this topic, and I welcome having that balance in the comments. Thanks for weighing in."
 
-        return f"Thanks for tuning in and sharing your thoughts, {author}! Really appreciate the feedback."
+        return f"Thanks for tuning in and sharing your thoughts, {author}! Really appreciate the feedback. {top_emoji}"
+
 
     def generate_mock_triage(
         self,
@@ -593,9 +694,45 @@ def main(args: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--tone", type=str, default="warm", choices=["warm", "clarifying", "empathetic", "playful"], help="Tone for AI draft replies.")
     parser.add_argument("--export", type=str, default=None, help="File path to export triage ledger (JSON or CSV).")
     parser.add_argument("--mock", action="store_true", help="Run assistant in synthetic mock demonstration mode.")
+    parser.add_argument("--extract-persona", action="store_true", help="Extract and persist creator stylometric persona.")
+    parser.add_argument("--export-lora-data", action="store_true", help="Export paired instruction-tuning datasets for LoRA fine-tuning.")
+    parser.add_argument("--persona-file", type=str, default=None, help="Custom path to creator persona JSON.")
+    parser.add_argument("--creator-channel-id", type=str, default=None, help="Explicit creator channel ID.")
     parsed = parser.parse_args(args)
 
-    engine = CreatorAssistantEngine()
+    engine = CreatorAssistantEngine(persona_path=parsed.persona_file)
+
+    if parsed.extract_persona:
+        profile = engine.get_or_extract_persona(
+            creator_channel_id=parsed.creator_channel_id,
+            mock=parsed.mock,
+        )
+        print(f"\n[PERSONA] Extracted Creator Persona DNA for '{profile.creator_name}' ({profile.creator_channel_id})")
+        print(f"   Comments Analyzed: {profile.total_creator_comments}")
+        print(f"   Avg Words / Comment: {profile.avg_word_count} | Avg Sentences: {profile.avg_sentence_count}")
+        print(f"   Vocabulary Entropy: {profile.vocab_entropy} | Type-Token Ratio: {profile.type_token_ratio}")
+        print(f"   Top Emojis: {' '.join(profile.top_emojis)}")
+        print(f"   Greeting Patterns: {', '.join(profile.greeting_patterns)}")
+        print(f"   Sign-off Patterns: {', '.join(profile.signoff_patterns)}")
+        print(f"   Signature Catchphrases: {', '.join(profile.signature_phrases)}")
+        out_file = parsed.persona_file or "data/output/creator_persona.json"
+        profile.save(out_file)
+        print(f"   Saved Profile: {out_file}\n")
+        return 0
+
+    if parsed.export_lora_data:
+        res = engine.export_lora_tuning_dataset(
+            output_dir="data/output/lora",
+            creator_channel_id=parsed.creator_channel_id,
+            mock=parsed.mock,
+        )
+        print(f"\n[LORA] Exported Instruction-Tuning Dataset ({res.get('total_pairs')} conversation pairs)")
+        print(f"   Alpaca JSONL: {res.get('alpaca')}")
+        print(f"   ChatML JSONL: {res.get('chatml')}")
+        print(f"   Ollama Modelfile: {res.get('modelfile')}")
+        print(f"   Training Script: data/output/lora/train_lora_peft.py\n")
+        return 0
+
     report = engine.triage_comments(
         video_id=parsed.video_id,
         action_filter=parsed.action,
@@ -619,3 +756,4 @@ def main(args: Optional[Sequence[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -3706,6 +3706,79 @@ def main():
         from engine.assistant import CreatorAssistantEngine
 
         engine_assist = CreatorAssistantEngine()
+
+        # Creator Persona DNA & LoRA Fine-Tuning Cockpit
+        with st.expander("🧬 Creator Persona DNA & LoRA Fine-Tuning Cockpit", expanded=False):
+            p_tab1, p_tab2 = st.tabs(["🧬 Stylometric Persona DNA", "🤖 LoRA Fine-Tuning & Adapter Export"])
+            with p_tab1:
+                col_p1, col_p2 = st.columns([3, 1])
+                with col_p1:
+                    st.markdown("##### 🎙️ Creator Authentic Stylometric Fingerprint")
+                    st.caption("Analyzes the creator's real historical comments to extract lexical diversity, punctuation rhythms, top emojis, and conversational signatures.")
+                with col_p2:
+                    btn_reextract = st.button("🔄 Extract Persona DNA", key="btn_reextract_persona", use_container_width=True)
+
+                if btn_reextract or engine_assist.persona_profile is None:
+                    profile = engine_assist.get_or_extract_persona(mock=False)
+                else:
+                    profile = engine_assist.persona_profile
+
+                if profile:
+                    pm1, pm2, pm3, pm4, pm5 = st.columns(5)
+                    with pm1:
+                        st.metric("Avg Words / Comment", f"{profile.avg_word_count:.1f}", f"{profile.avg_sentence_count:.1f} sents")
+                    with pm2:
+                        st.metric("Vocab Entropy", f"{profile.vocab_entropy:.2f}", f"TTR: {profile.type_token_ratio:.2f}")
+                    with pm3:
+                        st.metric("Punctuation Intensity", f"{profile.punctuation_intensity:.2f}", f"Excl: {profile.exclamation_rate:.2f}")
+                    with pm4:
+                        st.metric("Emoji Frequency", f"{profile.emoji_frequency:.2f} / msg", " ".join(profile.top_emojis[:4]))
+                    with pm5:
+                        st.metric("Base Sentiment", f"{profile.avg_sentiment:+.2f}", f"Tox: {profile.avg_toxicity:.3f}")
+
+                    st.markdown(f"**Top Emojis:** {' '.join(profile.top_emojis)} &nbsp;|&nbsp; **Greetings:** {', '.join([f'`{g}`' for g in profile.greeting_patterns[:3]])} &nbsp;|&nbsp; **Sign-offs:** {', '.join([f'`{s}`' for s in profile.signoff_patterns[:3]])}")
+                    if profile.signature_phrases:
+                        st.caption(f"**Signature Catchphrases:** {', '.join([f'`{p}`' for p in profile.signature_phrases])}")
+
+            with p_tab2:
+                st.markdown("##### 🤖 LoRA Instruction-Tuning Dataset Generator")
+                st.caption("Extracts verified `(viewer_comment, creator_reply)` conversation pairs across all video threads to produce instruction-tuning datasets for LoRA / PEFT fine-tuning.")
+
+                col_l1, col_l2 = st.columns([2, 1])
+                with col_l1:
+                    base_model_sel = st.selectbox(
+                        "Target Base LLM",
+                        options=["meta-llama/Llama-3.2-1B-Instruct", "meta-llama/Llama-3.2-3B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3", "Qwen/Qwen2.5-1.5B-Instruct"],
+                        key="lora_base_model_sel"
+                    )
+                with col_l2:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    btn_build_lora = st.button("⚡ Build LoRA Datasets", key="btn_build_lora_dataset", type="primary", use_container_width=True)
+
+                if btn_build_lora:
+                    with st.spinner("Extracting paired conversation trees and generating LoRA training files..."):
+                        lora_res = engine_assist.export_lora_tuning_dataset(
+                            output_dir="data/output/lora",
+                            creator_name=profile.creator_name if profile else "Creator",
+                        )
+                        st.success(f"Successfully compiled {lora_res.get('total_pairs', 0)} conversation pairs into Alpaca & ChatML formats!")
+
+                # Check if lora files exist on disk for direct download
+                lora_dir = pathlib.Path("data/output/lora")
+                alpaca_f = lora_dir / "creator_tuning_alpaca.jsonl"
+                chatml_f = lora_dir / "creator_tuning_chatml.jsonl"
+                modelfile_f = lora_dir / "Modelfile"
+
+                if alpaca_f.exists() and chatml_f.exists():
+                    dl_c1, dl_c2, dl_c3 = st.columns(3)
+                    with dl_c1:
+                        st.download_button("⬇️ Alpaca JSONL", data=alpaca_f.read_bytes(), file_name="creator_tuning_alpaca.jsonl", mime="application/json", key="dl_alpaca_jsonl")
+                    with dl_c2:
+                        st.download_button("⬇️ ChatML JSONL", data=chatml_f.read_bytes(), file_name="creator_tuning_chatml.jsonl", mime="application/json", key="dl_chatml_jsonl")
+                    with dl_c3:
+                        if modelfile_f.exists():
+                            st.download_button("⬇️ Ollama Modelfile", data=modelfile_f.read_bytes(), file_name="Modelfile", mime="text/plain", key="dl_modelfile")
+
         available_vids_assist = engine_assist.get_available_videos(limit=30)
         vid_choices_a = [v["video_id"] for v in available_vids_assist]
         vid_labels_a = {v["video_id"]: f"{v.get('title', v['video_id'])} ({v.get('total_comments', 0):,} comments)" for v in available_vids_assist}
@@ -3741,6 +3814,7 @@ def main():
                 step=5,
                 key="assist_limit_slider",
             )
+
 
         with st.spinner("Triaging comments and estimating causal uplift..."):
             triage_report = engine_assist.triage_comments(
@@ -3809,7 +3883,7 @@ def main():
                         st.markdown(f"📈 **Projected Causal Uplift (Stage 39 DiD):** {uplift_pills}")
 
                     # AI Reply Drafter Expander
-                    with st.expander("✍️ Draft AI Response", expanded=False):
+                    with st.expander("✍️ Draft AI Response (Persona Voice-Matched)", expanded=False):
                         dr_col1, dr_col2 = st.columns([1, 2])
                         with dr_col1:
                             tone_sel = st.selectbox(
@@ -3817,6 +3891,8 @@ def main():
                                 options=["Warm & Grateful", "Clarifying & Factual", "Empathetic & De-escalating", "Playful"],
                                 key=f"tone_{rec.comment_id}_{idx}",
                             )
+                            persona_badge = "🧬 Persona Tone-Matched" if engine_assist.persona_profile else "🤖 Standard Assistant"
+                            st.caption(f"Engine: **{persona_badge}**")
                             btn_draft = st.button("Generate Draft", key=f"btn_draft_{rec.comment_id}_{idx}")
 
                         with dr_col2:
@@ -3825,6 +3901,7 @@ def main():
                                 st.session_state[draft_key] = engine_assist.draft_reply(rec, tone=tone_sel)
                             st.text_area("Suggested Response", value=st.session_state[draft_key], height=80, key=f"txt_{rec.comment_id}_{idx}")
                             st.caption("Copy and paste directly into YouTube Studio.")
+
 
             # Export Buttons
             ea_col1, ea_col2 = st.columns(2)

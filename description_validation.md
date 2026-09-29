@@ -254,3 +254,16 @@ Line-by-line check of [description.txt](file:///c:/Users/deadj/Sources/ytint/des
 | 13. Predictive & Causal | 7 | 7 | 0 | 0 |
 | 14. Meta & Corpus-Quality | 6 | 6 | 0 | 0 |
 | **TOTAL** | **123** | **123 (100%)** | **0 (0%)** | **0 (0%)** |
+
+---
+
+## 🛡️ Pipeline Lineage & Execution Integrity Verification
+
+In addition to feature coverage, the computational lineage and execution order across all 53 canonical pipeline stages were formally audited and verified:
+
+1. **DAG Topological Execution Order**: The 53 stages (`s00_ingest.py` through `s51_topic_injection.py`, plus `s99_visualize.py`) execute in strict linear-topological order across 7 phases without forward dependency inversions.
+2. **Self-Healing Thread Depth (`s14_polarization.py`)**: [`s14_polarization.py`](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s14_polarization.py) dynamically computes comment thread depth via NetworkX topological DAG walk if `comment_depth` is not yet present in `comments_clean.parquet` (which is produced later by [`s16_network.py`](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s16_network.py) in Phase 3). This guarantees deterministic clean execution from scratch.
+3. **Automatic Incremental Cascade (`runner.py`)**: [`src/pipeline/runner.py`](file:///c:/Users/deadj/Sources/ytint/src/pipeline/runner.py) automatically initiates cascade mode (`cascade = True`) when an upstream delta is detected (`delta.has_delta = True`), ensuring downstream analytical layers are always re-executed when new comments arrive.
+4. **Runner Registry Verification**: All output artifacts (including 14 modeling artifacts for `s38` and video metadata inputs for `s49`) are fully declared in `PipelineRunner.registry`.
+5. **Automated Test Validation**: Verified with dedicated unit tests in [`tests/test_s14_polarization.py`](file:///c:/Users/deadj/Sources/ytint/tests/test_s14_polarization.py), [`tests/test_runner_unit.py`](file:///c:/Users/deadj/Sources/ytint/tests/test_runner_unit.py), and [`tests/test_incremental.py`](file:///c:/Users/deadj/Sources/ytint/tests/test_incremental.py).
+
