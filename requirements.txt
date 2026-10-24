@@ -66,7 +66,7 @@ joypy>=0.2.6
 wordcloud>=1.9.0
 
 # Streamlit dashboard
-streamlit>=1.30.0
+streamlit>=1.48.0
 
 # Testing & Development
 pytest>=8.0.0

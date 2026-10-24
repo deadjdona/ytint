@@ -3,6 +3,7 @@
 ## Requirements
 
 - Python 3.11-3.15
+- The test suite is configured to run on Python 3.11 through 3.15 in GitHub Actions.
 - [`uv`](https://docs.astral.sh/uv/)
 - NVIDIA drivers only when GPU acceleration is required
 

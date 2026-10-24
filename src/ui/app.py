@@ -3716,7 +3716,7 @@ def main():
                     st.markdown("##### 🎙️ Creator Authentic Stylometric Fingerprint")
                     st.caption("Analyzes the creator's real historical comments to extract lexical diversity, punctuation rhythms, top emojis, and conversational signatures.")
                 with col_p2:
-                    btn_reextract = st.button("🔄 Extract Persona DNA", key="btn_reextract_persona", use_container_width=True)
+                    btn_reextract = st.button("🔄 Extract Persona DNA", key="btn_reextract_persona", width="stretch")
 
                 if btn_reextract or engine_assist.persona_profile is None:
                     profile = engine_assist.get_or_extract_persona(mock=False)
@@ -3753,7 +3753,7 @@ def main():
                     )
                 with col_l2:
                     st.markdown("<br>", unsafe_allow_html=True)
-                    btn_build_lora = st.button("⚡ Build LoRA Datasets", key="btn_build_lora_dataset", type="primary", use_container_width=True)
+                    btn_build_lora = st.button("⚡ Build LoRA Datasets", key="btn_build_lora_dataset", type="primary", width="stretch")
 
                 if btn_build_lora:
                     with st.spinner("Extracting paired conversation trees and generating LoRA training files..."):
@@ -4362,8 +4362,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
 
 
