@@ -6,9 +6,9 @@
 
 ## 🌟 Key Highlights
 
-- **53 Discrete Analytical Layers**: Structured across 7 deterministic phases (NLP & Semantics, Conversational Thread Dynamics, Author Forensics, Longitudinal & Cohort Dynamics, Predictive & Causal Inference, Extended Supplementary Analysis, and Publication-Ready Visualizations).
+- **53 Discrete Analytical Layers**: Structured across 7 deterministic phases (NLP & Semantics, Conversational Thread Dynamics, Author Forensics, Longitudinal & Cohort Dynamics, Predictive & Causal Inference, Extended Supplementary Analysis, and Publication-Ready Visualizations). The project documentation describes the intended analytical breadth, while the implementation is organized in concrete stage modules under `src/pipeline/`.
 - **1:1 Canonical Physical Script Mapping**: Every stage script in `src/pipeline/` matches its canonical ID (`s00_ingest.py` through `s51_topic_injection.py`, plus `s99_visualize.py`).
-- **Modular Visualizations Engine**: 68+ publication-quality Matplotlib/Seaborn plot generators organized into `src/pipeline/visualizations/` (`nlp_plots.py`, `thread_plots.py`, `author_plots.py`, `temporal_plots.py`, `model_plots.py`, and `theme.py`).
+- **Modular Visualizations Engine**: Publication-ready Matplotlib/Seaborn/Plotly plot generators organized into `src/pipeline/visualizations/` (`nlp_plots.py`, `thread_plots.py`, `author_plots.py`, `temporal_plots.py`, `model_plots.py`, and `theme.py`).
 - **Interactive Streamlit Intelligence Dashboard**: 7 comprehensive analytical tabs featuring dynamic Plotly visualizations, live parameter scanners, what-if virality simulators, 3D community spaces, human-readable video titles, and an interactive query sandbox.
 - **Centralized Configuration**: All forensic heuristics, anomaly detection thresholds, and hyper-parameters are surfaced in [`config/settings.yaml`](file:///c:/Users/deadj/Sources/ytint/config/settings.yaml).
 - **High-Performance Vectorized Storage**: Snappy-compressed Apache Parquet tables with Rust-accelerated token hashing and zero redundant compute.
@@ -53,9 +53,9 @@ graph TD
 ### 1. Environment Setup
 
 ```powershell
-# Create and activate virtual environment with uv
-uv python install 3.11
-uv venv .venv --python 3.11
+# Create and activate a Python 3.11-3.15 virtual environment with uv
+uv python install 3.15
+uv venv .venv --python 3.15
 .\.venv\Scripts\Activate.ps1
 uv pip install -e .
 ```

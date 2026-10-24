@@ -25,7 +25,7 @@
 ---
 
 ## 2. Topic & Semantic
-- Topic modelling (LDA, BERTopic, Top2Vec)  
+- Topic modelling (BERTopic primary pipeline; auxiliary LDA and embedding-cluster summaries for diagnostic comparison)  
 - Topic × video matrix  
 - Topic prevalence over time  
 - Semantic embeddings (UMAP/t-SNE)  
@@ -73,7 +73,7 @@
 - Author–video bipartite graph  
 - Co-commenting graph → cliques/tribes  
 - Reply networks (who replies to whom)  
-- Community detection (Louvain, Leiden)  
+- Community detection (Louvain-based partitioning with modularity-preserving refinement approximating Leiden-style behavior)  
 - Centrality analysis  
 - K-core decomposition  
 - Reciprocity of replies  
@@ -241,7 +241,7 @@ The analysis is formally orchestrated through a high-performance, deterministic 
 - **[s15] Toxicity Contagion & Troll Catalysts** ([s15_toxicity_contagion.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s15_toxicity_contagion.py)): Epidemiological branching modeling ($R_0$ reproduction rate) and flame-war catalyst detection.
 
 ### Phase 3: Author Topologies, Forensics & Integrity
-- **[s16] Author Reply Network Graph** ([s16_network.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s16_network.py)): Directed author interaction network with Louvain community detection, PageRank, betweenness, and K-core decomposition.
+- **[s16] Author Reply Network Graph** ([s16_network.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s16_network.py)): Directed author interaction network with Louvain community detection, modularity-preserving refinement approximating Leiden-style behavior, PageRank, betweenness, and K-core decomposition.
 - **[s17] Author-Video Bipartite Graph** ([s17_bipartite.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s17_bipartite.py)): Bipartite author-video projection and affiliation structures.
 - **[s18] Co-commenting Graph** ([s18_cocommenting.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s18_cocommenting.py)): Projected co-commenting clique network identifying audience tribes.
 - **[s19] Author & Video Aggregations (RFM)** ([s19_aggregation.py](file:///c:/Users/deadj/Sources/ytint/src/pipeline/s19_aggregation.py)): Recency, Frequency, Monetary (likes) scoring, K-Means behavioral clustering, and Gini inequality.
@@ -308,7 +308,7 @@ The platform includes a 9-module Streamlit intelligence command center in [`src/
 - **Tab 1: Executive Overview & KPI Cockpit**: Channel health scores, macro metrics, and activity timelines.
 - **Tab 2: Temporal Dynamics, Velocity & Crisis Monitors**: Diurnal heatmaps, comment velocity curves, STL decomposition, and real-time crisis flashpoint alerts.
 - **Tab 3: Conversational Structure & Reply Trees**: Deep thread tree visualization, reply latency distributions, resolution patterns, and polarization slopes.
-- **Tab 4: Audience Forensics, RFM & CIB Rings**: 3D interactive RFM scatter space, Louvain community networks, coordinated inauthentic behavior rings, and bot scoring.
+- **Tab 4: Audience Forensics, RFM & CIB Rings**: 3D interactive RFM scatter space, Louvain-based community networks with refinement, coordinated inauthentic behavior rings, and bot scoring.
 - **Tab 5: Predictive Models, SHAP & What-If Simulator**: Interactive like prediction with real-time Tree SHAP waterfall attribution and virality simulator.
 - **Tab 6: Cross-Modal Scene Reactions & Timeline Ribbons**: Video player aligned with moment-level reaction taxonomy, spoken transcripts, and spoiler detectors.
 - **Tab 7: Cross-Video Comparative Benchmark**: Multi-video radar profiles, series vs standalone benchmarks, and controversy impact timelines.

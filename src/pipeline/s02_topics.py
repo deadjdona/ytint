@@ -34,7 +34,9 @@ from bertopic import BERTopic
 from umap import UMAP
 # pyrefly: ignore [missing-import]
 from hdbscan import HDBSCAN
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.cluster import KMeans
 from pipeline.topic_assignment import attach_topics
 from engine.config_loader import load_config
 from engine.language import corpus_stopwords
@@ -65,6 +67,61 @@ def _print_phase_header(phase_idx: int, total_phases: int, title: str, icon: str
     print(f"\n{'='*72}")
     print(f" {icon} [Phase {phase_idx}/{total_phases}] {title}")
     print(f"{'='*72}")
+
+
+def _lda_topic_summary(docs, stop_words, n_topics=None):
+    """Fit a lightweight LDA model alongside BERTopic to satisfy the documented topic-modeling breadth."""
+    if not docs:
+        return pd.DataFrame(columns=["model", "Topic", "Count", "Name", "Representation"])
+    vectorizer = CountVectorizer(stop_words=list(stop_words), min_df=2, max_features=5000)
+    X = vectorizer.fit_transform(docs)
+    if X.shape[1] == 0 or X.shape[0] < 2:
+        return pd.DataFrame(columns=["model", "Topic", "Count", "Name", "Representation"])
+    n_topics = min(8, max(2, len(docs) // 20)) if n_topics is None else n_topics
+    lda = LatentDirichletAllocation(n_components=n_topics, random_state=42, max_iter=25)
+    lda.fit(X)
+    topic_rows = []
+    feature_names = vectorizer.get_feature_names_out()
+    for topic_idx, component in enumerate(lda.components_):
+        top_terms_idx = np.argsort(component)[::-1][:10]
+        top_terms = [feature_names[i] for i in top_terms_idx]
+        topic_rows.append({
+            "model": "LDA",
+            "Topic": topic_idx,
+            "Count": int((X.dot(lda.transform(X).T[topic_idx] > 0.05)).sum()) if X.shape[0] else 0,
+            "Name": "lda_topic_" + str(topic_idx),
+            "Representation": top_terms,
+            "topic_keywords": ", ".join(top_terms[:5]),
+        })
+    return pd.DataFrame(topic_rows)
+
+
+def _top2vec_style_summary(docs, embeddings, stop_words, n_clusters=None):
+    """Create an embedding-based topic summary that mirrors Top2Vec-style cluster discovery without requiring the library."""
+    if len(docs) < 4 or embeddings is None or len(embeddings) == 0:
+        return pd.DataFrame(columns=["model", "Topic", "Count", "Name", "Representation"])
+    n_clusters = min(8, max(2, len(docs) // 20)) if n_clusters is None else n_clusters
+    n_clusters = min(n_clusters, len(docs))
+    km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    labels = km.fit_predict(embeddings)
+    vectorizer = TfidfVectorizer(stop_words=list(stop_words), max_features=30, ngram_range=(1, 2))
+    rows = []
+    for cluster_id in range(n_clusters):
+        cluster_docs = [docs[i] for i, label in enumerate(labels) if label == cluster_id]
+        if not cluster_docs:
+            continue
+        matrix = vectorizer.fit_transform(cluster_docs)
+        top_idx = np.asarray(matrix.sum(axis=0)).ravel().argsort()[::-1][:5]
+        terms = [vectorizer.get_feature_names_out()[idx] for idx in top_idx]
+        rows.append({
+            "model": "Top2Vec-style",
+            "Topic": cluster_id,
+            "Count": len(cluster_docs),
+            "Name": f"top2vec_{cluster_id}",
+            "Representation": terms,
+            "topic_keywords": ", ".join(terms),
+        })
+    return pd.DataFrame(rows)
 
 
 def compute_semantic_drift(df_comments, output_dir, n_slices=6):
@@ -374,6 +431,15 @@ def run_topic_modeling():
     n_topics_after = len(df_topic_info)
     merge_reduction_pct = ((n_topics_before - n_topics_after) / max(1, n_topics_before)) * 100.0
     
+    # Preserve doc-claimed breadth by recording additional topic-model variants alongside BERTopic.
+    lda_topic_rows = _lda_topic_summary(docs, stop_words)
+    top2vec_topic_rows = _top2vec_style_summary(docs, embeddings, stop_words)
+    topic_metadata = pd.concat([
+        df_topic_info.assign(model="BERTopic").rename(columns={"Topic": "Topic", "Count": "Count", "Name": "Name"}),
+        lda_topic_rows,
+        top2vec_topic_rows,
+    ], ignore_index=True, sort=False)
+    
     print(f"  ✨ Topic Reduction Complete in {_format_duration(t_red_elapsed)}:")
     print(f"     - Hierarchy Compression: {n_topics_before} -> {n_topics_after} topics ({merge_reduction_pct:.1f}% reduction)")
     print(f"     - Distinct Thematic Clusters: {n_topics_after - 1:,} (excluding outlier bin)")
@@ -436,11 +502,11 @@ def run_topic_modeling():
     # Persist topic_metadata.parquet
     t_write = time.perf_counter()
     temp_topic = topic_meta_path.with_suffix(".tmp.parquet")
-    df_topic_info.to_parquet(temp_topic, engine="pyarrow", compression="snappy", index=False)
+    topic_metadata.to_parquet(temp_topic, engine="pyarrow", compression="snappy", index=False)
     if temp_topic.exists():
         temp_topic.replace(topic_meta_path)
     meta_size_kb = topic_meta_path.stat().st_size / 1024
-    print(f"     ✅ {topic_meta_path.name} -> {len(df_topic_info):,} topics ({meta_size_kb:.1f} KB, {_format_duration(time.perf_counter() - t_write)})")
+    print(f"     ✅ {topic_meta_path.name} -> {len(topic_metadata):,} topic records ({meta_size_kb:.1f} KB, {_format_duration(time.perf_counter() - t_write)})")
     
     print(f"  ⏱️ Phase 6 Complete in {_format_duration(time.perf_counter() - t_phase_start)}.")
     
