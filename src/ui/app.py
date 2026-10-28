@@ -884,10 +884,9 @@ def main():
 
             # Interactive Time Scrubber Slider
             st.markdown("#### 🎛️ Interactive Time Scrubber & Frame Inspector")
-            scrub_idx = st.slider(
+            scrub_idx = st.select_slider(
                 "Select Simulation Timeframe",
-                min_value=0,
-                max_value=len(df_rep) - 1,
+                options=range(len(df_rep)),
                 value=int(peak_vel_row.name) if isinstance(peak_vel_row.name, (int, np.integer)) else 0,
                 format_func=lambda i: f"{df_rep.iloc[i]['timestamp']} (T+{df_rep.iloc[i]['hours_elapsed']:.1f}h) — {df_rep.iloc[i]['frame_new_comments']} comments",
                 key="replay_scrubber_slider",
@@ -971,13 +970,34 @@ def main():
             if not plot_topics.empty:
                 st.subheader("🎯 Dynamic Topic Resonance & Engagement Explorer")
                 st.caption("Customize axes and sizing to uncover high-demand, high-sentiment community themes.")
+                topic_numeric_columns = [
+                    column
+                    for column in ("Count", "total_likes", "avg_likes", "max_likes")
+                    if column in plot_topics.columns
+                ]
                 res_col1, res_col2, res_col3 = st.columns(3)
                 with res_col1:
-                    x_topic_dim = st.selectbox("X-Axis (Discussion Volume):", ["Count", "total_likes"], index=0)
+                    x_topic_dim = st.selectbox(
+                        "X-Axis (Discussion Volume):",
+                        topic_numeric_columns,
+                        index=topic_numeric_columns.index("Count"),
+                    )
                 with res_col2:
-                    y_topic_dim = st.selectbox("Y-Axis (Approval Rate):", ["avg_likes", "max_likes", "Count"], index=0)
+                    y_topic_dim = st.selectbox(
+                        "Y-Axis (Approval Rate):",
+                        topic_numeric_columns,
+                        index=topic_numeric_columns.index("avg_likes")
+                        if "avg_likes" in topic_numeric_columns
+                        else topic_numeric_columns.index("Count"),
+                    )
                 with res_col3:
-                    color_topic_dim = st.selectbox("Color Theme Dimension:", ["Count", "avg_likes", "total_likes"], index=1)
+                    color_topic_dim = st.selectbox(
+                        "Color Theme Dimension:",
+                        topic_numeric_columns,
+                        index=topic_numeric_columns.index("avg_likes")
+                        if "avg_likes" in topic_numeric_columns
+                        else topic_numeric_columns.index("Count"),
+                    )
 
                 fig_resonance = px.scatter(
                     plot_topics,
@@ -1374,10 +1394,9 @@ def main():
 
                 # Interactive Playback Scrubber Slider
                 st.markdown("#### 🎛️ Interactive Scene Scrubber & Quote Montage")
-                scrubber_idx = st.slider(
+                scrubber_idx = st.select_slider(
                     "Scrub Video Playback Timeline:",
-                    min_value=0,
-                    max_value=len(report.clusters) - 1,
+                    options=range(len(report.clusters)),
                     value=0,
                     format_func=lambda i: f"{report.clusters[i].formatted_time} (T+{report.clusters[i].start_sec}s–{report.clusters[i].end_sec}s) — {report.clusters[i].reaction_count} reactions [{report.clusters[i].dominant_reaction}]",
                     key="slider_narrative_scrubber"
@@ -1693,10 +1712,9 @@ def main():
             # 5. Interactive Scene Window Inspector (Time Scrubber)
             st.markdown("#### 🎛️ Interactive Scene Window Inspector")
             if mm_report.aligned_windows:
-                scrub_idx = st.slider(
+                scrub_idx = st.select_slider(
                     "Select Playback Window to Inspect:",
-                    min_value=0,
-                    max_value=len(mm_report.aligned_windows) - 1,
+                    options=range(len(mm_report.aligned_windows)),
                     value=0,
                     format_func=lambda i: f"[{mm_report.aligned_windows[i].formatted_time}] {SCENE_TYPES.get(mm_report.aligned_windows[i].visual_scene_type, {}).get('label', mm_report.aligned_windows[i].visual_scene_type)} ({mm_report.aligned_windows[i].comment_count} comments)",
                     key="slider_mm_scene_scrub"
@@ -4362,7 +4380,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
 

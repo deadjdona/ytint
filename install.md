@@ -2,16 +2,16 @@
 
 ## Requirements
 
-- Python 3.11-3.14
-- The test suite is configured to run on Python 3.11 through 3.14 in GitHub Actions.
+- Python 3.11-3.13
+- The test suite is configured to run on Python 3.11 through 3.13 in GitHub Actions.
 - [`uv`](https://docs.astral.sh/uv/)
 - NVIDIA drivers only when GPU acceleration is required
 
 ## Create the environment
 
 ```powershell
-uv python install 3.14
-uv venv .venv --python 3.14
+uv python install 3.13
+uv venv .venv --python 3.13
 .\.venv\Scripts\Activate.ps1
 
 # Install dependencies (or install in editable mode to register CLI commands)

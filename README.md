@@ -53,9 +53,9 @@ graph TD
 ### 1. Environment Setup
 
 ```powershell
-# Create and activate a Python 3.11-3.14 virtual environment with uv
-uv python install 3.14
-uv venv .venv --python 3.14
+# Create and activate a Python 3.11-3.13 virtual environment with uv
+uv python install 3.13
+uv venv .venv --python 3.13
 .\.venv\Scripts\Activate.ps1
 uv pip install -e .
 ```

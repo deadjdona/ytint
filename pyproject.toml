@@ -7,13 +7,12 @@ name = "ytint"
 version = "0.1.0"
 description = "High-Dimensional YouTube Conversational Analytics & Forensics Platform"
 readme = "README.md"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.11,<3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "pandas>=2.0.0",
